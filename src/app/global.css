@@ -1,4 +1,4 @@
-/* ── Reset ──────────────────────────────────────────── */
+/*Reset*/
 
 *,
 *::before,
@@ -8,7 +8,7 @@
   padding: 0;
 }
 
-/* ── Variables ──────────────────────────────────────── */
+/*Variables*/
 
 :root {
   --bg: #f8fafc;
@@ -42,7 +42,7 @@
   --transition: all 0.2s ease;
 }
 
-/* ── Base ───────────────────────────────────────────── */
+/*Base*/
 
 html {
   scroll-behavior: smooth;
@@ -112,8 +112,6 @@ article {
   z-index: 1;
 }
 
-/* ── Typography ─────────────────────────────────────── */
-
 h1 {
   font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 700;
@@ -152,7 +150,7 @@ a:hover {
   text-decoration: underline;
 }
 
-/* ── Forms ──────────────────────────────────────────── */
+/* Forms */
 
 label {
   display: block;
@@ -211,7 +209,6 @@ input::placeholder {
   gap: 0.5rem;
 }
 
-/* ── Buttons ────────────────────────────────────────── */
 
 button {
   cursor: pointer;
@@ -277,8 +274,6 @@ button.btn-sm {
   border-radius: var(--radius-sm);
 }
 
-/* ── Cards ──────────────────────────────────────────── */
-
 .card {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
@@ -291,7 +286,6 @@ button.btn-sm {
   overflow: hidden;
 }
 
-/* hairline cyan top edge */
 .card::before {
   content: '';
   position: absolute;
@@ -318,8 +312,6 @@ button.btn-sm {
   transform: none;
   box-shadow: var(--shadow);
 }
-
-/* ── Nav ────────────────────────────────────────────── */
 
 .nav {
   position: sticky;
@@ -418,8 +410,6 @@ button.btn-sm {
   white-space: nowrap;
 }
 
-/* ── Banner ─────────────────────────────────────────── */
-
 .banner {
   background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
   border-radius: var(--radius-lg);
@@ -485,7 +475,6 @@ button.btn-sm {
   flex-shrink: 0;
 }
 
-/* ── Stats grid ─────────────────────────────────────── */
 
 .stats-grid {
   display: grid;
@@ -518,7 +507,6 @@ button.btn-sm {
   color: var(--text-muted);
 }
 
-/* ── Icon badges ────────────────────────────────────── */
 
 .icon-badge {
   display: inline-flex;
@@ -537,8 +525,6 @@ button.btn-sm {
 .icon-badge-rose    { background: rgba(244, 63,  94,  0.12); }
 .icon-badge-slate   { background: rgba(100, 116, 139, 0.10); }
 
-/* ── Icon colours ───────────────────────────────────── */
-
 .icon-cyan    { color: #06b6d4; }
 .icon-indigo  { color: #6366f1; }
 .icon-emerald { color: #10b981; }
@@ -546,15 +532,11 @@ button.btn-sm {
 .icon-rose    { color: #f43f5e; }
 .icon-slate   { color: #64748b; }
 .icon-white   { color: #ffffff; }
-
-/* ── Icon sizes ─────────────────────────────────────── */
-
 .icon-sm  { font-size: 0.85rem; }
 .icon-md  { font-size: 1.1rem;  }
 .icon-lg  { font-size: 1.4rem;  }
 .icon-xl  { font-size: 1.75rem; }
 
-/* ── Access pills ───────────────────────────────────── */
 
 .access-grid {
   display: flex;
@@ -582,8 +564,6 @@ button.btn-sm {
   color: var(--accent-hover);
 }
 
-/* ── Section header ─────────────────────────────────── */
-
 .section-header {
   display: flex;
   align-items: center;
@@ -591,7 +571,6 @@ button.btn-sm {
   margin-bottom: 1.5rem;
 }
 
-/* ── Info rows ──────────────────────────────────────── */
 
 .info-row {
   display: flex;
@@ -618,7 +597,6 @@ button.btn-sm {
   font-weight: 500;
 }
 
-/* ── Divider ────────────────────────────────────────── */
 
 .divider {
   border: none;
@@ -626,7 +604,7 @@ button.btn-sm {
   margin: 1.5rem 0;
 }
 
-/* ── Auth page ──────────────────────────────────────── */
+/* Auth page  */
 
 .auth-page {
   min-height: 100vh;
@@ -670,8 +648,6 @@ button.btn-sm {
   gap: 0.4rem;
 }
 
-/* ── Error message ──────────────────────────────────── */
-
 .error-msg {
   display: flex;
   align-items: center;
@@ -684,7 +660,7 @@ button.btn-sm {
   border-radius: var(--radius-sm);
 }
 
-/* ── Page layout ────────────────────────────────────── */
+/* Page layout*/
 
 .page {
   min-height: 100vh;
@@ -705,7 +681,7 @@ button.btn-sm {
   font-size: 0.95rem;
 }
 
-/* ── Utilities ──────────────────────────────────────── */
+/* Utilities */
 
 .container {
   max-width: 1200px;

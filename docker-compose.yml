@@ -31,6 +31,8 @@ services:
       POSTGRES_DB: sentry_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: Ssj051004
+      TZ: UTC
+      PGTZ: UTC
     ports:
       - "5432:5432"
     volumes:

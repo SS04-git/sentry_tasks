@@ -15,3 +15,11 @@ export async function postData(endpoint: string, body: unknown) {
   if (!res.ok) throw new Error(`POST ${endpoint} failed: ${res.status}`);
   return res.json();
 }
+
+export async function fetchWithAuth(endpoint: string, token: string) {
+  const res = await fetch(`${API_URL}/${endpoint}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`GET ${endpoint} failed: ${res.status}`);
+  return res.json();
+}

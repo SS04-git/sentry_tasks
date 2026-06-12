@@ -27,73 +27,133 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="auth-page">
-      <div className="auth-box">
+    <main className="auth-layout">
 
-        <div className="auth-header">
-          <div className="auth-icon">
-            <i className="fa-solid fa-shield-halved icon-white" style={{ fontSize: '1.6rem' }}></i>
-          </div>
-          <h1>Sentry</h1>
-          <p>Sign in to access your workspace</p>
-        </div>
+  <div className="auth-left">
 
-        <div className="card" style={{ padding: '2rem' }}>
+    <div className="auth-brand">
+      <div className="auth-brand-icon">
+        <i className="fa-solid fa-shield-halved"></i>
+      </div>
 
-          <form onSubmit={handleSubmit} autoComplete="off">
-            <div className="form-group">
-              <div className="field">
-                <label>
-                  <i className="fa-solid fa-envelope icon-slate icon-sm" style={{ marginRight: '0.4rem' }}></i>
-                  Email address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  autoComplete="off"
-                />
-              </div>
-              <div className="field">
-                <label>
-                  <i className="fa-solid fa-lock icon-slate icon-sm" style={{ marginRight: '0.4rem' }}></i>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  autoComplete="new-password"
-                />
-              </div>
-
-              {error && (
-                <p style={{ color: '#f43f5e', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <i className="fa-solid fa-circle-exclamation"></i>
-                  {error}
-                </p>
-              )}
-
-              <button type="submit" disabled={isLoading} style={{ marginTop: '0.5rem' }}>
-                {isLoading
-                  ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>Signing in...</>
-                  : <><i className="fa-solid fa-arrow-right-to-bracket" style={{ marginRight: '0.5rem' }}></i>Sign in</>
-                }
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <p className="auth-footer">
-          <i className="fa-solid fa-shield-halved icon-slate icon-sm" style={{ marginRight: '0.4rem' }}></i>
-          Protected by enterprise-grade security
+      <div>
+        <h1 className="auth-brand-title">Sentry</h1>
+        <p className="auth-brand-subtitle">
+          Internal Security Monitoring Platform
         </p>
+      </div>
+    </div>
+
+    <div className="auth-hero">
+      <span className="hero-badge">
+        Enterprise Security
+      </span>
+
+      <h2>
+        Monitor access, audit activity,
+        and protect your organization.
+      </h2>
+
+      <p>
+        Centralized dashboard for security teams,
+        managers and administrators.
+      </p>
+
+      <div className="hero-features">
+
+        <div className="hero-feature">
+          <i className="fa-solid fa-user-shield"></i>
+          Role-based access control
+        </div>
+
+        <div className="hero-feature">
+          <i className="fa-solid fa-clipboard-check"></i>
+          Audit logging
+        </div>
+
+        <div className="hero-feature">
+          <i className="fa-solid fa-shield-virus"></i>
+          Security monitoring
+        </div>
 
       </div>
-    </main>
+    </div>
+
+  </div>
+
+  <div className="auth-right">
+
+    <div className="auth-login-card">
+
+      <div className="auth-form-header">
+        <h2>Welcome Back</h2>
+        <p>Sign in to continue to Sentry</p>
+      </div>
+
+      <form onSubmit={handleSubmit} autoComplete="off">
+
+        <div className="form-group">
+
+          <div className="field">
+            <label>Email Address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@sentry.com"
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              required
+            />
+          </div>
+
+          {error && (
+            <div className="error-msg">
+              <i className="fa-solid fa-circle-exclamation"></i>
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="auth-submit"
+          >
+            {isLoading ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin"></i>
+                Signing In...
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-arrow-right-to-bracket"></i>
+                Sign In
+              </>
+            )}
+          </button>
+
+        </div>
+
+      </form>
+
+      <div className="auth-security-note">
+        <i className="fa-solid fa-lock"></i>
+        Protected by enterprise-grade security
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
   );
 }

@@ -24,6 +24,18 @@ export default function DashboardPage() {
   const [auditCount, setAuditCount] = useState<number | null>(null);
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
+  // Mock notifications — replace with real fetch when backend endpoint exists
+  const notifications = [{ id: 1, title: 'Password changed', desc: 'Your password was updated successfully', time: '1d ago', icon: 'fa-key'},];
+  const unreadCount = notifications.length;
+
+  // Mock team — replace with real fetch when backend endpoint exists
+  const teamMembers = [
+    { name: 'Nancy',   role: 'Manager',  status: 'online' },
+    { name: 'Rahul',  role: 'Employee', status: 'online' },
+    { name: 'Alice', role: 'Employee', status: 'offline' },
+    { name: 'Nirmala',   role: 'Employee', status: 'offline' },
+    { name: 'Samuel',   role: 'Employee', status: 'online' },
+  ];
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -134,6 +146,11 @@ export default function DashboardPage() {
     </div>
 
     <div className="nav-user">
+      <div className="nav-notification">
+        <i className="fa-solid fa-bell icon-cyan"></i>
+        {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+      </div>
+
       <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
         <i className="fa-solid fa-circle-user icon-cyan"></i>
 
@@ -313,38 +330,67 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-            </div>
+              </div>
 
             <div className="dashboard-column">
 
+              {/* Recent Notifications */}
               <div className="card">
                 <div className="section-header">
-                  <i className="fa-solid fa-circle-info icon-cyan"></i>
-                  <h2>Account Details</h2>
+                    <i className="fa-solid fa-bell icon-cyan"></i>
+                    <h2>Recent Notifications</h2>
                 </div>
 
-                <div>
-                  {[
-                    { label: 'Email',   value: user?.email },
-                    { label: 'Role',    value: role },
-                    { label: 'Status',  value: 'Active' },
-                    { label: 'Session', value: 'Live' },
-                  ].map((row) => (
-                    <div key={row.label} className="info-row">
-                      <span className="info-row-label">{row.label}</span>
-                      <span className="info-row-value">{row.value}</span>
+                {notifications.length > 0 ? (
+                  <div className="notification-single">
+                    <i className={`fa-solid ${notifications[0].icon} icon-cyan notification-single-icon`}></i>
+                    <div className="notification-single-body">
+                     <strong>{notifications[0].title}</strong>
+                      <p>{notifications[0].desc}</p>
                     </div>
-                  ))}
-                </div>
+                    <span className="notification-time">{notifications[0].time}</span>
+                  </div>
+                ) : (
+                <p style={{ fontSize: '0.875rem' }}>No new notifications</p>
+                )}
               </div>
+
+              {/* Team Info — admin only for now, until manager_id/team_id exists */}
+              {role === 'admin' && (
+                <div className="card">
+                  <div className="section-header">
+                    <i className="fa-solid fa-people-group icon-cyan"></i>
+                    <h2>Team</h2>
+                  </div>
+
+                  <div className="team-list">
+                    {teamMembers.map((member) => (
+                      <div className="team-item" key={member.name}>
+                        <div className="team-avatar">
+                          <i className="fa-solid fa-user"></i>
+                          <span className={`team-status-dot ${member.status}`}></span>
+                        </div>
+                        <div className="team-info">
+                          <strong>{member.name}</strong>
+                          <p>{member.role}</p>
+                        </div>
+                        <span className={`team-status-label ${member.status}`}>
+                          {member.status === 'online' ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+
+            </div>
 
             </div>
 
           </div>
 
         </div>
-
-      </div>
     </ProtectedRoute>
   );
 }

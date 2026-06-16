@@ -40,6 +40,7 @@
   --nav-height: 64px;
 
   --transition: all 0.2s ease;
+  --gradient-accent: linear-gradient(135deg, #06b6d4, #0891b2);
 }
 
 /*Base*/
@@ -932,6 +933,115 @@ button.btn-sm {
   flex-shrink: 0;
 }
 
+/* Navbar notification bell */
+.nav-notification {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nav-notification:hover { background: rgba(255,255,255,0.06); }
+.notification-badge {
+  position: absolute;
+  top: 2px; right: 2px;
+  background: #ff5c5c;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 50%;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+/* Team list */
+.team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.team-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.team-avatar {
+  position: relative;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.team-status-dot {
+  position: absolute;
+  bottom: -2px; right: -2px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid #0f1115;
+}
+.team-status-dot.online  { background: #3ddc97; }
+.team-status-dot.offline { background: #555; }
+.team-info { flex: 1; min-width: 0; }
+.team-info strong { display: block; font-size: 0.875rem; }
+.team-info p { font-size: 0.75rem; color: #888; margin: 0; }
+.team-status-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+.team-status-label.online  { color: #3ddc97; background: rgba(61,220,151,0.12); }
+.team-status-label.offline { color: #888; background: rgba(136,136,136,0.12); }
+
+/* Notification items */
+.notification-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.notification-single {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 4px;
+}
+.notification-single-icon {
+  font-size: 1.1rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.notification-single-body {
+  flex: 1;
+  min-width: 0;
+}
+.notification-single-body strong {
+  display: block;
+  font-size: 0.875rem;
+  margin-bottom: 2px;
+}
+.notification-single-body p {
+  font-size: 0.8rem;
+  color: #999;
+  margin: 0;
+}
+.notification-time {
+  font-size: 0.7rem;
+  color: #666;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .quick-actions {
   display: flex;
   flex-direction: column;
@@ -958,7 +1068,12 @@ button.btn-sm {
   .dashboard-top,
   .dashboard-grid {
     grid-template-columns: 1fr;
-  }
+    align-items: stretch;
+}
+.dashboard-column {
+  display: flex;
+  flex-direction: column;
+}
 
   .stats-grid {
     grid-template-columns: repeat(
@@ -1152,14 +1267,6 @@ button.btn-sm {
   }
 }
 
-
-.nav-link i,
-.nav-email i {
-  font-size: 1.25rem;
-}
-
-
-
 .profile-trigger {
   cursor: pointer;
   display: flex;
@@ -1203,7 +1310,7 @@ button.btn-sm {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  background: var(--gradient-accent);
   display: flex;
   align-items: center;
   justify-content: center;

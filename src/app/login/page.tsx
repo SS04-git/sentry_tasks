@@ -16,6 +16,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+
     try {
       await login(email, password);
       router.push('/dashboard');
@@ -24,6 +25,10 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGitHubLogin = () => {
+    window.location.href = "http://localhost:8000/api/v1/github/login";
   };
 
   return (
@@ -140,6 +145,17 @@ export default function LoginPage() {
               </>
             )}
           </button>
+
+          {/* GitHub Login Button */}
+              <button
+                type="button"
+                onClick={handleGitHubLogin}
+                className="github-btn"
+                style={{ marginTop: "10px" }}
+              >
+                <i className="fa-brands fa-github"></i>
+                Login with GitHub
+              </button>
 
         </div>
 

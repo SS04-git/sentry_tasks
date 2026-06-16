@@ -6,9 +6,13 @@ from app.core.logging import logger
 from app.core.dependencies import require_role
 from app.api.v1.auth import router as auth_router
 from app.api.v1.users import router as users_router
+from app.api.v1 import github
+import os
 
 logger.info("Starting application")
 app = FastAPI()
+
+print("CLIENT_SECRET exists:", bool(os.getenv("GITHUB_CLIENT_SECRET")))
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,6 +24,12 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
+
+app.include_router(
+    github.router,
+    prefix="/api/v1/github",
+    tags=["GitHub"]
+)
 
 @app.get("/health")
 def health():

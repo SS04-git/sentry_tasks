@@ -1,7 +1,6 @@
 from app.db.database import Base
 from app.models.user import User
 from app.models.audit_log import AuditLog
-from app.models.access_event import (
-    RawAccessEvent,
-    FactAccessEvent,
-)
+from app.models.access_event import RawAccessEvent
+from app.models.access_event import FactAccessEvent
+from app.models.github_account import GitHubAccount

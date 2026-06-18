@@ -27,11 +27,11 @@ export default function RepositoriesPage() {
 
   const disconnectGitHub = async () => {
   try {
-    await fetch('http://localhost:8000/api/v1/github/disconnect', {
+    await fetch('http://localhost:8000/api/v1/github/disconnect', 
+    {
       method: 'DELETE',
     });
     setRepos([]);
-    logout();
   } catch (err) {
     console.error('Disconnect error:', err);
   }
@@ -193,9 +193,7 @@ export default function RepositoriesPage() {
               {repos.map((repo) => (
                 <a
                   key={repo.id}
-                  href={repo.html_url ?? '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`/repositories/${repo.owner.login}/${repo.name}`}
                   className="card stat-card"
                   style={{ textDecoration: 'none' }}
                 >

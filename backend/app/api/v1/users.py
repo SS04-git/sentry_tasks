@@ -86,6 +86,14 @@ def create_user(
     log_action(db, "create_user", current_user["email"], data.email, f"role={data.role}")
     return user
 
+@router.get("/audit-logs")
+def get_audit_logs(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("admin", "leadership")),
+):
+    logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(100).all()
+    return logs
+
 
 @router.put("/{user_id}", response_model=UserResponse)
 def update_user(
@@ -166,12 +174,3 @@ def assign_role(
 
     log_action(db, "assign_role", current_user["email"], user.email, f"{old_role} → {data.role}")
     return user
-
-
-@router.get("/audit-logs")
-def get_audit_logs(
-    db: Session = Depends(get_db),
-    current_user=Depends(require_role("admin", "leadership")),
-):
-    logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(100).all()
-    return logs

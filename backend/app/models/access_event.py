@@ -39,14 +39,20 @@ class FactAccessEvent(Base):
     )
 
     direction = Column(
-        String,
-        nullable=False,
-    )
+    String,
+    nullable=False,
+)
+
+    access_method = Column(
+    String,
+    nullable=False,
+    server_default="card"
+)
 
     source_event_id = Column(
-        UUID(as_uuid=True),
-        nullable=True,
-    )
+    UUID(as_uuid=True),
+    nullable=True,
+)
 
     created_at = Column(
         DateTime(timezone=True),

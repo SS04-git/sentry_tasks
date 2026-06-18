@@ -15,6 +15,21 @@ interface AuditLog {
   created_at: string;
 }
 
+interface AttendancePreview {
+  own: {
+    days_present: number;
+    attendance_pct: number;
+    avg_arrival: string | null;
+    avg_session_hours: number;
+    days_this_week: number;
+  };
+  cohort: {
+    size: number;
+    avg_attendance_pct: number | null;
+    avg_session_hours: number | null;
+  };
+}
+
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const role = user?.role ?? 'employee';
@@ -24,17 +39,20 @@ export default function DashboardPage() {
   const [auditCount, setAuditCount] = useState<number | null>(null);
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
-  // Mock notifications — replace with real fetch when backend endpoint exists
-  const notifications = [{ id: 1, title: 'Password changed', desc: 'Your password was updated successfully', time: '1d ago', icon: 'fa-key'},];
+  const [attendance, setAttendance] = useState<AttendancePreview | null>(null);
+  const [loadingAttendance, setLoadingAttendance] = useState(true);
+
+  const notifications = [
+    { id: 1, title: 'Password changed', desc: 'Your password was updated successfully', time: '1d ago', icon: 'fa-key' },
+  ];
   const unreadCount = notifications.length;
 
-  // Mock team — replace with real fetch when backend endpoint exists
   const teamMembers = [
-    { name: 'Nancy',   role: 'Manager',  status: 'online' },
-    { name: 'Rahul',  role: 'Employee', status: 'online' },
-    { name: 'Alice', role: 'Employee', status: 'offline' },
-    { name: 'Nirmala',   role: 'Employee', status: 'offline' },
-    { name: 'Samuel',   role: 'Employee', status: 'online' },
+    { name: 'Nancy',   role: 'Manager',  status: 'online'  },
+    { name: 'Rahul',   role: 'Employee', status: 'online'  },
+    { name: 'Alice',   role: 'Employee', status: 'offline' },
+    { name: 'Nirmala', role: 'Employee', status: 'offline' },
+    { name: 'Samuel',  role: 'Employee', status: 'online'  },
   ];
 
   useEffect(() => {
@@ -51,13 +69,10 @@ export default function DashboardPage() {
     const loadDashboardData = async () => {
       const token = getToken();
       if (!token) return;
-
       try {
-        // only admin/leadership can call these endpoints
         if (['admin', 'leadership'].includes(role)) {
           const users = await fetchWithAuth('api/v1/users/', token);
           setActiveUsers(users.filter((u: { is_active: boolean }) => u.is_active).length);
-
           const logs: AuditLog[] = await fetchWithAuth('api/v1/users/audit-logs', token);
           setAuditCount(logs.length);
           setRecentLogs(logs.slice(0, 3));
@@ -68,24 +83,35 @@ export default function DashboardPage() {
         setLoadingStats(false);
       }
     };
-
     loadDashboardData();
   }, [role]);
+
+  useEffect(() => {
+    const loadAttendance = async () => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const data: AttendancePreview = await fetchWithAuth('api/v1/attendance/preview', token);
+        setAttendance(data);
+      } catch (err) {
+        console.error('Failed to load attendance preview', err);
+      } finally {
+        setLoadingAttendance(false);
+      }
+    };
+    loadAttendance();
+  }, []);
 
   const stats = [
     {
       label: 'Active Users',
-      value: ['admin', 'leadership'].includes(role)
-        ? (activeUsers ?? '—')
-        : '—',
+      value: ['admin', 'leadership'].includes(role) ? (activeUsers ?? '—') : '—',
       icon: 'fa-users',
       trend: '',
     },
     {
       label: 'Audit Events',
-      value: ['admin', 'leadership'].includes(role)
-        ? (auditCount ?? '—')
-        : '—',
+      value: ['admin', 'leadership'].includes(role) ? (auditCount ?? '—') : '—',
       icon: 'fa-clipboard-list',
       trend: '',
     },
@@ -103,7 +129,6 @@ export default function DashboardPage() {
     },
   ];
 
-  // map audit action -> readable label + icon
   const actionMeta: Record<string, { title: string; desc: (l: AuditLog) => string }> = {
     create_user:  { title: 'User Created',  desc: (l) => `${l.target_user} was added` },
     update_user:  { title: 'User Updated',  desc: (l) => `${l.target_user} was updated` },
@@ -112,106 +137,97 @@ export default function DashboardPage() {
     assign_role:  { title: 'Role Changed',  desc: (l) => `${l.target_user}: ${l.detail ?? ''}` },
   };
 
+  // Attendance bar helper
+  const AttendanceBar = ({ pct, color }: { pct: number; color: string }) => (
+    <div style={{ height: '6px', borderRadius: '999px', background: 'var(--surface-alt)', overflow: 'hidden', marginTop: '0.4rem' }}>
+      <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: color, borderRadius: '999px', transition: 'width 0.6s ease' }} />
+    </div>
+  );
+
+  const weekDays = ['M', 'T', 'W', 'T', 'F'];
+  const daysThisWeek = attendance?.own?.days_this_week ?? 0;
+
   return (
     <ProtectedRoute>
       <div className="page">
 
+        {/* ── Nav ── */}
         <nav className="nav">
-  <div className="nav-inner">
-
-    <div className="nav-logo">
-      <div className="nav-logo-icon">
-        <i className="fa-solid fa-shield-halved icon-white icon-md"></i>
-      </div>
-      <span className="nav-logo-text">Sentry</span>
-    </div>
-
-    <div className="nav-links">
-      <a href="/dashboard" className="nav-link active">
-        <i className="fa-solid fa-gauge icon-sm" style={{ marginRight: '0.4rem' }}></i>
-        Dashboard
-      </a>
-      {['admin', 'leadership', 'manager'].includes(role) && (
-        <a href="/reports" className="nav-link">
-          <i className="fa-solid fa-chart-bar icon-sm" style={{ marginRight: '0.4rem' }}></i>
-          Reports
-        </a>
-      )}
-      {['admin', 'leadership'].includes(role) && (
-        <a href="/admin" className="nav-link">
-          <i className="fa-solid fa-screwdriver-wrench icon-sm" style={{ marginRight: '0.4rem' }}></i>
-          Admin
-        </a>
-      )}
-    </div>
-
-    <div className="nav-user">
-      <div className="nav-notification">
-        <i className="fa-solid fa-bell icon-cyan"></i>
-        {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
-      </div>
-
-      <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
-        <i className="fa-solid fa-circle-user icon-cyan"></i>
-
-        {profileOpen && (
-          <div className="profile-dropdown">
-            <div className="profile-dropdown-header">
-              <div className="profile-dropdown-avatar">
-                <i className="fa-solid fa-user"></i>
+          <div className="nav-inner">
+            <div className="nav-logo">
+              <div className="nav-logo-icon">
+                <i className="fa-solid fa-shield-halved icon-white icon-md"></i>
               </div>
-              <div className="profile-dropdown-info">
-                <span className="profile-dropdown-email">{user?.email}</span>
-                <span className="profile-dropdown-role">{role}</span>
-              </div>
+              <span className="nav-logo-text">Sentry</span>
             </div>
 
-            <div className="profile-dropdown-item">
-              <i className="fa-solid fa-user-gear icon-sm"></i>
-              Profile Settings
+            <div className="nav-links">
+              <a href="/dashboard" className="nav-link active">
+                <i className="fa-solid fa-gauge icon-sm" style={{ marginRight: '0.4rem' }}></i>Dashboard
+              </a>
+              {['admin', 'leadership', 'manager'].includes(role) && (
+                <a href="/reports" className="nav-link">
+                  <i className="fa-solid fa-chart-bar icon-sm" style={{ marginRight: '0.4rem' }}></i>Reports
+                </a>
+              )}
+              {['admin', 'leadership'].includes(role) && (
+                <a href="/admin" className="nav-link">
+                  <i className="fa-solid fa-screwdriver-wrench icon-sm" style={{ marginRight: '0.4rem' }}></i>Admin
+                </a>
+              )}
             </div>
-            <div className="profile-dropdown-item">
-              <i className="fa-solid fa-lock icon-sm"></i>
-              Change Password
-            </div>
-            <div className="profile-dropdown-item danger" onClick={logout}>
-              <i className="fa-solid fa-arrow-right-from-bracket icon-sm"></i>
-              Log Out
+
+            <div className="nav-user">
+              <div className="nav-notification">
+                <i className="fa-solid fa-bell icon-cyan"></i>
+                {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+              </div>
+              <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
+                <i className="fa-solid fa-circle-user icon-cyan"></i>
+                {profileOpen && (
+                  <div className="profile-dropdown">
+                    <div className="profile-dropdown-header">
+                      <div className="profile-dropdown-avatar">
+                        <i className="fa-solid fa-user"></i>
+                      </div>
+                      <div className="profile-dropdown-info">
+                        <span className="profile-dropdown-email">{user?.email}</span>
+                        <span className="profile-dropdown-role">{role}</span>
+                      </div>
+                    </div>
+                    <div className="profile-dropdown-item">
+                      <i className="fa-solid fa-user-gear icon-sm"></i>Profile Settings
+                    </div>
+                    <div className="profile-dropdown-item">
+                      <i className="fa-solid fa-lock icon-sm"></i>Change Password
+                    </div>
+                    <div className="profile-dropdown-item danger" onClick={logout}>
+                      <i className="fa-solid fa-arrow-right-from-bracket icon-sm"></i>Log Out
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        )}
-      </div>
-    </div>
-
-  </div>
-</nav>
+        </nav>
 
         <div className="page-body">
 
-          {/* Top Section */}
+          {/* Top banner + user card */}
           <div className="dashboard-top">
-
             <div className="banner">
               <div>
                 <p className="banner-label">
                   <i className="fa-solid fa-hand-wave"></i>
                   Welcome back
                 </p>
-
-                <h1 className="banner-title">
-                  {user?.email?.split("@")[0]}
-                </h1>
-
-                <p className="banner-subtitle">
-                  Security monitoring dashboard
-                </p>
-
+                <h1 className="banner-title">{user?.email?.split('@')[0]}</h1>
+                <p className="banner-subtitle">Security monitoring dashboard</p>
                 <span className="banner-badge">
                   <i className="fa-solid fa-id-badge"></i>
                   {role}
                 </span>
               </div>
-
               <div className="banner-shield">
                 <i className="fa-solid fa-shield-halved"></i>
               </div>
@@ -221,24 +237,16 @@ export default function DashboardPage() {
               <div className="user-avatar">
                 <i className="fa-solid fa-user"></i>
               </div>
-
-              <div className="user-name">
-                {user?.email?.split("@")[0]}
-              </div>
-
-              <div className="user-role">
-                {role}
-              </div>
-
+              <div className="user-name">{user?.email?.split('@')[0]}</div>
+              <div className="user-role">{role}</div>
               <div className="user-status">
                 <span className="status-dot"></span>
                 Active Session
               </div>
             </div>
-
           </div>
 
-          {/* Stats */}
+          {/* Stats strip */}
           <div className="stats-grid">
             {stats.map((stat) => (
               <div className="card stat-card" key={stat.label}>
@@ -246,45 +254,35 @@ export default function DashboardPage() {
                   <div className="icon-badge icon-badge-cyan">
                     <i className={`fa-solid ${stat.icon} icon-cyan`}></i>
                   </div>
-                  {stat.trend && (
-                    <div className="stat-trend">
-                      {stat.trend}
-                    </div>
-                  )}
+                  {stat.trend && <div className="stat-trend">{stat.trend}</div>}
                 </div>
-
                 <div className="stat-value">
                   {loadingStats && ['admin', 'leadership'].includes(role) && stat.label !== 'Last Login'
                     ? <i className="fa-solid fa-spinner fa-spin"></i>
                     : stat.value}
                 </div>
-
-                <div className="stat-label">
-                  {stat.label}
-                </div>
+                <div className="stat-label">{stat.label}</div>
               </div>
             ))}
           </div>
 
-          {/* Main Grid */}
+          {/* Main grid */}
           <div className="dashboard-grid">
 
+            {/* Left column */}
             <div className="dashboard-column">
 
+              {/* Recent security activity */}
               <div className="card">
                 <div className="section-header">
                   <i className="fa-solid fa-clock-rotate-left icon-cyan"></i>
                   <h2>Recent Security Activity</h2>
                 </div>
-
                 <div className="activity-list">
                   {['admin', 'leadership'].includes(role) ? (
                     recentLogs.length > 0 ? (
                       recentLogs.map((log) => {
-                        const meta = actionMeta[log.action] ?? {
-                          title: log.action,
-                          desc: () => log.detail ?? '',
-                        };
+                        const meta = actionMeta[log.action] ?? { title: log.action, desc: () => log.detail ?? '' };
                         return (
                           <div className="activity-item" key={log.id}>
                             <div className="activity-dot"></div>
@@ -299,25 +297,23 @@ export default function DashboardPage() {
                       <p style={{ fontSize: '0.875rem' }}>No recent activity</p>
                     )
                   ) : (
-                    <p style={{ fontSize: '0.875rem' }}>
-                      Activity logs are visible to admin and leadership roles only.
-                    </p>
+                    <p style={{ fontSize: '0.875rem' }}>Activity logs are visible to admin and leadership roles only.</p>
                   )}
                 </div>
               </div>
 
+              {/* Permissions */}
               <div className="card">
                 <div className="section-header">
                   <i className="fa-solid fa-key icon-cyan"></i>
                   <h2>Permissions</h2>
                 </div>
-
                 <div className="access-grid">
                   {[
-                    { label: 'Dashboard',    icon: 'fa-gauge',            roles: ['admin','leadership','manager','employee'] },
-                    { label: 'Reports',      icon: 'fa-chart-bar',        roles: ['admin','leadership','manager'] },
+                    { label: 'Dashboard',    icon: 'fa-gauge',              roles: ['admin','leadership','manager','employee'] },
+                    { label: 'Reports',      icon: 'fa-chart-bar',          roles: ['admin','leadership','manager'] },
                     { label: 'Admin',        icon: 'fa-screwdriver-wrench', roles: ['admin','leadership'] },
-                    { label: 'Manage Users', icon: 'fa-users-gear',       roles: ['admin'] },
+                    { label: 'Manage Users', icon: 'fa-users-gear',         roles: ['admin'] },
                   ].map((item) => {
                     const allowed = item.roles.includes(role);
                     return (
@@ -330,39 +326,155 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              </div>
-
-            <div className="dashboard-column">
-
-              {/* Recent Notifications */}
+              {/* ── Attendance Preview Card (SENTRY-23) ── */}
               <div className="card">
-                <div className="section-header">
-                    <i className="fa-solid fa-bell icon-cyan"></i>
-                    <h2>Recent Notifications</h2>
+                <div className="section-header" style={{ marginBottom: '1.25rem' }}>
+                  <i className="fa-solid fa-calendar-check icon-cyan"></i>
+                  <h2>My Attendance</h2>
+                  {['admin', 'leadership', 'manager'].includes(role) && (
+                    <a
+                      href="/reports/attendance"
+                      style={{
+                        marginLeft: 'auto', fontSize: '0.78rem', fontWeight: 600,
+                        color: 'var(--accent)', textDecoration: 'none',
+                        display: 'flex', alignItems: 'center', gap: '0.3rem',
+                      }}
+                    >
+                      Full report <i className="fa-solid fa-arrow-right" style={{ fontSize: '0.7rem' }}></i>
+                    </a>
+                  )}
                 </div>
 
+                {loadingAttendance ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
+                    <i className="fa-solid fa-spinner fa-spin icon-cyan"></i>
+                    <p style={{ margin: 0, fontSize: '0.875rem' }}>Loading attendance…</p>
+                  </div>
+                ) : !attendance ? (
+                  <p style={{ fontSize: '0.875rem' }}>No attendance data available.</p>
+                ) : (
+                  <>
+                    {/* This-week dots */}
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        This week
+                      </p>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {weekDays.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+                            <div style={{
+                              width: '32px', height: '32px', borderRadius: '8px',
+                              background: i < daysThisWeek
+                                ? 'linear-gradient(135deg, #06b6d4, #0891b2)'
+                                : 'var(--surface-alt)',
+                              border: i < daysThisWeek ? 'none' : '1px solid var(--border)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              {i < daysThisWeek && (
+                                <i className="fa-solid fa-check" style={{ color: 'white', fontSize: '0.7rem' }}></i>
+                              )}
+                            </div>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 500 }}>{d}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* KPIs */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                      {[
+                        {
+                          label: 'Attendance rate',
+                          value: `${attendance.own.attendance_pct ?? 0}%`,
+                          sub: '30-day window',
+                          pct: attendance.own.attendance_pct ?? 0,
+                          color: attendance.own.attendance_pct >= 80 ? '#10b981' : attendance.own.attendance_pct >= 60 ? '#f59e0b' : '#f43f5e',
+                        },
+                        {
+                          label: 'Avg session',
+                          value: `${attendance.own.avg_session_hours?.toFixed(1) ?? '—'}h`,
+                          sub: 'per day',
+                          pct: Math.min((attendance.own.avg_session_hours / 10) * 100, 100),
+                          color: '#06b6d4',
+                        },
+                      ].map((kpi) => (
+                        <div key={kpi.label} style={{ padding: '0.85rem', borderRadius: '12px', background: 'rgba(6,182,212,0.04)', border: '1px solid rgba(6,182,212,0.1)' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>{kpi.value}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{kpi.label}</div>
+                          <AttendanceBar pct={kpi.pct} color={kpi.color} />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Arrival + cohort comparison */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      <div className="info-row" style={{ padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <span className="info-row-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <i className="fa-solid fa-clock icon-cyan" style={{ fontSize: '0.8rem' }}></i>
+                          Avg arrival
+                        </span>
+                        <span className="info-row-value">{attendance.own.avg_arrival ?? '—'}</span>
+                      </div>
+                      <div className="info-row" style={{ padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
+                        <span className="info-row-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <i className="fa-solid fa-calendar-days icon-cyan" style={{ fontSize: '0.8rem' }}></i>
+                          Days present
+                        </span>
+                        <span className="info-row-value">{attendance.own.days_present} / 30 days</span>
+                      </div>
+                      {attendance.cohort.avg_attendance_pct !== null && (
+                        <div className="info-row" style={{ padding: '0.6rem 0' }}>
+                          <span className="info-row-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <i className="fa-solid fa-users icon-cyan" style={{ fontSize: '0.8rem' }}></i>
+                            Team avg
+                          </span>
+                          <span className="info-row-value">{attendance.cohort.avg_attendance_pct}%</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Privacy caveat */}
+                    {attendance.cohort.avg_attendance_pct === null && (
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '0.75rem', fontStyle: 'italic' }}>
+                        Team comparison hidden — cohort too small.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+
+            </div>
+
+            {/* Right column */}
+            <div className="dashboard-column">
+
+              {/* Notifications */}
+              <div className="card">
+                <div className="section-header">
+                  <i className="fa-solid fa-bell icon-cyan"></i>
+                  <h2>Recent Notifications</h2>
+                </div>
                 {notifications.length > 0 ? (
                   <div className="notification-single">
                     <i className={`fa-solid ${notifications[0].icon} icon-cyan notification-single-icon`}></i>
                     <div className="notification-single-body">
-                     <strong>{notifications[0].title}</strong>
+                      <strong>{notifications[0].title}</strong>
                       <p>{notifications[0].desc}</p>
                     </div>
                     <span className="notification-time">{notifications[0].time}</span>
                   </div>
                 ) : (
-                <p style={{ fontSize: '0.875rem' }}>No new notifications</p>
+                  <p style={{ fontSize: '0.875rem' }}>No new notifications</p>
                 )}
               </div>
 
-              {/* Team Info — admin only for now, until manager_id/team_id exists */}
+              {/* Team — admin only */}
               {role === 'admin' && (
                 <div className="card">
                   <div className="section-header">
                     <i className="fa-solid fa-people-group icon-cyan"></i>
                     <h2>Team</h2>
                   </div>
-
                   <div className="team-list">
                     {teamMembers.map((member) => (
                       <div className="team-item" key={member.name}>
@@ -383,14 +495,10 @@ export default function DashboardPage() {
                 </div>
               )}
 
-
             </div>
-
-            </div>
-
           </div>
-
         </div>
+      </div>
     </ProtectedRoute>
   );
 }

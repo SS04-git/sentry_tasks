@@ -7,11 +7,13 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# MUST assign engine
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    connect_args={
+        "options": "-c search_path=public"
+    }
 )
 
 SessionLocal = sessionmaker(

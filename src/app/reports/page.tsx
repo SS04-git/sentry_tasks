@@ -10,15 +10,15 @@ export default function ReportsPage() {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-useEffect(() => {
-  const handleClickOutside = (e: MouseEvent) => {
-    if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-      setProfileOpen(false);
-    }
-  };
-  document.addEventListener('mousedown', handleClickOutside);
-  return () => document.removeEventListener('mousedown', handleClickOutside);
-}, []);
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const reports = [
     {
@@ -39,6 +39,19 @@ useEffect(() => {
       icon: 'fa-triangle-exclamation',
       href: '/reports/security-alerts',
     },
+    {
+      title: 'Attendance & Presence',
+      desc: 'Days present, arrival times, session hours, and weekly trends.',
+      icon: 'fa-calendar-check',
+      href: '/reports/attendance',
+      highlight: true,
+    },
+    {
+       title: 'Occupancy Analytics',
+       desc: 'Peak occupancy, forecasts, and mobile adoption trends.',
+       icon: 'fa-building-user',
+       href: '/reports/occupancy',
+    },
   ];
 
   return (
@@ -47,7 +60,6 @@ useEffect(() => {
 
         <nav className="nav">
           <div className="nav-inner">
-
             <div className="nav-logo">
               <div className="nav-logo-icon">
                 <i className="fa-solid fa-shield-halved icon-white icon-md"></i>
@@ -78,10 +90,8 @@ useEffect(() => {
               <div className="nav-notification">
                 <i className="fa-solid fa-bell icon-cyan"></i>
               </div>
-
               <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
                 <i className="fa-solid fa-circle-user icon-cyan"></i>
-
                 {profileOpen && (
                   <div className="profile-dropdown">
                     <div className="profile-dropdown-header">
@@ -93,37 +103,40 @@ useEffect(() => {
                         <span className="profile-dropdown-role">{role}</span>
                       </div>
                     </div>
-
                     <div className="profile-dropdown-item">
-                      <i className="fa-solid fa-user-gear icon-sm"></i>
-                      Profile Settings
+                      <i className="fa-solid fa-user-gear icon-sm"></i>Profile Settings
                     </div>
                     <div className="profile-dropdown-item">
-                      <i className="fa-solid fa-lock icon-sm"></i>
-                      Change Password
+                      <i className="fa-solid fa-lock icon-sm"></i>Change Password
                     </div>
                     <div className="profile-dropdown-item danger" onClick={logout}>
-                      <i className="fa-solid fa-arrow-right-from-bracket icon-sm"></i>
-                      Log Out
+                      <i className="fa-solid fa-arrow-right-from-bracket icon-sm"></i>Log Out
                     </div>
                   </div>
                 )}
               </div>
             </div>
-
           </div>
         </nav>
 
         <div className="page-body">
-
           <div className="page-header">
             <h1>Reports</h1>
-            <p>Access, audit, and security insights across the organization</p>
+            <p>Access, audit, security insights, and attendance across the organization</p>
           </div>
 
           <div className="stats-grid">
             {reports.map((report) => (
-              <a href={report.href} className="card stat-card" key={report.title} style={{ textDecoration: 'none' }}>
+              <a
+                href={report.href}
+                className="card stat-card"
+                key={report.title}
+                style={{
+                  textDecoration: 'none',
+                  border: report.highlight ? '1px solid rgba(6,182,212,0.3)' : undefined,
+                  background: report.highlight ? 'rgba(6,182,212,0.04)' : undefined,
+                }}
+              >
                 <div className="icon-badge icon-badge-cyan">
                   <i className={`fa-solid ${report.icon} icon-cyan icon-lg`}></i>
                 </div>
@@ -132,7 +145,6 @@ useEffect(() => {
               </a>
             ))}
           </div>
-
         </div>
 
       </div>

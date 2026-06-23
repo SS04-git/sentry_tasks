@@ -15,10 +15,11 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import require_role
 from app.db.database import get_db
 
+from app.core.governance import suppress, should_suppress
+
 logger = logging.getLogger("backend")
 router = APIRouter()
 
-_SUPPRESSION_THRESHOLD = 5
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -29,10 +30,6 @@ def _minutes_to_hhmm(minutes: Optional[float]) -> Optional[str]:
     h = int(minutes) // 60
     m = int(minutes) % 60
     return f"{h:02d}:{m:02d}"
-
-
-def _suppress(value, cohort_size: int):
-    return value if cohort_size >= _SUPPRESSION_THRESHOLD else None
 
 
 # ── KPI ──────────────────────────────────────────────────────────────────────
@@ -78,7 +75,7 @@ def get_attendance_kpi(
             "total_working_days": r["total_working_days"],
             "attendance_pct": float(r["attendance_pct"]) if r["attendance_pct"] else None,
             "avg_arrival": _minutes_to_hhmm(r["avg_arrival_minutes"]),
-            "arrival_consistency": _suppress(
+            "arrival_consistency": suppress(
                 float(r["arrival_stddev_minutes"]) if r["arrival_stddev_minutes"] else None,
                 cohort_size,
             ),
@@ -158,7 +155,7 @@ def get_attendance_trend(
     return {
         "mode": "cohort",
         "cohort_size": cohort_size,
-        "suppressed": cohort_size < _SUPPRESSION_THRESHOLD,
+        "suppressed": should_suppress(cohort_size),
         "data": [
             {
                 "week_start": str(r["week_start"]),
@@ -269,11 +266,11 @@ def get_attendance_preview(
         },
         "cohort": {
             "size": cohort_size,
-            "avg_attendance_pct": _suppress(
+            "avg_attendance_pct": suppress(
                 float(cohort["avg_attendance_pct"]) if cohort and cohort["avg_attendance_pct"] else 0,
                 cohort_size,
             ),
-            "avg_session_hours": _suppress(
+            "avg_session_hours": suppress(
                 float(cohort["avg_session_hours"]) if cohort and cohort["avg_session_hours"] else 0,
                 cohort_size,
             ),

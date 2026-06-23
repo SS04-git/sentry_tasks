@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { useAuth } from '@/app/context/AuthContext';
+import PageNav from "@/app/components/PageNav";
 
 export default function ReportsPage() {
   const { user, logout } = useAuth();
@@ -58,67 +59,8 @@ export default function ReportsPage() {
     <ProtectedRoute>
       <div className="page">
 
-        <nav className="nav">
-          <div className="nav-inner">
-            <div className="nav-logo">
-              <div className="nav-logo-icon">
-                <i className="fa-solid fa-shield-halved icon-white icon-md"></i>
-              </div>
-              <span className="nav-logo-text">Sentry</span>
-            </div>
-
-            <div className="nav-links">
-              <a href="/dashboard" className="nav-link">
-                <i className="fa-solid fa-gauge icon-sm" style={{ marginRight: '0.4rem' }}></i>
-                Dashboard
-              </a>
-              {['admin', 'leadership', 'manager'].includes(role) && (
-                <a href="/reports" className="nav-link active">
-                  <i className="fa-solid fa-chart-bar icon-sm" style={{ marginRight: '0.4rem' }}></i>
-                  Reports
-                </a>
-              )}
-              {['admin', 'leadership'].includes(role) && (
-                <a href="/admin" className="nav-link">
-                  <i className="fa-solid fa-screwdriver-wrench icon-sm" style={{ marginRight: '0.4rem' }}></i>
-                  Admin
-                </a>
-              )}
-            </div>
-
-            <div className="nav-user">
-              <div className="nav-notification">
-                <i className="fa-solid fa-bell icon-cyan"></i>
-              </div>
-              <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
-                <i className="fa-solid fa-circle-user icon-cyan"></i>
-                {profileOpen && (
-                  <div className="profile-dropdown">
-                    <div className="profile-dropdown-header">
-                      <div className="profile-dropdown-avatar">
-                        <i className="fa-solid fa-user"></i>
-                      </div>
-                      <div className="profile-dropdown-info">
-                        <span className="profile-dropdown-email">{user?.email}</span>
-                        <span className="profile-dropdown-role">{role}</span>
-                      </div>
-                    </div>
-                    <div className="profile-dropdown-item">
-                      <i className="fa-solid fa-user-gear icon-sm"></i>Profile Settings
-                    </div>
-                    <div className="profile-dropdown-item">
-                      <i className="fa-solid fa-lock icon-sm"></i>Change Password
-                    </div>
-                    <div className="profile-dropdown-item danger" onClick={logout}>
-                      <i className="fa-solid fa-arrow-right-from-bracket icon-sm"></i>Log Out
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </nav>
-
+        <PageNav active="reports" />
+        
         <div className="page-body">
           <div className="page-header">
             <h1>Reports</h1>

@@ -1,0 +1,732 @@
+ Image sentry-backend Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 561B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.39kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.12-slim
+#3 DONE 1.2s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/7] FROM docker.io/library/python:3.12-slim@sha256:d764629ce0ddd8c71fd371e9901efb324a95789d2315a47db7e4d27e78f1b0e9
+#5 resolve docker.io/library/python:3.12-slim@sha256:d764629ce0ddd8c71fd371e9901efb324a95789d2315a47db7e4d27e78f1b0e9 0.0s done
+#5 DONE 0.0s
+
+#6 [2/7] WORKDIR /app
+#6 CACHED
+
+#7 [internal] load build context
+#7 transferring context: 663.71kB 0.3s done
+#7 DONE 0.3s
+
+#8 [3/7] RUN apt-get update && apt-get install -y --no-install-recommends     curl     tar     nodejs     npm     build-essential   && rm -rf /var/lib/apt/lists/*
+#8 0.392 Hit:1 http://deb.debian.org/debian trixie InRelease
+#8 0.433 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+#8 0.478 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#8 0.511 Get:4 http://deb.debian.org/debian trixie/main amd64 Packages [9671 kB]
+#8 1.268 Get:5 http://deb.debian.org/debian trixie-updates/main amd64 Packages [5412 B]
+#8 1.294 Get:6 http://deb.debian.org/debian-security trixie-security/main amd64 Packages [222 kB]
+#8 1.820 Fetched 9989 kB in 2s (6438 kB/s)
+#8 1.820 Reading package lists...
+#8 2.256 Reading package lists...
+#8 2.665 Building dependency tree...
+#8 2.783 Reading state information...
+#8 2.935 tar is already the newest version (1.35+dfsg-3.1).
+#8 2.935 tar set to manually installed.
+#8 2.935 The following additional packages will be installed:
+#8 2.935   binutils binutils-common binutils-x86-64-linux-gnu bzip2 cpp cpp-14
+#8 2.935   cpp-14-x86-64-linux-gnu cpp-x86-64-linux-gnu dpkg-dev eslint g++ g++-14
+#8 2.935   g++-14-x86-64-linux-gnu g++-x86-64-linux-gnu gcc gcc-14
+#8 2.935   gcc-14-x86-64-linux-gnu gcc-x86-64-linux-gnu gyp handlebars libasan8
+#8 2.935   libatomic1 libbinutils libbrotli1 libc-dev-bin libc6-dev libcares2 libcc1-0
+#8 2.935   libcom-err2 libcrypt-dev libctf-nobfd0 libctf0 libcurl4t64 libdpkg-perl
+#8 2.935   libexpat1 libgcc-14-dev libgdbm-compat4t64 libgnutls30t64 libgomp1
+#8 2.935   libgprofng0 libgssapi-krb5-2 libhwasan0 libicu76 libidn2-0 libisl23 libitm1
+#8 2.935   libjansson4 libjs-events libjs-inherits libjs-is-typedarray libjs-prettify
+#8 2.935   libjs-regenerate libjs-source-map libjs-sprintf-js
+#8 2.935   libjs-typedarray-to-buffer libjs-util libk5crypto3 libkeyutils1 libkrb5-3
+#8 2.935   libkrb5support0 libldap2 liblsan0 libmpc3 libmpfr6 libnghttp2-14
+#8 2.936   libnghttp3-9 libnode-dev libnode115 libp11-kit0 libperl5.40 libpsl5t64
+#8 2.936   libpython3-stdlib libpython3.13-minimal libpython3.13-stdlib libquadmath0
+#8 2.936   librtmp1 libsasl2-2 libsasl2-modules-db libsframe1 libssh2-1t64 libssl-dev
+#8 2.936   libstdc++-14-dev libtasn1-6 libtsan2 libubsan1 libunistring5 libuv1-dev
+#8 2.936   libuv1t64 linux-libc-dev make media-types node-abbrev node-acorn
+#8 2.936   node-agent-base node-ajv node-ajv-keywords node-ampproject-remapping
+#8 2.936   node-ansi-escapes node-ansi-regex node-ansi-styles node-anymatch node-aproba
+#8 2.936   node-archy node-are-we-there-yet node-argparse node-arrify node-assert
+#8 2.936   node-async node-async-each node-babel-helper-define-polyfill-provider
+#8 2.936   node-babel-plugin-add-module-exports node-babel-plugin-lodash
+#8 2.936   node-babel-plugin-polyfill-corejs2 node-babel-plugin-polyfill-corejs3
+#8 2.936   node-babel-plugin-polyfill-regenerator node-babel7 node-babel7-runtime
+#8 2.936   node-balanced-match node-base64-js node-binary-extensions
+#8 2.936   node-brace-expansion node-braces node-browserslist node-builtins
+#8 2.936   node-cacache node-camelcase node-caniuse-lite node-chalk node-chokidar
+#8 2.936   node-chownr node-chrome-trace-event node-ci-info node-cjs-module-lexer
+#8 2.936   node-cli-table node-cliui node-clone node-clone-deep node-color-convert
+#8 2.936   node-color-name node-colors node-columnify node-commander node-commondir
+#8 2.936   node-concat-stream node-console-control-strings node-convert-source-map
+#8 2.936   node-copy-concurrently node-core-js node-core-js-compat node-core-js-pure
+#8 2.936   node-core-util-is node-corepack node-css-loader node-css-selector-tokenizer
+#8 2.936   node-data-uri-to-buffer node-debbundle-es-to-primitive node-debug
+#8 2.936   node-decamelize node-decompress-response node-deep-equal node-deep-is
+#8 2.936   node-defaults node-define-properties node-define-property node-defined
+#8 2.936   node-del node-delegates node-depd node-diff node-doctrine
+#8 2.936   node-electron-to-chromium node-encoding node-enhanced-resolve node-envinfo
+#8 2.936   node-err-code node-errno node-error-ex node-es-abstract node-es-module-lexer
+#8 2.936   node-es6-error node-escape-string-regexp node-escodegen node-eslint-scope
+#8 2.936   node-eslint-utils node-eslint-visitor-keys node-espree node-esprima
+#8 2.936   node-esquery node-esrecurse node-estraverse node-esutils node-events
+#8 2.936   node-execa node-fancy-log node-fast-deep-equal node-fast-levenshtein
+#8 2.936   node-fetch node-file-entry-cache node-fill-range node-find-cache-dir
+#8 2.936   node-find-up node-flat-cache node-flatted node-for-in node-for-own
+#8 2.936   node-foreground-child node-fs-readdir-recursive node-fs-write-stream-atomic
+#8 2.936   node-fs.realpath node-function-bind node-functional-red-black-tree
+#8 2.936   node-gauge node-get-caller-file node-get-stream node-glob node-glob-parent
+#8 2.936   node-globals node-globby node-got node-graceful-fs node-gyp node-has-flag
+#8 2.936   node-has-unicode node-hosted-git-info node-http-proxy-agent
+#8 2.936   node-https-proxy-agent node-iconv-lite node-icss-utils node-ieee754
+#8 2.936   node-iferr node-ignore node-imurmurhash node-indent-string node-inflight
+#8 2.936   node-inherits node-ini node-interpret node-ip node-ip-regex node-is-arrayish
+#8 2.936   node-is-binary-path node-is-buffer node-is-descriptor node-is-extendable
+#8 2.936   node-is-extglob node-is-glob node-is-number node-is-path-cwd
+#8 2.936   node-is-path-inside node-is-plain-obj node-is-plain-object node-is-stream
+#8 2.936   node-is-typedarray node-is-windows node-isarray node-isexe node-isobject
+#8 2.936   node-istanbul node-jest-debbundle node-jest-worker node-js-tokens
+#8 2.936   node-js-yaml node-jsesc node-json-buffer node-json-parse-better-errors
+#8 2.936   node-json-schema node-json-schema-traverse node-json-stable-stringify
+#8 2.936   node-json5 node-jsonify node-jsonparse node-kind-of node-levn
+#8 2.936   node-loader-runner node-locate-path node-lodash node-lodash-packages
+#8 2.936   node-lowercase-keys node-lru-cache node-make-dir node-memfs node-memory-fs
+#8 2.936   node-merge-stream node-micromatch node-mime node-mime-types node-mimic-fn
+#8 2.936   node-mimic-response node-minimatch node-minimist node-minipass node-mkdirp
+#8 2.936   node-move-concurrently node-ms node-mute-stream node-n3 node-negotiator
+#8 2.936   node-neo-async node-nopt node-normalize-package-data node-normalize-path
+#8 2.936   node-npm-bundled node-npm-package-arg node-npm-run-path node-npmlog
+#8 2.936   node-object-assign node-object-inspect node-once node-optimist
+#8 2.936   node-optionator node-osenv node-p-cancelable node-p-limit node-p-locate
+#8 2.936   node-p-map node-parse-json node-path-dirname node-path-exists
+#8 2.936   node-path-is-absolute node-path-is-inside node-path-type node-picocolors
+#8 2.936   node-pify node-pkg-dir node-postcss node-postcss-modules-extract-imports
+#8 2.936   node-postcss-modules-values node-postcss-value-parser node-prelude-ls
+#8 2.936   node-process-nextick-args node-progress node-promise-inflight
+#8 2.936   node-promise-retry node-promzard node-prr node-punycode node-quick-lru
+#8 2.936   node-randombytes node-read node-read-package-json node-read-pkg
+#8 2.936   node-readable-stream node-readdirp node-rechoir node-regenerate
+#8 2.936   node-regenerate-unicode-properties node-regenerator-runtime
+#8 2.936   node-regenerator-transform node-regexpp node-regexpu-core node-regjsgen
+#8 2.936   node-regjsparser node-repeat-string node-require-directory node-resolve
+#8 2.936   node-resolve-cwd node-resolve-from node-resumer node-retry node-rimraf
+#8 2.936   node-run-queue node-safe-buffer node-schema-utils node-semver
+#8 2.936   node-serialize-javascript node-set-blocking node-set-immediate-shim
+#8 2.936   node-shebang-command node-shebang-regex node-signal-exit node-slash
+#8 2.936   node-slice-ansi node-source-list-map node-source-map node-source-map-support
+#8 2.936   node-spdx-correct node-spdx-exceptions node-spdx-expression-parse
+#8 2.936   node-spdx-license-ids node-sprintf-js node-ssri node-string-decoder
+#8 2.936   node-string-width node-strip-ansi node-strip-bom node-strip-eof
+#8 2.936   node-strip-json-comments node-supports-color node-tapable node-tape node-tar
+#8 2.936   node-terser node-text-table node-through node-time-stamp
+#8 2.936   node-to-fast-properties node-to-regex-range node-tslib node-type-check
+#8 2.936   node-typedarray node-typedarray-to-buffer node-undici
+#8 2.936   node-unicode-canonical-property-names-ecmascript
+#8 2.936   node-unicode-match-property-ecmascript
+#8 2.936   node-unicode-match-property-value-ecmascript
+#8 2.936   node-unicode-property-aliases-ecmascript node-unique-filename node-uri-js
+#8 2.936   node-util node-util-deprecate node-uuid node-v8-compile-cache node-v8flags
+#8 2.936   node-validate-npm-package-license node-validate-npm-package-name
+#8 2.936   node-watchpack node-wcwidth.js node-webassemblyjs node-webpack-sources
+#8 2.936   node-which node-wide-align node-wordwrap node-wrap-ansi node-wrappy
+#8 2.936   node-write node-write-file-atomic node-xtend node-y18n node-yallist
+#8 2.936   node-yargs node-yargs-parser patch perl perl-modules-5.40 python3
+#8 2.936   python3-minimal python3-packaging python3.13 python3.13-minimal rpcsvc-proto
+#8 2.937   terser webpack xz-utils
+#8 2.938 Suggested packages:
+#8 2.938   binutils-doc gprofng-gui binutils-gold bzip2-doc cpp-doc gcc-14-locales
+#8 2.938   cpp-14-doc debian-keyring debian-tag2upload-keyring node-babel-eslint
+#8 2.938   node-esprima-fb node-inquirer g++-multilib g++-14-multilib gcc-14-doc
+#8 2.938   gcc-multilib manpages-dev autoconf automake libtool flex bison gdb gcc-doc
+#8 2.938   gcc-14-multilib gdb-x86-64-linux-gnu libc-devtools glibc-doc sq | sqop
+#8 2.938   | rsop | gosop | pgpainless-cli | gpg-sq | gnupg sensible-utils git bzr
+#8 2.938   gnutls-bin krb5-doc krb5-user libjs-angularjs libssl-doc libstdc++-14-doc
+#8 2.938   libuv1-doc make-doc node-babel-plugin-polyfill-es-shims node-babel7-debug
+#8 2.938   javascript-common livescript chai node-jest-diff node-opener ed
+#8 2.938   diffutils-doc perl-doc libterm-readline-gnu-perl
+#8 2.938   | libterm-readline-perl-perl libtap-harness-archive-perl python3-doc
+#8 2.938   python3-tk python3-venv python3.13-venv python3.13-doc binfmt-support
+#8 2.938 Recommended packages:
+#8 2.938   bash-completion fakeroot sq | sqop | rsop | gosop | pgpainless-cli | gpg-sq
+#8 2.938   | gnupg libalgorithm-merge-perl manpages manpages-dev libfile-fcntllock-perl
+#8 2.938   liblocale-gettext-perl javascript-common krb5-locales libldap-common
+#8 2.938   publicsuffix libsasl2-modules node-re2 node-require-from-string nodejs-doc
+#8 2.938   git node-tap
+#8 4.321 The following NEW packages will be installed:
+#8 4.321   binutils binutils-common binutils-x86-64-linux-gnu build-essential bzip2 cpp
+#8 4.321   cpp-14 cpp-14-x86-64-linux-gnu cpp-x86-64-linux-gnu curl dpkg-dev eslint g++
+#8 4.321   g++-14 g++-14-x86-64-linux-gnu g++-x86-64-linux-gnu gcc gcc-14
+#8 4.321   gcc-14-x86-64-linux-gnu gcc-x86-64-linux-gnu gyp handlebars libasan8
+#8 4.321   libatomic1 libbinutils libbrotli1 libc-dev-bin libc6-dev libcares2 libcc1-0
+#8 4.322   libcom-err2 libcrypt-dev libctf-nobfd0 libctf0 libcurl4t64 libdpkg-perl
+#8 4.322   libexpat1 libgcc-14-dev libgdbm-compat4t64 libgnutls30t64 libgomp1
+#8 4.322   libgprofng0 libgssapi-krb5-2 libhwasan0 libicu76 libidn2-0 libisl23 libitm1
+#8 4.322   libjansson4 libjs-events libjs-inherits libjs-is-typedarray libjs-prettify
+#8 4.322   libjs-regenerate libjs-source-map libjs-sprintf-js
+#8 4.322   libjs-typedarray-to-buffer libjs-util libk5crypto3 libkeyutils1 libkrb5-3
+#8 4.322   libkrb5support0 libldap2 liblsan0 libmpc3 libmpfr6 libnghttp2-14
+#8 4.322   libnghttp3-9 libnode-dev libnode115 libp11-kit0 libperl5.40 libpsl5t64
+#8 4.322   libpython3-stdlib libpython3.13-minimal libpython3.13-stdlib libquadmath0
+#8 4.322   librtmp1 libsasl2-2 libsasl2-modules-db libsframe1 libssh2-1t64 libssl-dev
+#8 4.322   libstdc++-14-dev libtasn1-6 libtsan2 libubsan1 libunistring5 libuv1-dev
+#8 4.322   libuv1t64 linux-libc-dev make media-types node-abbrev node-acorn
+#8 4.322   node-agent-base node-ajv node-ajv-keywords node-ampproject-remapping
+#8 4.322   node-ansi-escapes node-ansi-regex node-ansi-styles node-anymatch node-aproba
+#8 4.322   node-archy node-are-we-there-yet node-argparse node-arrify node-assert
+#8 4.322   node-async node-async-each node-babel-helper-define-polyfill-provider
+#8 4.322   node-babel-plugin-add-module-exports node-babel-plugin-lodash
+#8 4.322   node-babel-plugin-polyfill-corejs2 node-babel-plugin-polyfill-corejs3
+#8 4.322   node-babel-plugin-polyfill-regenerator node-babel7 node-babel7-runtime
+#8 4.322   node-balanced-match node-base64-js node-binary-extensions
+#8 4.322   node-brace-expansion node-braces node-browserslist node-builtins
+#8 4.322   node-cacache node-camelcase node-caniuse-lite node-chalk node-chokidar
+#8 4.322   node-chownr node-chrome-trace-event node-ci-info node-cjs-module-lexer
+#8 4.322   node-cli-table node-cliui node-clone node-clone-deep node-color-convert
+#8 4.322   node-color-name node-colors node-columnify node-commander node-commondir
+#8 4.322   node-concat-stream node-console-control-strings node-convert-source-map
+#8 4.322   node-copy-concurrently node-core-js node-core-js-compat node-core-js-pure
+#8 4.322   node-core-util-is node-corepack node-css-loader node-css-selector-tokenizer
+#8 4.322   node-data-uri-to-buffer node-debbundle-es-to-primitive node-debug
+#8 4.322   node-decamelize node-decompress-response node-deep-equal node-deep-is
+#8 4.322   node-defaults node-define-properties node-define-property node-defined
+#8 4.323   node-del node-delegates node-depd node-diff node-doctrine
+#8 4.323   node-electron-to-chromium node-encoding node-enhanced-resolve node-envinfo
+#8 4.323   node-err-code node-errno node-error-ex node-es-abstract node-es-module-lexer
+#8 4.323   node-es6-error node-escape-string-regexp node-escodegen node-eslint-scope
+#8 4.323   node-eslint-utils node-eslint-visitor-keys node-espree node-esprima
+#8 4.323   node-esquery node-esrecurse node-estraverse node-esutils node-events
+#8 4.323   node-execa node-fancy-log node-fast-deep-equal node-fast-levenshtein
+#8 4.323   node-fetch node-file-entry-cache node-fill-range node-find-cache-dir
+#8 4.323   node-find-up node-flat-cache node-flatted node-for-in node-for-own
+#8 4.323   node-foreground-child node-fs-readdir-recursive node-fs-write-stream-atomic
+#8 4.323   node-fs.realpath node-function-bind node-functional-red-black-tree
+#8 4.323   node-gauge node-get-caller-file node-get-stream node-glob node-glob-parent
+#8 4.323   node-globals node-globby node-got node-graceful-fs node-gyp node-has-flag
+#8 4.323   node-has-unicode node-hosted-git-info node-http-proxy-agent
+#8 4.323   node-https-proxy-agent node-iconv-lite node-icss-utils node-ieee754
+#8 4.323   node-iferr node-ignore node-imurmurhash node-indent-string node-inflight
+#8 4.323   node-inherits node-ini node-interpret node-ip node-ip-regex node-is-arrayish
+#8 4.323   node-is-binary-path node-is-buffer node-is-descriptor node-is-extendable
+#8 4.323   node-is-extglob node-is-glob node-is-number node-is-path-cwd
+#8 4.323   node-is-path-inside node-is-plain-obj node-is-plain-object node-is-stream
+#8 4.323   node-is-typedarray node-is-windows node-isarray node-isexe node-isobject
+#8 4.323   node-istanbul node-jest-debbundle node-jest-worker node-js-tokens
+#8 4.323   node-js-yaml node-jsesc node-json-buffer node-json-parse-better-errors
+#8 4.323   node-json-schema node-json-schema-traverse node-json-stable-stringify
+#8 4.323   node-json5 node-jsonify node-jsonparse node-kind-of node-levn
+#8 4.323   node-loader-runner node-locate-path node-lodash node-lodash-packages
+#8 4.323   node-lowercase-keys node-lru-cache node-make-dir node-memfs node-memory-fs
+#8 4.323   node-merge-stream node-micromatch node-mime node-mime-types node-mimic-fn
+#8 4.323   node-mimic-response node-minimatch node-minimist node-minipass node-mkdirp
+#8 4.323   node-move-concurrently node-ms node-mute-stream node-n3 node-negotiator
+#8 4.323   node-neo-async node-nopt node-normalize-package-data node-normalize-path
+#8 4.323   node-npm-bundled node-npm-package-arg node-npm-run-path node-npmlog
+#8 4.323   node-object-assign node-object-inspect node-once node-optimist
+#8 4.323   node-optionator node-osenv node-p-cancelable node-p-limit node-p-locate
+#8 4.323   node-p-map node-parse-json node-path-dirname node-path-exists
+#8 4.323   node-path-is-absolute node-path-is-inside node-path-type node-picocolors
+#8 4.323   node-pify node-pkg-dir node-postcss node-postcss-modules-extract-imports
+#8 4.323   node-postcss-modules-values node-postcss-value-parser node-prelude-ls
+#8 4.323   node-process-nextick-args node-progress node-promise-inflight
+#8 4.323   node-promise-retry node-promzard node-prr node-punycode node-quick-lru
+#8 4.323   node-randombytes node-read node-read-package-json node-read-pkg
+#8 4.323   node-readable-stream node-readdirp node-rechoir node-regenerate
+#8 4.323   node-regenerate-unicode-properties node-regenerator-runtime
+#8 4.323   node-regenerator-transform node-regexpp node-regexpu-core node-regjsgen
+#8 4.323   node-regjsparser node-repeat-string node-require-directory node-resolve
+#8 4.323   node-resolve-cwd node-resolve-from node-resumer node-retry node-rimraf
+#8 4.323   node-run-queue node-safe-buffer node-schema-utils node-semver
+#8 4.323   node-serialize-javascript node-set-blocking node-set-immediate-shim
+#8 4.323   node-shebang-command node-shebang-regex node-signal-exit node-slash
+#8 4.323   node-slice-ansi node-source-list-map node-source-map node-source-map-support
+#8 4.323   node-spdx-correct node-spdx-exceptions node-spdx-expression-parse
+#8 4.323   node-spdx-license-ids node-sprintf-js node-ssri node-string-decoder
+#8 4.323   node-string-width node-strip-ansi node-strip-bom node-strip-eof
+#8 4.323   node-strip-json-comments node-supports-color node-tapable node-tape node-tar
+#8 4.323   node-terser node-text-table node-through node-time-stamp
+#8 4.323   node-to-fast-properties node-to-regex-range node-tslib node-type-check
+#8 4.323   node-typedarray node-typedarray-to-buffer node-undici
+#8 4.323   node-unicode-canonical-property-names-ecmascript
+#8 4.323   node-unicode-match-property-ecmascript
+#8 4.323   node-unicode-match-property-value-ecmascript
+#8 4.323   node-unicode-property-aliases-ecmascript node-unique-filename node-uri-js
+#8 4.323   node-util node-util-deprecate node-uuid node-v8-compile-cache node-v8flags
+#8 4.323   node-validate-npm-package-license node-validate-npm-package-name
+#8 4.323   node-watchpack node-wcwidth.js node-webassemblyjs node-webpack-sources
+#8 4.323   node-which node-wide-align node-wordwrap node-wrap-ansi node-wrappy
+#8 4.323   node-write node-write-file-atomic node-xtend node-y18n node-yallist
+#8 4.323   node-yargs node-yargs-parser nodejs npm patch perl perl-modules-5.40 python3
+#8 4.323   python3-minimal python3-packaging python3.13 python3.13-minimal rpcsvc-proto
+#8 4.323   terser webpack xz-utils
+#8 4.407 0 upgraded, 447 newly installed, 0 to remove and 0 not upgraded.
+#8 4.407 Need to get 132 MB of archives.
+#8 4.407 After this operation, 595 MB of additional disk space will be used.
+#8 4.407 Get:1 http://deb.debian.org/debian trixie/main amd64 libexpat1 amd64 2.7.1-2 [108 kB]
+#8 4.468 Get:2 http://deb.debian.org/debian trixie/main amd64 libpython3.13-minimal amd64 3.13.5-2+deb13u2 [862 kB]
+#8 4.574 Get:3 http://deb.debian.org/debian trixie/main amd64 python3.13-minimal amd64 3.13.5-2+deb13u2 [2217 kB]
+#8 4.754 Get:4 http://deb.debian.org/debian trixie/main amd64 python3-minimal amd64 3.13.5-1 [27.2 kB]
+#8 4.756 Get:5 http://deb.debian.org/debian trixie/main amd64 media-types all 13.0.0 [29.3 kB]
+#8 4.758 Get:6 http://deb.debian.org/debian trixie/main amd64 libpython3.13-stdlib amd64 3.13.5-2+deb13u2 [1958 kB]
+#8 4.901 Get:7 http://deb.debian.org/debian trixie/main amd64 python3.13 amd64 3.13.5-2+deb13u2 [757 kB]
+#8 4.956 Get:8 http://deb.debian.org/debian trixie/main amd64 libpython3-stdlib amd64 3.13.5-1 [10.2 kB]
+#8 4.957 Get:9 http://deb.debian.org/debian trixie/main amd64 python3 amd64 3.13.5-1 [28.2 kB]
+#8 4.959 Get:10 http://deb.debian.org/debian trixie/main amd64 bzip2 amd64 1.0.8-6 [40.5 kB]
+#8 4.963 Get:11 http://deb.debian.org/debian trixie/main amd64 perl-modules-5.40 all 5.40.1-6 [3019 kB]
+#8 5.227 Get:12 http://deb.debian.org/debian trixie/main amd64 libgdbm-compat4t64 amd64 1.24-2 [50.3 kB]
+#8 5.231 Get:13 http://deb.debian.org/debian trixie/main amd64 libperl5.40 amd64 5.40.1-6 [4341 kB]
+#8 5.605 Get:14 http://deb.debian.org/debian trixie/main amd64 perl amd64 5.40.1-6 [267 kB]
+#8 5.628 Get:15 http://deb.debian.org/debian trixie/main amd64 xz-utils amd64 5.8.1-1 [660 kB]
+#8 5.683 Get:16 http://deb.debian.org/debian trixie/main amd64 libsframe1 amd64 2.44-3 [78.4 kB]
+#8 5.690 Get:17 http://deb.debian.org/debian trixie/main amd64 binutils-common amd64 2.44-3 [2509 kB]
+#8 5.908 Get:18 http://deb.debian.org/debian trixie/main amd64 libbinutils amd64 2.44-3 [534 kB]
+#8 5.948 Get:19 http://deb.debian.org/debian trixie/main amd64 libgprofng0 amd64 2.44-3 [808 kB]
+#8 6.015 Get:20 http://deb.debian.org/debian trixie/main amd64 libctf-nobfd0 amd64 2.44-3 [156 kB]
+#8 6.026 Get:21 http://deb.debian.org/debian trixie/main amd64 libctf0 amd64 2.44-3 [88.6 kB]
+#8 6.033 Get:22 http://deb.debian.org/debian trixie/main amd64 libjansson4 amd64 2.14-2+b3 [39.8 kB]
+#8 6.036 Get:23 http://deb.debian.org/debian trixie/main amd64 binutils-x86-64-linux-gnu amd64 2.44-3 [1014 kB]
+#8 6.127 Get:24 http://deb.debian.org/debian trixie/main amd64 binutils amd64 2.44-3 [265 kB]
+#8 6.149 Get:25 http://deb.debian.org/debian trixie/main amd64 libc-dev-bin amd64 2.41-12+deb13u3 [59.8 kB]
+#8 6.152 Get:26 http://deb.debian.org/debian-security trixie-security/main amd64 linux-libc-dev all 6.12.94-1 [2848 kB]
+#8 6.391 Get:27 http://deb.debian.org/debian trixie/main amd64 libcrypt-dev amd64 1:4.4.38-1 [119 kB]
+#8 6.398 Get:28 http://deb.debian.org/debian trixie/main amd64 rpcsvc-proto amd64 1.4.3-1 [63.3 kB]
+#8 6.402 Get:29 http://deb.debian.org/debian trixie/main amd64 libc6-dev amd64 2.41-12+deb13u3 [1992 kB]
+#8 6.575 Get:30 http://deb.debian.org/debian trixie/main amd64 libisl23 amd64 0.27-1 [659 kB]
+#8 6.630 Get:31 http://deb.debian.org/debian trixie/main amd64 libmpfr6 amd64 4.2.2-1 [729 kB]
+#8 6.689 Get:32 http://deb.debian.org/debian trixie/main amd64 libmpc3 amd64 1.3.1-1+b3 [52.2 kB]
+#8 6.692 Get:33 http://deb.debian.org/debian trixie/main amd64 cpp-14-x86-64-linux-gnu amd64 14.2.0-19 [11.0 MB]
+#8 7.405 Get:34 http://deb.debian.org/debian trixie/main amd64 cpp-14 amd64 14.2.0-19 [1280 B]
+#8 7.406 Get:35 http://deb.debian.org/debian trixie/main amd64 cpp-x86-64-linux-gnu amd64 4:14.2.0-1 [4840 B]
+#8 7.406 Get:36 http://deb.debian.org/debian trixie/main amd64 cpp amd64 4:14.2.0-1 [1568 B]
+#8 7.406 Get:37 http://deb.debian.org/debian trixie/main amd64 libcc1-0 amd64 14.2.0-19 [42.8 kB]
+#8 7.409 Get:38 http://deb.debian.org/debian trixie/main amd64 libgomp1 amd64 14.2.0-19 [137 kB]
+#8 7.421 Get:39 http://deb.debian.org/debian trixie/main amd64 libitm1 amd64 14.2.0-19 [26.0 kB]
+#8 7.423 Get:40 http://deb.debian.org/debian trixie/main amd64 libatomic1 amd64 14.2.0-19 [9308 B]
+#8 7.424 Get:41 http://deb.debian.org/debian trixie/main amd64 libasan8 amd64 14.2.0-19 [2725 kB]
+#8 7.613 Get:42 http://deb.debian.org/debian trixie/main amd64 liblsan0 amd64 14.2.0-19 [1204 kB]
+#8 7.639 Get:43 http://deb.debian.org/debian trixie/main amd64 libtsan2 amd64 14.2.0-19 [2460 kB]
+#8 7.713 Get:44 http://deb.debian.org/debian trixie/main amd64 libubsan1 amd64 14.2.0-19 [1074 kB]
+#8 7.797 Get:45 http://deb.debian.org/debian trixie/main amd64 libhwasan0 amd64 14.2.0-19 [1488 kB]
+#8 7.913 Get:46 http://deb.debian.org/debian trixie/main amd64 libquadmath0 amd64 14.2.0-19 [145 kB]
+#8 7.917 Get:47 http://deb.debian.org/debian trixie/main amd64 libgcc-14-dev amd64 14.2.0-19 [2672 kB]
+#8 8.116 Get:48 http://deb.debian.org/debian trixie/main amd64 gcc-14-x86-64-linux-gnu amd64 14.2.0-19 [21.4 MB]
+#8 9.504 Get:49 http://deb.debian.org/debian trixie/main amd64 gcc-14 amd64 14.2.0-19 [540 kB]
+#8 9.529 Get:50 http://deb.debian.org/debian trixie/main amd64 gcc-x86-64-linux-gnu amd64 4:14.2.0-1 [1436 B]
+#8 9.529 Get:51 http://deb.debian.org/debian trixie/main amd64 gcc amd64 4:14.2.0-1 [5136 B]
+#8 9.529 Get:52 http://deb.debian.org/debian trixie/main amd64 libstdc++-14-dev amd64 14.2.0-19 [2376 kB]
+#8 9.694 Get:53 http://deb.debian.org/debian trixie/main amd64 g++-14-x86-64-linux-gnu amd64 14.2.0-19 [12.1 MB]
+#8 10.50 Get:54 http://deb.debian.org/debian trixie/main amd64 g++-14 amd64 14.2.0-19 [22.5 kB]
+#8 10.50 Get:55 http://deb.debian.org/debian trixie/main amd64 g++-x86-64-linux-gnu amd64 4:14.2.0-1 [1200 B]
+#8 10.50 Get:56 http://deb.debian.org/debian trixie/main amd64 g++ amd64 4:14.2.0-1 [1344 B]
+#8 10.50 Get:57 http://deb.debian.org/debian trixie/main amd64 make amd64 4.4.1-2 [463 kB]
+#8 10.53 Get:58 http://deb.debian.org/debian trixie/main amd64 libdpkg-perl all 1.22.22 [651 kB]
+#8 10.58 Get:59 http://deb.debian.org/debian trixie/main amd64 patch amd64 2.8-2 [134 kB]
+#8 10.58 Get:60 http://deb.debian.org/debian trixie/main amd64 dpkg-dev all 1.22.22 [1337 kB]
+#8 10.68 Get:61 http://deb.debian.org/debian trixie/main amd64 build-essential amd64 12.12 [4624 B]
+#8 10.68 Get:62 http://deb.debian.org/debian trixie/main amd64 libbrotli1 amd64 1.1.0-2+b7 [307 kB]
+#8 10.70 Get:63 http://deb.debian.org/debian-security trixie-security/main amd64 libkrb5support0 amd64 1.21.3-5+deb13u1 [33.1 kB]
+#8 10.70 Get:64 http://deb.debian.org/debian trixie/main amd64 libcom-err2 amd64 1.47.2-3+b11 [25.0 kB]
+#8 10.70 Get:65 http://deb.debian.org/debian-security trixie-security/main amd64 libk5crypto3 amd64 1.21.3-5+deb13u1 [81.2 kB]
+#8 10.71 Get:66 http://deb.debian.org/debian trixie/main amd64 libkeyutils1 amd64 1.6.3-6 [9456 B]
+#8 10.71 Get:67 http://deb.debian.org/debian-security trixie-security/main amd64 libkrb5-3 amd64 1.21.3-5+deb13u1 [326 kB]
+#8 10.72 Get:68 http://deb.debian.org/debian-security trixie-security/main amd64 libgssapi-krb5-2 amd64 1.21.3-5+deb13u1 [138 kB]
+#8 10.72 Get:69 http://deb.debian.org/debian trixie/main amd64 libunistring5 amd64 1.3-2 [477 kB]
+#8 10.74 Get:70 http://deb.debian.org/debian trixie/main amd64 libidn2-0 amd64 2.3.8-2 [109 kB]
+#8 10.74 Get:71 http://deb.debian.org/debian trixie/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg1-9 [19.8 kB]
+#8 10.74 Get:72 http://deb.debian.org/debian trixie/main amd64 libsasl2-2 amd64 2.1.28+dfsg1-9 [57.5 kB]
+#8 10.74 Get:73 http://deb.debian.org/debian trixie/main amd64 libldap2 amd64 2.6.10+dfsg-1 [194 kB]
+#8 10.75 Get:74 http://deb.debian.org/debian-security trixie-security/main amd64 libnghttp2-14 amd64 1.64.0-1.1+deb13u1 [76.2 kB]
+#8 10.76 Get:75 http://deb.debian.org/debian trixie/main amd64 libnghttp3-9 amd64 1.8.0-1 [67.7 kB]
+#8 10.77 Get:76 http://deb.debian.org/debian trixie/main amd64 libpsl5t64 amd64 0.21.2-1.1+b1 [57.2 kB]
+#8 10.77 Get:77 http://deb.debian.org/debian trixie/main amd64 libp11-kit0 amd64 0.25.5-3 [425 kB]
+#8 10.79 Get:78 http://deb.debian.org/debian trixie/main amd64 libtasn1-6 amd64 4.20.0-2 [49.9 kB]
+#8 10.79 Get:79 http://deb.debian.org/debian-security trixie-security/main amd64 libgnutls30t64 amd64 3.8.9-3+deb13u4 [1469 kB]
+#8 10.91 Get:80 http://deb.debian.org/debian trixie/main amd64 librtmp1 amd64 2.4+20151223.gitfa8646d.1-2+b5 [58.8 kB]
+#8 10.92 Get:81 http://deb.debian.org/debian trixie/main amd64 libssh2-1t64 amd64 1.11.1-1 [245 kB]
+#8 10.94 Get:82 http://deb.debian.org/debian trixie/main amd64 libcurl4t64 amd64 8.14.1-2+deb13u3 [391 kB]
+#8 10.96 Get:83 http://deb.debian.org/debian trixie/main amd64 curl amd64 8.14.1-2+deb13u3 [270 kB]
+#8 10.98 Get:84 http://deb.debian.org/debian trixie/main amd64 node-fast-deep-equal all 3.1.3-3 [5768 B]
+#8 10.98 Get:85 http://deb.debian.org/debian trixie/main amd64 node-json-schema-traverse all 1.0.0-3 [6308 B]
+#8 10.98 Get:86 http://deb.debian.org/debian trixie/main amd64 node-jsonify all 0.0.1-1 [8704 B]
+#8 10.98 Get:87 http://deb.debian.org/debian trixie/main amd64 node-json-stable-stringify all 1.0.2+repack1+~cs1.0.34-2 [9496 B]
+#8 10.98 Get:88 http://deb.debian.org/debian trixie/main amd64 node-punycode all 2.3.1+~2.1.4-1 [10.8 kB]
+#8 10.98 Get:89 http://deb.debian.org/debian trixie/main amd64 node-uri-js all 4.4.0+dfsg-8 [47.3 kB]
+#8 10.99 Get:90 http://deb.debian.org/debian trixie/main amd64 libcares2 amd64 1.34.5-1+deb13u1 [98.3 kB]
+#8 10.99 Get:91 http://deb.debian.org/debian trixie/main amd64 libicu76 amd64 76.1-4 [9722 kB]
+#8 11.72 Get:92 http://deb.debian.org/debian trixie/main amd64 libuv1t64 amd64 1.50.0-2 [154 kB]
+#8 11.73 Get:93 http://deb.debian.org/debian trixie/main amd64 node-xtend all 4.0.2-3 [3932 B]
+#8 11.73 Get:94 http://deb.debian.org/debian trixie/main amd64 node-acorn all 8.8.1+ds+~cs25.17.7-2 [128 kB]
+#8 11.75 Get:95 http://deb.debian.org/debian trixie/main amd64 node-cjs-module-lexer all 1.2.3+dfsg-1 [30.6 kB]
+#8 11.75 Get:96 http://deb.debian.org/debian trixie/main amd64 node-balanced-match all 2.0.0-1 [4872 B]
+#8 11.75 Get:97 http://deb.debian.org/debian trixie/main amd64 node-brace-expansion all 2.0.1+~1.1.0-2 [8012 B]
+#8 11.75 Get:98 http://deb.debian.org/debian trixie/main amd64 node-minimatch all 9.0.3-6 [76.8 kB]
+#8 11.75 Get:99 http://deb.debian.org/debian trixie/main amd64 node-undici all 7.3.0+dfsg1+~cs24.12.11-1 [333 kB]
+#8 11.78 Get:100 http://deb.debian.org/debian trixie/main amd64 libnode115 amd64 20.19.2+dfsg-1+deb13u2 [12.1 MB]
+#8 12.54 Get:101 http://deb.debian.org/debian trixie/main amd64 node-corepack all 0.24.0-5 [712 kB]
+#8 12.59 Get:102 http://deb.debian.org/debian trixie/main amd64 nodejs amd64 20.19.2+dfsg-1+deb13u2 [353 kB]
+#8 12.60 Get:103 http://deb.debian.org/debian trixie/main amd64 node-ajv all 8.12.0~ds+~2.1.1-5 [182 kB]
+#8 12.60 Get:104 http://deb.debian.org/debian trixie/main amd64 libjs-inherits all 2.0.4-6 [3548 B]
+#8 12.60 Get:105 http://deb.debian.org/debian trixie/main amd64 node-inherits all 2.0.4-6 [4548 B]
+#8 12.60 Get:106 http://deb.debian.org/debian trixie/main amd64 node-core-util-is all 1.0.3-1 [4072 B]
+#8 12.60 Get:107 http://deb.debian.org/debian trixie/main amd64 node-safe-buffer all 5.2.1+~cs2.1.2-3 [15.5 kB]
+#8 12.60 Get:108 http://deb.debian.org/debian trixie/main amd64 node-string-decoder all 1.3.0-6 [7180 B]
+#8 12.60 Get:109 http://deb.debian.org/debian trixie/main amd64 node-process-nextick-args all 2.0.1-3 [3816 B]
+#8 12.60 Get:110 http://deb.debian.org/debian trixie/main amd64 node-util-deprecate all 1.0.2-3 [4436 B]
+#8 12.62 Get:111 http://deb.debian.org/debian trixie/main amd64 node-isarray all 2.0.5-4 [4040 B]
+#8 12.64 Get:112 http://deb.debian.org/debian trixie/main amd64 node-readable-stream all 3.6.0+~cs3.0.0-4 [32.0 kB]
+#8 12.65 Get:113 http://deb.debian.org/debian trixie/main amd64 node-typedarray all 0.0.7-1 [11.4 kB]
+#8 12.65 Get:114 http://deb.debian.org/debian trixie/main amd64 node-concat-stream all 2.0.0+~2.0.0-2 [6388 B]
+#8 12.65 Get:115 http://deb.debian.org/debian trixie/main amd64 node-ms all 2.1.3+~cs0.7.31-3 [5648 B]
+#8 12.65 Get:116 http://deb.debian.org/debian trixie/main amd64 node-debug all 4.3.4+~cs4.1.7-1 [18.1 kB]
+#8 12.65 Get:117 http://deb.debian.org/debian trixie/main amd64 node-esutils all 2.0.3+~2.0.0-1 [12.4 kB]
+#8 12.65 Get:118 http://deb.debian.org/debian trixie/main amd64 node-doctrine all 3.0.0-4 [19.9 kB]
+#8 12.66 Get:119 http://deb.debian.org/debian trixie/main amd64 node-eslint-visitor-keys all 3.3.0+~1.0.0-1 [17.1 kB]
+#8 12.66 Get:120 http://deb.debian.org/debian trixie/main amd64 node-estraverse all 5.3.0+ds+~5.1.1-1 [11.6 kB]
+#8 12.66 Get:121 http://deb.debian.org/debian trixie/main amd64 node-object-assign all 4.1.1-7 [4684 B]
+#8 12.67 Get:122 http://deb.debian.org/debian trixie/main amd64 node-esrecurse all 4.3.0-2 [6048 B]
+#8 12.68 Get:123 http://deb.debian.org/debian trixie/main amd64 node-eslint-scope all 7.1.1+~3.7.4-1 [35.6 kB]
+#8 12.70 Get:124 http://deb.debian.org/debian trixie/main amd64 node-espree all 9.4.1~dfsg-2 [41.1 kB]
+#8 12.73 Get:125 http://deb.debian.org/debian trixie/main amd64 node-esquery all 1.4.2~ds-1 [24.9 kB]
+#8 12.74 Get:126 http://deb.debian.org/debian trixie/main amd64 node-eslint-utils all 3.0.0-3 [15.5 kB]
+#8 12.74 Get:127 http://deb.debian.org/debian trixie/main amd64 node-flatted all 3.2.7~ds-1+deb13u1 [10.3 kB]
+#8 12.74 Get:128 http://deb.debian.org/debian trixie/main amd64 node-fs.realpath all 1.0.0-3 [6172 B]
+#8 12.74 Get:129 http://deb.debian.org/debian trixie/main amd64 node-wrappy all 1.0.2-3 [3776 B]
+#8 12.74 Get:130 http://deb.debian.org/debian trixie/main amd64 node-once all 1.4.1-1 [4624 B]
+#8 12.74 Get:131 http://deb.debian.org/debian trixie/main amd64 node-inflight all 1.0.6-2 [3952 B]
+#8 12.76 Get:132 http://deb.debian.org/debian trixie/main amd64 node-glob all 8.1.0+~cs8.5.15-1 [134 kB]
+#8 12.77 Get:133 http://deb.debian.org/debian trixie/main amd64 node-rimraf all 3.0.2-2 [11.1 kB]
+#8 12.77 Get:134 http://deb.debian.org/debian trixie/main amd64 node-write all 2.0.0~6.0.1+~3.0.4+~2.0.0+~1.0.0+~2.0.1-1 [17.9 kB]
+#8 12.77 Get:135 http://deb.debian.org/debian trixie/main amd64 node-flat-cache all 3.0.4~6.0.1+~3.0.4+~2.0.0+~1.0.0+~2.0.1-1 [20.2 kB]
+#8 12.77 Get:136 http://deb.debian.org/debian trixie/main amd64 node-file-entry-cache all 6.0.1+~3.0.4+~2.0.0+~1.0.0+~2.0.1-1 [15.3 kB]
+#8 12.77 Get:137 http://deb.debian.org/debian trixie/main amd64 node-functional-red-black-tree all 1.0.1+20181105-7 [14.1 kB]
+#8 12.77 Get:138 http://deb.debian.org/debian trixie/main amd64 node-is-extglob all 2.1.1-5 [4612 B]
+#8 12.77 Get:139 http://deb.debian.org/debian trixie/main amd64 node-is-glob all 4.0.3-2 [6620 B]
+#8 12.77 Get:140 http://deb.debian.org/debian trixie/main amd64 node-path-dirname all 1.0.2-2 [4312 B]
+#8 12.77 Get:141 http://deb.debian.org/debian trixie/main amd64 node-glob-parent all 6.0.2+~5.1.1-2 [8784 B]
+#8 12.80 Get:142 http://deb.debian.org/debian trixie/main amd64 node-globals all 13.23.0-1 [11.3 kB]
+#8 12.80 Get:143 http://deb.debian.org/debian trixie/main amd64 node-resolve-from all 5.0.0+~3.1.0+~3.3.0+~2.0.0-1 [7292 B]
+#8 12.80 Get:144 http://deb.debian.org/debian trixie/main amd64 node-imurmurhash all 0.1.4+dfsg+~0.1.1-2 [8412 B]
+#8 12.80 Get:145 http://deb.debian.org/debian trixie/main amd64 node-ignore all 5.2.1-1 [26.4 kB]
+#8 12.80 Get:146 http://deb.debian.org/debian trixie/main amd64 node-prelude-ls all 1.2.1+dfsg-3 [11.3 kB]
+#8 12.80 Get:147 http://deb.debian.org/debian trixie/main amd64 node-type-check all 0.4.0+dfsg-3 [9184 B]
+#8 12.80 Get:148 http://deb.debian.org/debian trixie/main amd64 node-levn all 0.4.1+dfsg-2 [10.2 kB]
+#8 12.84 Get:149 http://deb.debian.org/debian trixie/main amd64 node-lodash all 4.17.21+dfsg+~cs8.31.198.20210220-9 [462 kB]
+#8 12.87 Get:150 http://deb.debian.org/debian trixie/main amd64 node-memfs all 3.4.12+~cs1.0.3-1 [46.8 kB]
+#8 12.88 Get:151 http://deb.debian.org/debian trixie/main amd64 node-mkdirp all 2.1.6+~cs5.2.1-2 [24.1 kB]
+#8 12.88 Get:152 http://deb.debian.org/debian trixie/main amd64 node-deep-is all 0.1.4-1 [5136 B]
+#8 12.88 Get:153 http://deb.debian.org/debian trixie/main amd64 node-fast-levenshtein all 2.0.6+ds-3 [6040 B]
+#8 12.88 Get:154 http://deb.debian.org/debian trixie/main amd64 node-optionator all 0.9.1+dfsg+~cs1.2.3-1 [17.6 kB]
+#8 12.88 Get:155 http://deb.debian.org/debian trixie/main amd64 node-progress all 2.0.3-2 [8256 B]
+#8 12.88 Get:156 http://deb.debian.org/debian trixie/main amd64 libjs-regenerate all 1.4.2-3 [14.3 kB]
+#8 12.88 Get:157 http://deb.debian.org/debian trixie/main amd64 node-regenerate all 1.4.2-3 [7388 B]
+#8 12.88 Get:158 http://deb.debian.org/debian trixie/main amd64 node-regenerate-unicode-properties all 10.1.0+ds-1 [50.7 kB]
+#8 12.90 Get:159 http://deb.debian.org/debian trixie/main amd64 node-regexpp all 3.2.0-5 [27.0 kB]
+#8 12.90 Get:160 http://deb.debian.org/debian trixie/main amd64 node-lru-cache all 10.0.1-3 [62.6 kB]
+#8 12.91 Get:161 http://deb.debian.org/debian trixie/main amd64 node-semver all 7.6.1+~7.5.8-2 [49.5 kB]
+#8 12.91 Get:162 http://deb.debian.org/debian trixie/main amd64 node-strip-json-comments all 4.0.0-4 [5668 B]
+#8 12.91 Get:163 http://deb.debian.org/debian trixie/main amd64 node-json-schema all 0.4.0+~7.0.11-1 [13.1 kB]
+#8 12.91 Get:164 http://deb.debian.org/debian trixie/main amd64 node-v8-compile-cache all 2.4.0-2 [8544 B]
+#8 12.93 Get:165 http://deb.debian.org/debian trixie/main amd64 eslint all 6.4.0~dfsg+~6.1.9-12 [606 kB]
+#8 13.01 Get:166 http://deb.debian.org/debian trixie/main amd64 python3-packaging all 25.0-1 [56.6 kB]
+#8 13.03 Get:167 http://deb.debian.org/debian trixie/main amd64 gyp all 0.16.2-2 [255 kB]
+#8 13.07 Get:168 http://deb.debian.org/debian trixie/main amd64 node-neo-async all 2.6.2+~cs3.0.0-3 [41.8 kB]
+#8 13.07 Get:169 http://deb.debian.org/debian trixie/main amd64 node-arrify all 2.0.1-3 [3700 B]
+#8 13.07 Get:170 http://deb.debian.org/debian trixie/main amd64 node-is-plain-obj all 3.0.0-2 [3972 B]
+#8 13.07 Get:171 http://deb.debian.org/debian trixie/main amd64 node-is-buffer all 2.0.5-2 [4112 B]
+#8 13.07 Get:172 http://deb.debian.org/debian trixie/main amd64 node-kind-of all 6.0.3+dfsg-2 [10.2 kB]
+#8 13.07 Get:173 http://deb.debian.org/debian trixie/main amd64 node-minimist all 1.2.8+~cs5.3.5-1 [15.9 kB]
+#8 13.07 Get:174 http://deb.debian.org/debian trixie/main amd64 node-wordwrap all 1.0.0-4 [4628 B]
+#8 13.07 Get:175 http://deb.debian.org/debian trixie/main amd64 node-optimist all 0.6.1+~0.0.30-2 [13.5 kB]
+#8 13.10 Get:176 http://deb.debian.org/debian trixie/main amd64 libjs-source-map all 0.7.0++dfsg2+really.0.6.1-15 [29.6 kB]
+#8 13.13 Get:177 http://deb.debian.org/debian trixie/main amd64 node-source-map all 0.7.0++dfsg2+really.0.6.1-15 [41.7 kB]
+#8 13.15 Get:178 http://deb.debian.org/debian trixie/main amd64 handlebars all 3:4.7.7+~4.1.0-1 [199 kB]
+#8 13.17 Get:179 http://deb.debian.org/debian trixie/main amd64 libjs-events all 3.3.0+~3.0.0-3 [11.3 kB]
+#8 13.17 Get:180 http://deb.debian.org/debian trixie/main amd64 libjs-is-typedarray all 1.0.0-4 [3816 B]
+#8 13.20 Get:181 http://deb.debian.org/debian trixie/main amd64 libjs-prettify all 2015.12.04+dfsg-1.1 [41.7 kB]
+#8 13.20 Get:182 http://deb.debian.org/debian trixie/main amd64 libjs-sprintf-js all 1.1.2+ds1+~1.1.2-1 [12.8 kB]
+#8 13.20 Get:183 http://deb.debian.org/debian trixie/main amd64 libjs-typedarray-to-buffer all 4.0.0-2 [4668 B]
+#8 13.21 Get:184 http://deb.debian.org/debian trixie/main amd64 node-lodash-packages all 4.17.21+dfsg+~cs8.31.198.20210220-9 [179 kB]
+#8 13.24 Get:185 http://deb.debian.org/debian trixie/main amd64 node-function-bind all 1.1.2+~cs2.1.14-1 [24.6 kB]
+#8 13.26 Get:186 http://deb.debian.org/debian trixie/main amd64 node-object-inspect all 1.12.2+~cs1.8.1-1 [20.8 kB]
+#8 13.29 Get:187 http://deb.debian.org/debian trixie/main amd64 node-es-abstract all 1.20.4+~cs26.27.47-2 [137 kB]
+#8 13.32 Get:188 http://deb.debian.org/debian trixie/main amd64 node-resolve all 1.22.8+~cs5.34.15-2 [29.8 kB]
+#8 13.32 Get:189 http://deb.debian.org/debian trixie/main amd64 node-define-properties all 1.2.1+~cs2.2.3-1 [9080 B]
+#8 13.32 Get:190 http://deb.debian.org/debian trixie/main amd64 node-debbundle-es-to-primitive all 1.2.1+~cs9.7.25-2 [39.9 kB]
+#8 13.33 Get:191 http://deb.debian.org/debian trixie/main amd64 node-isobject all 4.0.0-2 [5332 B]
+#8 13.33 Get:192 http://deb.debian.org/debian trixie/main amd64 node-is-descriptor all 3.0.0-2 [5556 B]
+#8 13.33 Get:193 http://deb.debian.org/debian trixie/main amd64 node-define-property all 2.0.2+really+2.0.2-3 [6820 B]
+#8 13.33 Get:194 http://deb.debian.org/debian trixie/main amd64 node-defined all 1.0.1+~1.0.0-1 [6776 B]
+#8 13.33 Get:195 http://deb.debian.org/debian trixie/main amd64 node-abbrev all 1.1.1+~1.1.2-1 [5692 B]
+#8 13.33 Get:196 http://deb.debian.org/debian trixie/main amd64 node-archy all 1.0.0-6 [4556 B]
+#8 13.35 Get:197 http://deb.debian.org/debian trixie/main amd64 node-async all 3.2.6+dfsg-2 [96.4 kB]
+#8 13.35 Get:198 http://deb.debian.org/debian trixie/main amd64 node-convert-source-map all 1.9.0+~1.5.2-1 [8176 B]
+#8 13.35 Get:199 http://deb.debian.org/debian trixie/main amd64 node-decamelize all 4.0.0-2 [4080 B]
+#8 13.35 Get:200 http://deb.debian.org/debian trixie/main amd64 node-es6-error all 4.1.1-5 [6148 B]
+#8 13.35 Get:201 http://deb.debian.org/debian trixie/main amd64 node-esprima all 4.0.1+ds+~4.0.3-2 [69.3 kB]
+#8 13.35 Get:202 http://deb.debian.org/debian trixie/main amd64 node-escodegen all 2.1.0+dfsg+~0.0.8-1 [23.0 kB]
+#8 13.36 Get:203 http://deb.debian.org/debian trixie/main amd64 node-commondir all 1.0.1+~1.0.0-1 [4388 B]
+#8 13.36 Get:204 http://deb.debian.org/debian trixie/main amd64 node-is-number all 7.0.0-4 [6020 B]
+#8 13.36 Get:205 http://deb.debian.org/debian trixie/main amd64 node-repeat-string all 1.6.1+repack-1 [5600 B]
+#8 13.36 Get:206 http://deb.debian.org/debian trixie/main amd64 node-to-regex-range all 5.0.1-4 [10.5 kB]
+#8 13.38 Get:207 http://deb.debian.org/debian trixie/main amd64 node-fill-range all 7.1.1+~7.0.3-1 [8768 B]
+#8 13.41 Get:208 http://deb.debian.org/debian trixie/main amd64 node-braces all 3.0.3+~3.0.5-1 [20.6 kB]
+#8 13.41 Get:209 http://deb.debian.org/debian trixie/main amd64 node-normalize-path all 3.0.0+~3.0.0-1 [6608 B]
+#8 13.41 Get:210 http://deb.debian.org/debian trixie/main amd64 node-anymatch all 3.1.3+~cs4.6.1-2 [33.4 kB]
+#8 13.41 Get:211 http://deb.debian.org/debian trixie/main amd64 node-micromatch all 4.0.7+~4.0.9-1 [26.0 kB]
+#8 13.41 Get:212 http://deb.debian.org/debian trixie/main amd64 node-pify all 5.0.0+~cs5.0.1-1 [7072 B]
+#8 13.41 Get:213 http://deb.debian.org/debian trixie/main amd64 node-path-type all 4.0.0-3 [3944 B]
+#8 13.41 Get:214 http://deb.debian.org/debian trixie/main amd64 node-n3 all 1.16.3+~1.2.3+~1.10.4-1 [37.0 kB]
+#8 13.42 Get:215 http://deb.debian.org/debian trixie/main amd64 node-slash all 4.0.0-3 [4292 B]
+#8 13.42 Get:216 http://deb.debian.org/debian trixie/main amd64 node-globby all 13.1.3+~cs16.25.40-3 [40.5 kB]
+#8 13.42 Get:217 http://deb.debian.org/debian trixie/main amd64 node-graceful-fs all 4.2.10-1 [14.4 kB]
+#8 13.44 Get:218 http://deb.debian.org/debian trixie/main amd64 node-is-path-cwd all 2.2.0-2 [3672 B]
+#8 13.44 Get:219 http://deb.debian.org/debian trixie/main amd64 node-path-is-inside all 1.0.2+~1.0.0-1 [5072 B]
+#8 13.44 Get:220 http://deb.debian.org/debian trixie/main amd64 node-is-path-inside all 3.0.3-2 [3980 B]
+#8 13.44 Get:221 http://deb.debian.org/debian trixie/main amd64 node-escape-string-regexp all 4.0.0-2 [4296 B]
+#8 13.44 Get:222 http://deb.debian.org/debian trixie/main amd64 node-indent-string all 4.0.0-2 [4144 B]
+#8 13.44 Get:223 http://deb.debian.org/debian trixie/main amd64 node-p-map all 4.0.0+~3.1.0+~3.0.1-2 [7904 B]
+#8 13.44 Get:224 http://deb.debian.org/debian trixie/main amd64 node-del all 7.1.0-1 [8020 B]
+#8 13.44 Get:225 http://deb.debian.org/debian trixie/main amd64 node-make-dir all 3.1.0-3 [6040 B]
+#8 13.45 Get:226 http://deb.debian.org/debian trixie/main amd64 node-p-limit all 4.0.0+~cs4.0.0-5 [7576 B]
+#8 13.45 Get:227 http://deb.debian.org/debian trixie/main amd64 node-p-locate all 6.0.0-12 [5752 B]
+#8 13.47 Get:228 http://deb.debian.org/debian trixie/main amd64 node-locate-path all 7.1.1-2 [5584 B]
+#8 13.47 Get:229 http://deb.debian.org/debian trixie/main amd64 node-path-exists all 5.0.0-8 [4732 B]
+#8 13.47 Get:230 http://deb.debian.org/debian trixie/main amd64 node-find-up all 6.3.0-7 [9388 B]
+#8 13.47 Get:231 http://deb.debian.org/debian trixie/main amd64 node-pkg-dir all 5.0.0-2 [4260 B]
+#8 13.47 Get:232 http://deb.debian.org/debian trixie/main amd64 node-find-cache-dir all 3.3.2+~3.2.1-1 [6152 B]
+#8 13.47 Get:233 http://deb.debian.org/debian trixie/main amd64 node-signal-exit all 4.1.0-7 [14.4 kB]
+#8 13.47 Get:234 http://deb.debian.org/debian trixie/main amd64 node-foreground-child all 3.1.1-2 [13.3 kB]
+#8 13.48 Get:235 http://deb.debian.org/debian trixie/main amd64 node-is-stream all 3.0.0-4 [5076 B]
+#8 13.48 Get:236 http://deb.debian.org/debian trixie/main amd64 node-is-windows all 1.0.2+~cs1.0.0-1 [5936 B]
+#8 13.48 Get:237 http://deb.debian.org/debian trixie/main amd64 node-ampproject-remapping all 2.2.0+~cs5.15.37-1 [59.4 kB]
+#8 13.50 Get:238 http://deb.debian.org/debian trixie/main amd64 node-sprintf-js all 1.1.2+ds1+~1.1.2-1 [4024 B]
+#8 13.52 Get:239 http://deb.debian.org/debian trixie/main amd64 node-argparse all 2.0.1-2 [34.6 kB]
+#8 13.53 Get:240 http://deb.debian.org/debian trixie/main amd64 node-js-yaml all 4.1.0+dfsg+~4.0.5-7 [66.6 kB]
+#8 13.53 Get:241 http://deb.debian.org/debian trixie/main amd64 node-nopt all 5.0.0-4 [12.1 kB]
+#8 13.53 Get:242 http://deb.debian.org/debian trixie/main amd64 node-npm-run-path all 5.1.0+~4.0.0-8 [6276 B]
+#8 13.53 Get:243 http://deb.debian.org/debian trixie/main amd64 node-shebang-regex all 3.0.0-2 [3528 B]
+#8 13.53 Get:244 http://deb.debian.org/debian trixie/main amd64 node-shebang-command all 2.0.0-1 [3500 B]
+#8 13.53 Get:245 http://deb.debian.org/debian trixie/main amd64 node-strip-bom all 4.0.0-2 [4144 B]
+#8 13.53 Get:246 http://deb.debian.org/debian trixie/main amd64 node-has-flag all 5.0.1-1 [4404 B]
+#8 13.53 Get:247 http://deb.debian.org/debian trixie/main amd64 node-supports-color all 8.1.1+~8.1.1-1 [6920 B]
+#8 13.53 Get:248 http://deb.debian.org/debian trixie/main amd64 node-util all 0.12.5+~1.0.10-1 [5700 B]
+#8 13.55 Get:249 http://deb.debian.org/debian trixie/main amd64 node-assert all 2.0.0+~cs3.9.8-2 [26.8 kB]
+#8 13.55 Get:250 http://deb.debian.org/debian trixie/main amd64 node-babel-plugin-add-module-exports all 1.0.4+dfsg1~cs5.8.0-4 [8672 B]
+#8 13.56 Get:251 http://deb.debian.org/debian trixie/main amd64 node-regenerator-runtime all 0.15.2+~0.10.8-1 [10.7 kB]
+#8 13.58 Get:252 http://deb.debian.org/debian trixie/main amd64 node-babel7-runtime all 7.20.15+ds1+~cs214.269.168-8 [116 kB]
+#8 13.59 Get:253 http://deb.debian.org/debian trixie/main amd64 node-babel-helper-define-polyfill-provider all 0.3.3~0~20220913+ds1-1 [27.4 kB]
+#8 13.59 Get:254 http://deb.debian.org/debian trixie/main amd64 node-babel-plugin-polyfill-corejs2 all 0.3.3~0~20220913+ds1-1 [17.1 kB]
+#8 13.59 Get:255 http://deb.debian.org/debian trixie/main amd64 node-caniuse-lite all 1.0.30001723+dfsg+~1.0.5-1 [255 kB]
+#8 13.60 Get:256 http://deb.debian.org/debian trixie/main amd64 node-electron-to-chromium all 1.5.166-1 [20.9 kB]
+#8 13.60 Get:257 http://deb.debian.org/debian trixie/main amd64 node-picocolors all 1.0.0-4 [6652 B]
+#8 13.61 Get:258 http://deb.debian.org/debian trixie/main amd64 node-browserslist all 4.25.0+~cs6.3.22-1 [72.3 kB]
+#8 13.61 Get:259 http://deb.debian.org/debian trixie/main amd64 node-core-js-compat all 3.33.2-1 [78.5 kB]
+#8 13.62 Get:260 http://deb.debian.org/debian trixie/main amd64 node-babel-plugin-polyfill-corejs3 all 0.6.0~0~20220913+ds1-1 [29.5 kB]
+#8 13.62 Get:261 http://deb.debian.org/debian trixie/main amd64 node-babel-plugin-polyfill-regenerator all 0.4.1~0~20220913+ds1-1 [5036 B]
+#8 13.62 Get:262 http://deb.debian.org/debian trixie/main amd64 node-color-name all 1.1.4+~1.1.1-2 [5920 B]
+#8 13.62 Get:263 http://deb.debian.org/debian trixie/main amd64 node-color-convert all 2.0.1+~cs2.0.0-2 [13.1 kB]
+#8 13.62 Get:264 http://deb.debian.org/debian trixie/main amd64 node-ansi-styles all 6.2.1-3 [8716 B]
+#8 13.63 Get:265 http://deb.debian.org/debian trixie/main amd64 node-chalk all 5.3.0-1 [18.2 kB]
+#8 13.63 Get:266 http://deb.debian.org/debian trixie/main amd64 node-for-in all 1.0.2-4 [4840 B]
+#8 13.63 Get:267 http://deb.debian.org/debian trixie/main amd64 node-for-own all 1.0.0-3 [4800 B]
+#8 13.64 Get:268 http://deb.debian.org/debian trixie/main amd64 node-is-plain-object all 5.0.0-7 [6108 B]
+#8 13.64 Get:269 http://deb.debian.org/debian trixie/main amd64 node-is-extendable all 1.0.1-3 [5228 B]
+#8 13.64 Get:270 http://deb.debian.org/debian trixie/main amd64 node-clone-deep all 4.0.1+~cs7.0.2-1 [6720 B]
+#8 13.64 Get:271 http://deb.debian.org/debian trixie/main amd64 node-commander all 9.4.1-1 [65.3 kB]
+#8 13.67 Get:272 http://deb.debian.org/debian trixie/main amd64 node-core-js all 3.33.2-1 [301 kB]
+#8 13.69 Get:273 http://deb.debian.org/debian trixie/main amd64 node-core-js-pure all 3.33.2-1 [282 kB]
+#8 13.71 Get:274 http://deb.debian.org/debian trixie/main amd64 node-fs-readdir-recursive all 1.1.0+~1.1.0-1 [4540 B]
+#8 13.71 Get:275 http://deb.debian.org/debian trixie/main amd64 node-js-tokens all 8.0.0-2 [14.9 kB]
+#8 13.71 Get:276 http://deb.debian.org/debian trixie/main amd64 node-jsesc all 3.0.2+~3.0.1-1 [17.6 kB]
+#8 13.72 Get:277 http://deb.debian.org/debian trixie/main amd64 node-json5 all 2.2.3+dfsg-1 [25.6 kB]
+#8 13.72 Get:278 http://deb.debian.org/debian trixie/main amd64 node-quick-lru all 6.1.1-4 [8076 B]
+#8 13.72 Get:279 http://deb.debian.org/debian trixie/main amd64 node-regenerator-transform all 0.15.2+~0.10.8-1 [24.9 kB]
+#8 13.72 Get:280 http://deb.debian.org/debian trixie/main amd64 node-regjsgen all 0.7.1+ds-1 [6968 B]
+#8 13.72 Get:281 http://deb.debian.org/debian trixie/main amd64 node-regjsparser all 0.9.1+ds-2 [22.1 kB]
+#8 13.72 Get:282 http://deb.debian.org/debian trixie/main amd64 node-unicode-canonical-property-names-ecmascript all 2.0.0-2 [4540 B]
+#8 13.74 Get:283 http://deb.debian.org/debian trixie/main amd64 node-unicode-property-aliases-ecmascript all 2.1.0+ds-1 [5256 B]
+#8 13.74 Get:284 http://deb.debian.org/debian trixie/main amd64 node-unicode-match-property-ecmascript all 2.0.0-2 [4440 B]
+#8 13.74 Get:285 http://deb.debian.org/debian trixie/main amd64 node-unicode-match-property-value-ecmascript all 2.1.0+ds-1 [7272 B]
+#8 13.74 Get:286 http://deb.debian.org/debian trixie/main amd64 node-regexpu-core all 5.2.2-3 [13.9 kB]
+#8 13.74 Get:287 http://deb.debian.org/debian trixie/main amd64 node-source-map-support all 0.5.21+ds+~0.5.10-1 [15.3 kB]
+#8 13.75 Get:288 http://deb.debian.org/debian trixie/main amd64 node-to-fast-properties all 3.0.1-3 [4332 B]
+#8 13.75 Get:289 http://deb.debian.org/debian trixie/main amd64 node-v8flags all 3.2.0+~3.1.1-1 [7612 B]
+#8 13.77 Get:290 http://deb.debian.org/debian trixie/main amd64 node-babel7 all 7.20.15+ds1+~cs214.269.168-8 [709 kB]
+#8 13.85 Get:291 http://deb.debian.org/debian trixie/main amd64 node-is-arrayish all 0.3.2-3 [3960 B]
+#8 13.85 Get:292 http://deb.debian.org/debian trixie/main amd64 node-error-ex all 1.3.2-4 [5656 B]
+#8 13.85 Get:293 http://deb.debian.org/debian trixie/main amd64 node-json-parse-better-errors all 1.0.2+~cs3.3.1-3 [7724 B]
+#8 13.85 Get:294 http://deb.debian.org/debian trixie/main amd64 node-parse-json all 5.2.0+~cs5.1.7-2 [7304 B]
+#8 13.85 Get:295 http://deb.debian.org/debian trixie/main amd64 node-hosted-git-info all 6.1.1-2 [12.6 kB]
+#8 13.85 Get:296 http://deb.debian.org/debian trixie/main amd64 node-spdx-license-ids all 3.0.12-1 [6276 B]
+#8 13.85 Get:297 http://deb.debian.org/debian trixie/main amd64 node-spdx-exceptions all 2.3.0-2 [3992 B]
+#8 13.85 Get:298 http://deb.debian.org/debian trixie/main amd64 node-spdx-expression-parse all 3.0.1+~3.0.1-1 [7532 B]
+#8 13.85 Get:299 http://deb.debian.org/debian trixie/main amd64 node-spdx-correct all 3.1.1-2 [5464 B]
+#8 13.88 Get:300 http://deb.debian.org/debian trixie/main amd64 node-validate-npm-package-license all 3.0.4-2 [4280 B]
+#8 13.88 Get:301 http://deb.debian.org/debian trixie/main amd64 node-normalize-package-data all 4.0.1+~2.4.1-1 [13.6 kB]
+#8 13.88 Get:302 http://deb.debian.org/debian trixie/main amd64 node-read-pkg all 5.2.0-2 [24.0 kB]
+#8 13.88 Get:303 http://deb.debian.org/debian trixie/main amd64 node-uuid all 8.3.2+~8.3.4-1 [44.5 kB]
+#8 13.88 Get:304 http://deb.debian.org/debian trixie/main amd64 node-isexe all 2.0.0+~2.0.1-5 [6084 B]
+#8 13.88 Get:305 http://deb.debian.org/debian trixie/main amd64 node-which all 2.0.2+~cs1.3.2-3 [8368 B]
+#8 13.88 Get:306 http://deb.debian.org/debian trixie/main amd64 node-is-typedarray all 1.0.0-4 [3292 B]
+#8 13.88 Get:307 http://deb.debian.org/debian trixie/main amd64 node-typedarray-to-buffer all 4.0.0-2 [3380 B]
+#8 13.88 Get:308 http://deb.debian.org/debian trixie/main amd64 node-write-file-atomic all 4.0.2+~4.0.0-2 [9308 B]
+#8 13.88 Get:309 http://deb.debian.org/debian trixie/main amd64 node-slice-ansi all 5.0.0+~cs9.0.0-5 [8788 B]
+#8 13.91 Get:310 http://deb.debian.org/debian trixie/main amd64 node-ansi-regex all 5.0.1-1 [4912 B]
+#8 13.91 Get:311 http://deb.debian.org/debian trixie/main amd64 node-strip-ansi all 6.0.1-2 [4120 B]
+#8 13.91 Get:312 http://deb.debian.org/debian trixie/main amd64 node-clone all 2.1.2+~2.1.2-1 [9140 B]
+#8 13.91 Get:313 http://deb.debian.org/debian trixie/main amd64 node-defaults all 1.0.4+~1.0.3-1 [4400 B]
+#8 13.91 Get:314 http://deb.debian.org/debian trixie/main amd64 node-wcwidth.js all 1.0.2-2 [7088 B]
+#8 13.91 Get:315 http://deb.debian.org/debian trixie/main amd64 node-string-width all 4.2.3+~cs13.2.3-1 [10.7 kB]
+#8 13.91 Get:316 http://deb.debian.org/debian trixie/main amd64 node-wrap-ansi all 8.0.1+~8.0.1-3 [11.8 kB]
+#8 13.91 Get:317 http://deb.debian.org/debian trixie/main amd64 node-cliui all 7.0.4+repack+1+~cs1.4.2-2 [21.6 kB]
+#8 13.91 Get:318 http://deb.debian.org/debian trixie/main amd64 node-get-caller-file all 2.0.5+~cs1.1.1-4 [5728 B]
+#8 13.91 Get:319 http://deb.debian.org/debian trixie/main amd64 node-require-directory all 2.1.1+~2.1.2-1 [7092 B]
+#8 13.94 Get:320 http://deb.debian.org/debian trixie/main amd64 node-y18n all 5.0.8+~5.0.0-3 [10.2 kB]
+#8 13.94 Get:321 http://deb.debian.org/debian trixie/main amd64 node-camelcase all 7.0.0-3 [6032 B]
+#8 13.94 Get:322 http://deb.debian.org/debian trixie/main amd64 node-yargs-parser all 21.1.1+~21.0.0-4 [28.4 kB]
+#8 13.94 Get:323 http://deb.debian.org/debian trixie/main amd64 node-yargs all 16.2.0+~16.0.4-7 [128 kB]
+#8 13.96 Get:324 http://deb.debian.org/debian trixie/main amd64 node-istanbul all 0.4.5+repack10+~cs98.25.59-3 [211 kB]
+#8 13.98 Get:325 http://deb.debian.org/debian trixie/main amd64 node-through all 2.3.8+~cs0.0.30-1 [5452 B]
+#8 13.98 Get:326 http://deb.debian.org/debian trixie/main amd64 node-resumer all 0.0.0-6 [4144 B]
+#8 13.98 Get:327 http://deb.debian.org/debian trixie/main amd64 node-tape all 5.6.1+~cs8.20.19-3 [71.0 kB]
+#8 14.00 Get:328 http://deb.debian.org/debian trixie/main amd64 node-deep-equal all 2.2.3+~cs43.15.94-1 [131 kB]
+#8 14.01 Get:329 http://deb.debian.org/debian trixie/main amd64 libjs-util all 0.12.5+~1.0.10-1 [16.0 kB]
+#8 14.01 Get:330 http://deb.debian.org/debian-security trixie-security/main amd64 libssl-dev amd64 3.5.6-1~deb13u2 [2959 kB]
+#8 14.21 Get:331 http://deb.debian.org/debian trixie/main amd64 libuv1-dev amd64 1.50.0-2 [189 kB]
+#8 14.22 Get:332 http://deb.debian.org/debian trixie/main amd64 libnode-dev amd64 20.19.2+dfsg-1+deb13u2 [537 kB]
+#8 14.27 Get:333 http://deb.debian.org/debian trixie/main amd64 node-agent-base all 7.1.1~0~2024040606-6+deb13u1 [11.6 kB]
+#8 14.27 Get:334 http://deb.debian.org/debian trixie/main amd64 node-ajv-keywords all 5.1.0-4 [32.3 kB]
+#8 14.27 Get:335 http://deb.debian.org/debian trixie/main amd64 node-ansi-escapes all 5.0.0+really.4.3.1-1 [8896 B]
+#8 14.27 Get:336 http://deb.debian.org/debian trixie/main amd64 node-aproba all 2.0.0-3 [5844 B]
+#8 14.27 Get:337 http://deb.debian.org/debian trixie/main amd64 node-delegates all 1.0.0-3 [4528 B]
+#8 14.27 Get:338 http://deb.debian.org/debian trixie/main amd64 node-are-we-there-yet all 3.0.1+~1.1.0-1 [10.0 kB]
+#8 14.27 Get:339 http://deb.debian.org/debian trixie/main amd64 node-async-each all 1.0.3-3 [4292 B]
+#8 14.27 Get:340 http://deb.debian.org/debian trixie/main amd64 node-babel-plugin-lodash all 3.3.4+~cs2.0.1-7 [11.0 kB]
+#8 14.27 Get:341 http://deb.debian.org/debian trixie/main amd64 node-base64-js all 1.5.1+dfsg+~1.3.0-2 [7140 B]
+#8 14.30 Get:342 http://deb.debian.org/debian trixie/main amd64 node-binary-extensions all 2.2.0-2 [4408 B]
+#8 14.30 Get:343 http://deb.debian.org/debian trixie/main amd64 node-builtins all 5.0.1-1 [4072 B]
+#8 14.30 Get:344 http://deb.debian.org/debian trixie/main amd64 node-chownr all 2.0.0-3 [4312 B]
+#8 14.30 Get:345 http://deb.debian.org/debian trixie/main amd64 node-iconv-lite all 0.6.3-3 [115 kB]
+#8 14.30 Get:346 http://deb.debian.org/debian trixie/main amd64 node-encoding all 0.1.13-2 [4400 B]
+#8 14.30 Get:347 http://deb.debian.org/debian trixie/main amd64 node-jsonparse all 1.3.1-10 [8020 B]
+#8 14.30 Get:348 http://deb.debian.org/debian trixie/main amd64 node-yallist all 4.0.0+~4.0.1-1 [8172 B]
+#8 14.30 Get:349 http://deb.debian.org/debian trixie/main amd64 node-minipass all 5.0.0+~cs10.3.21-3 [46.9 kB]
+#8 14.31 Get:350 http://deb.debian.org/debian trixie/main amd64 node-iferr all 1.0.2+~1.0.2-1 [4588 B]
+#8 14.31 Get:351 http://deb.debian.org/debian trixie/main amd64 node-fs-write-stream-atomic all 1.0.10-6 [5316 B]
+#8 14.33 Get:352 http://deb.debian.org/debian trixie/main amd64 node-run-queue all 2.0.0-3 [5156 B]
+#8 14.33 Get:353 http://deb.debian.org/debian trixie/main amd64 node-copy-concurrently all 1.0.5-9 [7100 B]
+#8 14.33 Get:354 http://deb.debian.org/debian trixie/main amd64 node-move-concurrently all 1.0.1-5 [5152 B]
+#8 14.33 Get:355 http://deb.debian.org/debian trixie/main amd64 node-promise-inflight all 1.0.1+~1.0.0-1 [4864 B]
+#8 14.33 Get:356 http://deb.debian.org/debian trixie/main amd64 node-ssri all 9.0.1-3 [18.1 kB]
+#8 14.33 Get:357 http://deb.debian.org/debian trixie/main amd64 node-unique-filename all 1.1.1+ds-2 [4032 B]
+#8 14.33 Get:358 http://deb.debian.org/debian trixie/main amd64 node-cacache all 17.0.3+~cs10.3.7-2 [45.2 kB]
+#8 14.34 Get:359 http://deb.debian.org/debian trixie/main amd64 node-is-binary-path all 2.1.0-5 [3684 B]
+#8 14.34 Get:360 http://deb.debian.org/debian trixie/main amd64 node-path-is-absolute all 2.0.0-2 [4068 B]
+#8 14.34 Get:361 http://deb.debian.org/debian trixie/main amd64 node-set-immediate-shim all 2.0.0-2 [3740 B]
+#8 14.35 Get:362 http://deb.debian.org/debian trixie/main amd64 node-readdirp all 3.6.0-1 [11.5 kB]
+#8 14.35 Get:363 http://deb.debian.org/debian trixie/main amd64 node-chokidar all 3.6.0-3 [32.4 kB]
+#8 14.36 Get:364 http://deb.debian.org/debian trixie/main amd64 node-tslib all 2.4.1-1 [19.5 kB]
+#8 14.36 Get:365 http://deb.debian.org/debian trixie/main amd64 node-chrome-trace-event all 1.0.3-2 [6984 B]
+#8 14.36 Get:366 http://deb.debian.org/debian trixie/main amd64 node-ci-info all 4.0.0+~cs1.1.0-1 [12.5 kB]
+#8 14.36 Get:367 http://deb.debian.org/debian trixie/main amd64 node-colors all 1.4.0-4 [11.9 kB]
+#8 14.36 Get:368 http://deb.debian.org/debian trixie/main amd64 node-cli-table all 0.3.11+~cs0.13.4-3 [23.6 kB]
+#8 14.37 Get:369 http://deb.debian.org/debian trixie/main amd64 node-columnify all 1.6.0+~1.5.1-1 [12.4 kB]
+#8 14.37 Get:370 http://deb.debian.org/debian trixie/main amd64 node-console-control-strings all 1.1.0-3 [5564 B]
+#8 14.37 Get:371 http://deb.debian.org/debian trixie/main amd64 node-css-selector-tokenizer all 0.8.0+~cs4.8.3-1 [13.0 kB]
+#8 14.40 Get:372 http://deb.debian.org/debian trixie/main amd64 node-postcss all 8.4.49+~cs9.2.32-1 [189 kB]
+#8 14.40 Get:373 http://deb.debian.org/debian trixie/main amd64 node-icss-utils all 5.1.0+~5.1.0-1 [7564 B]
+#8 14.40 Get:374 http://deb.debian.org/debian trixie/main amd64 node-postcss-modules-extract-imports all 3.0.0-2 [6584 B]
+#8 14.40 Get:375 http://deb.debian.org/debian trixie/main amd64 node-postcss-modules-values all 4.0.0+~4.0.0-1 [7180 B]
+#8 14.40 Get:376 http://deb.debian.org/debian trixie/main amd64 node-postcss-value-parser all 4.2.0-1 [10.4 kB]
+#8 14.40 Get:377 http://deb.debian.org/debian trixie/main amd64 node-prr all 1.0.1-3 [4352 B]
+#8 14.40 Get:378 http://deb.debian.org/debian trixie/main amd64 node-errno all 1.0.0-3 [7736 B]
+#8 14.40 Get:379 http://deb.debian.org/debian trixie/main amd64 node-memory-fs all 0.5.0+~0.3.3-2 [7676 B]
+#8 14.40 Get:380 http://deb.debian.org/debian trixie/main amd64 node-tapable all 2.2.1-3 [13.5 kB]
+#8 14.43 Get:381 http://deb.debian.org/debian trixie/main amd64 node-enhanced-resolve all 5.15.0-1 [36.4 kB]
+#8 14.43 Get:382 http://deb.debian.org/debian trixie/main amd64 node-es-module-lexer all 1.1.0+dfsg-3 [19.8 kB]
+#8 14.43 Get:383 http://deb.debian.org/debian trixie/main amd64 node-events all 3.3.0+~3.0.0-3 [5888 B]
+#8 14.43 Get:384 http://deb.debian.org/debian trixie/main amd64 node-resolve-cwd all 3.0.0-2 [4212 B]
+#8 14.46 Get:385 http://deb.debian.org/debian trixie/main amd64 node-jest-debbundle all 29.6.2~ds1+~cs73.45.28-5 [135 kB]
+#8 14.47 Get:386 http://deb.debian.org/debian trixie/main amd64 node-interpret all 2.2.0-3 [7660 B]
+#8 14.47 Get:387 http://deb.debian.org/debian trixie/main amd64 node-merge-stream all 2.0.0+~1.1.2-2 [5124 B]
+#8 14.47 Get:388 http://deb.debian.org/debian trixie/main amd64 node-jest-worker all 29.6.2~ds1+~cs73.45.28-5 [116 kB]
+#8 14.48 Get:389 http://deb.debian.org/debian trixie/main amd64 node-loader-runner all 4.3.0-1 [7644 B]
+#8 14.48 Get:390 http://deb.debian.org/debian trixie/main amd64 node-mime all 3.0.0+dfsg+~cs6.97.2-2 [40.3 kB]
+#8 14.48 Get:391 http://deb.debian.org/debian trixie/main amd64 node-mime-types all 2.1.35-2 [8752 B]
+#8 14.48 Get:392 http://deb.debian.org/debian trixie/main amd64 node-rechoir all 0.8.0+~0.6.1-2 [6628 B]
+#8 14.48 Get:393 http://deb.debian.org/debian trixie/main amd64 node-schema-utils all 4.2.0~ds-3 [22.0 kB]
+#8 14.49 Get:394 http://deb.debian.org/debian trixie/main amd64 node-randombytes all 2.1.0+~2.0.0-2 [4852 B]
+#8 14.49 Get:395 http://deb.debian.org/debian trixie/main amd64 node-serialize-javascript all 6.0.2-1 [13.0 kB]
+#8 14.50 Get:396 http://deb.debian.org/debian trixie/main amd64 node-watchpack all 2.4.0+~cs2.8.1-1 [20.2 kB]
+#8 14.52 Get:397 http://deb.debian.org/debian trixie/main amd64 node-webassemblyjs all 1.11.4+dfsg+~cs10.11.17-2 [139 kB]
+#8 14.53 Get:398 http://deb.debian.org/debian trixie/main amd64 node-source-list-map all 2.0.1+dfsg+~0.1.2-1 [10.1 kB]
+#8 14.53 Get:399 http://deb.debian.org/debian trixie/main amd64 node-webpack-sources all 3.2.3+~3.2.0-2 [23.2 kB]
+#8 14.56 Get:400 http://deb.debian.org/debian trixie/main amd64 node-terser all 5.38.0-1 [220 kB]
+#8 14.57 Get:401 http://deb.debian.org/debian trixie/main amd64 terser all 5.38.0-1 [19.4 kB]
+#8 14.58 Get:402 http://deb.debian.org/debian trixie/main amd64 node-get-stream all 8.0.1-11 [11.6 kB]
+#8 14.58 Get:403 http://deb.debian.org/debian trixie/main amd64 node-mimic-fn all 4.0.0-5 [5492 B]
+#8 14.58 Get:404 http://deb.debian.org/debian trixie/main amd64 node-strip-eof all 3.0.0-5 [4656 B]
+#8 14.58 Get:405 http://deb.debian.org/debian trixie/main amd64 node-execa all 8.0.1+dfsg1+~cs12.0.0-1 [43.9 kB]
+#8 14.58 Get:406 http://deb.debian.org/debian trixie/main amd64 node-envinfo all 7.11.0+~cs14.3.0-3 [32.6 kB]
+#8 14.59 Get:407 http://deb.debian.org/debian trixie/main amd64 webpack all 5.97.1+dfsg1+~cs11.18.27-3 [810 kB]
+#8 14.65 Get:408 http://deb.debian.org/debian trixie/main amd64 node-css-loader all 6.8.1+~cs14.0.17-1 [74.5 kB]
+#8 14.66 Get:409 http://deb.debian.org/debian trixie/main amd64 node-data-uri-to-buffer all 6.0.2~0~2024040606-6+deb13u1 [9180 B]
+#8 14.66 Get:410 http://deb.debian.org/debian trixie/main amd64 node-mimic-response all 3.1.0-9 [5424 B]
+#8 14.66 Get:411 http://deb.debian.org/debian trixie/main amd64 node-decompress-response all 6.0.0-3 [4656 B]
+#8 14.66 Get:412 http://deb.debian.org/debian trixie/main amd64 node-depd all 2.0.0-2 [11.2 kB]
+#8 14.67 Get:413 http://deb.debian.org/debian trixie/main amd64 node-diff all 5.0.0~dfsg+~5.0.1-4 [69.7 kB]
+#8 14.68 Get:414 http://deb.debian.org/debian trixie/main amd64 node-err-code all 2.0.3+dfsg-3 [4884 B]
+#8 14.68 Get:415 http://deb.debian.org/debian trixie/main amd64 node-time-stamp all 2.2.0-2 [6016 B]
+#8 14.68 Get:416 http://deb.debian.org/debian trixie/main amd64 node-fancy-log all 1.3.3+~cs1.3.1-2 [7940 B]
+#8 14.70 Get:417 http://deb.debian.org/debian trixie/main amd64 node-fetch all 3.3.2+~cs11.4.11-3 [213 kB]
+#8 14.71 Get:418 http://deb.debian.org/debian trixie/main amd64 node-has-unicode all 2.0.1-5 [3992 B]
+#8 14.71 Get:419 http://deb.debian.org/debian trixie/main amd64 node-wide-align all 1.1.3-4 [4244 B]
+#8 14.71 Get:420 http://deb.debian.org/debian trixie/main amd64 node-gauge all 4.0.4-2 [19.7 kB]
+#8 14.71 Get:421 http://deb.debian.org/debian trixie/main amd64 node-lowercase-keys all 2.0.0-2 [3768 B]
+#8 14.71 Get:422 http://deb.debian.org/debian trixie/main amd64 node-json-buffer all 3.0.1+~3.0.0-1 [4536 B]
+#8 14.71 Get:423 http://deb.debian.org/debian trixie/main amd64 node-p-cancelable all 2.1.1-1 [7272 B]
+#8 14.71 Get:424 http://deb.debian.org/debian trixie/main amd64 node-got all 11.8.5+~cs58.13.36-5 [121 kB]
+#8 14.72 Get:425 http://deb.debian.org/debian trixie/main amd64 node-https-proxy-agent all 7.0.4~0~2024040606-6+deb13u1 [13.7 kB]
+#8 14.72 Get:426 http://deb.debian.org/debian trixie/main amd64 node-set-blocking all 2.0.0-2 [4248 B]
+#8 14.74 Get:427 http://deb.debian.org/debian trixie/main amd64 node-npmlog all 7.0.1+~4.1.4-1 [11.4 kB]
+#8 14.75 Get:428 http://deb.debian.org/debian trixie/main amd64 node-osenv all 0.1.5+~0.1.1-1 [5884 B]
+#8 14.75 Get:429 http://deb.debian.org/debian trixie/main amd64 node-tar all 6.2.1+~cs7.0.8-1+deb13u1 [52.7 kB]
+#8 14.75 Get:430 http://deb.debian.org/debian trixie/main amd64 node-gyp all 11.1.0+~5.0.0-1 [67.6 kB]
+#8 14.75 Get:431 http://deb.debian.org/debian trixie/main amd64 node-http-proxy-agent all 7.0.2~0~2024040606-6+deb13u1 [10.8 kB]
+#8 14.75 Get:432 http://deb.debian.org/debian trixie/main amd64 node-ieee754 all 1.2.1-3 [5268 B]
+#8 14.75 Get:433 http://deb.debian.org/debian trixie/main amd64 node-ini all 3.0.1-2 [6928 B]
+#8 14.75 Get:434 http://deb.debian.org/debian trixie/main amd64 node-ip all 2.0.1+~1.1.3-3 [8616 B]
+#8 14.75 Get:435 http://deb.debian.org/debian trixie/main amd64 node-ip-regex all 4.3.0+~4.1.1-1 [5188 B]
+#8 14.75 Get:436 http://deb.debian.org/debian trixie/main amd64 node-mute-stream all 0.0.8+~0.0.1-3 [6232 B]
+#8 14.78 Get:437 http://deb.debian.org/debian trixie/main amd64 node-negotiator all 0.6.3+~0.6.1-1 [10.8 kB]
+#8 14.78 Get:438 http://deb.debian.org/debian trixie/main amd64 node-read-package-json all 5.0.2+~2.0.0-2 [11.6 kB]
+#8 14.78 Get:439 http://deb.debian.org/debian trixie/main amd64 node-npm-bundled all 2.0.1-2 [6408 B]
+#8 14.78 Get:440 http://deb.debian.org/debian trixie/main amd64 node-validate-npm-package-name all 5.0.0+~4.0.0-1 [7444 B]
+#8 14.78 Get:441 http://deb.debian.org/debian trixie/main amd64 node-npm-package-arg all 10.0.0+~3.0.0-2 [11.4 kB]
+#8 14.78 Get:442 http://deb.debian.org/debian trixie/main amd64 node-retry all 0.13.1.+~cs2.19.16-1 [14.2 kB]
+#8 14.78 Get:443 http://deb.debian.org/debian trixie/main amd64 node-promise-retry all 2.0.1-4 [5016 B]
+#8 14.78 Get:444 http://deb.debian.org/debian trixie/main amd64 node-read all 1.0.7-5 [5388 B]
+#8 14.78 Get:445 http://deb.debian.org/debian trixie/main amd64 node-promzard all 0.3.0-2 [6788 B]
+#8 14.78 Get:446 http://deb.debian.org/debian trixie/main amd64 node-text-table all 0.2.0-4 [4736 B]
+#8 14.81 Get:447 http://deb.debian.org/debian trixie/main amd64 npm all 9.2.0~ds1-3 [669 kB]
+#8 15.02 debconf: unable to initialize frontend: Dialog
+#8 15.02 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#8 15.02 debconf: falling back to frontend: Readline
+#8 15.02 debconf: unable to initialize frontend: Readline
+#8 15.02 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 447.)
+#8 15.02 debconf: falling back to frontend: Teletype
+#8 15.03 debconf: unable to initialize frontend: Teletype
+#8 15.03 debconf: (This frontend requires a controlling tty.)
+#8 15.03 debconf: falling back to frontend: Noninteractive
+

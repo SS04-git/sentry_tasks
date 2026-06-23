@@ -5,6 +5,7 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { useAuth } from '@/app/context/AuthContext';
 import { getToken } from '@/app/lib/auth';
 import { fetchWithAuth } from '@/app/lib/api';
+import PageNav from '@/app/components/PageNav';
 
 interface SecurityMetric {
 person_id: string;
@@ -78,13 +79,24 @@ const loadData = async () => {
   try {
     const token = getToken();
 
-    const metrics = await fetchWithAuth('api/v1/security/metrics', token!);
-    const queueData = await fetchWithAuth('api/v1/security/queue', token!);
-    // ↑ removed the stray fetchWithAuth(`.../${id}/${action}`) line — it doesn't belong here
+    if (!token) {
+      console.error("No auth token found");
+      return;
+    }
+
+    const metrics = await fetchWithAuth(
+      '/api/v1/security/metrics',
+      token
+    );
+
+    const queueData = await fetchWithAuth(
+      '/api/v1/security/queue',
+      token
+    );
 
     setDeniedAccess(metrics.denied_access || []);
     setImbalance(metrics.entry_exit_imbalance || []);
-    setQueue(queueData?.data ?? []);
+    setQueue(Array.isArray(queueData.data) ? queueData.data : []);
   } catch (err) {
     console.error(err);
   } finally {
@@ -121,131 +133,9 @@ const highRiskUsers = deniedAccess.filter(
 (r) => r.denied_rate_pct > 20
 ).length;
 
-const thStyle = {
-  padding: '0.85rem 1.25rem',
-  textAlign: 'center' as const,
-  fontWeight: 600,
-  borderBottom: '1px solid var(--border)',
-  color: 'var(--text-muted)',
-  background: 'rgba(6,182,212,0.04)',
-};
-
-const tdStyle = {
-  padding: '0.85rem 1.25rem',
-  textAlign: 'center' as const,
-  borderBottom: '1px solid var(--border)',
-};
-
 return ( <ProtectedRoute> <div className="page">
 
-
-    {/* NAV */}
-
-    <nav className="nav">
-      <div className="nav-inner">
-
-        <div className="nav-logo">
-          <div className="nav-logo-icon">
-            <i className="fa-solid fa-shield-halved icon-white icon-md"></i>
-          </div>
-          <span className="nav-logo-text">
-            Sentry
-          </span>
-        </div>
-
-        <div className="nav-links">
-          <a
-            href="/dashboard"
-            className="nav-link"
-          >
-            <i
-              className="fa-solid fa-gauge icon-sm"
-              style={{
-                marginRight: '0.4rem',
-              }}
-            ></i>
-            Dashboard
-          </a>
-
-          {[
-            'admin',
-            'leadership',
-            'manager',
-          ].includes(role) && (
-            <a
-              href="/reports"
-              className="nav-link"
-            >
-              <i
-                className="fa-solid fa-chart-bar icon-sm"
-                style={{
-                  marginRight: '0.4rem',
-                }}
-              ></i>
-              Reports
-            </a>
-          )}
-
-          {[
-            'admin',
-            'leadership',
-          ].includes(role) && (
-            <a
-              href="/admin"
-              className="nav-link active"
-            >
-              <i
-                className="fa-solid fa-screwdriver-wrench icon-sm"
-                style={{
-                  marginRight: '0.4rem',
-                }}
-              ></i>
-              Admin
-            </a>
-          )}
-        </div>
-
-        <div className="nav-user">
-          <div className="nav-notification">
-            <i className="fa-solid fa-bell icon-cyan"></i>
-          </div>
-
-          <div
-            className="profile-trigger"
-            ref={profileRef}
-            onClick={() =>
-              setProfileOpen(!profileOpen)
-            }
-          >
-            <i className="fa-solid fa-circle-user icon-cyan"></i>
-
-            {profileOpen && (
-                  <div className="profile-dropdown">
-                    <div className="profile-dropdown-header">
-                      <div className="profile-dropdown-avatar">
-                        <i className="fa-solid fa-user"></i>
-                      </div>
-                      <div className="profile-dropdown-info">
-                        <span className="profile-dropdown-email">{user?.email}</span>
-                        <span className="profile-dropdown-role">{role}</span>
-                      </div>
-                    </div>
-                    <div className="profile-dropdown-item">
-                      <i className="fa-solid fa-user-gear icon-sm"></i>Profile Settings
-                    </div>
-                    <div className="profile-dropdown-item">
-                      <i className="fa-solid fa-lock icon-sm"></i>Change Password
-                    </div>
-                    <div className="profile-dropdown-item danger" onClick={logout}>
-                      <i className="fa-solid fa-arrow-right-from-bracket icon-sm"></i>Log Out
-                    </div>
-                  </div>
-                )}
-          </div>
-        </div>
-
-      </div>
-    </nav>
+<PageNav active="admin" />
 
     <div className="page-body">
 
@@ -361,217 +251,183 @@ return ( <ProtectedRoute> <div className="page">
           </div>
 
           {/* DENIED ACCESS */}
+          <div className="card card-static" style={{ marginBottom: '1.5rem' }}>
+  <h2>Denied Access Rates</h2>
 
-          {/* DENIED ACCESS */}
-
-<div
-  className="card card-static"
-  style={{
-    padding: 0,
-    marginBottom: '1.5rem',
-  }}
->
-  <div
-    style={{
-      padding: '1.25rem 1.5rem',
-      borderBottom: '1px solid var(--border)',
-    }}
-  >
-    <h2 style={{ margin: 0 }}>
-      Denied Access Rates
-    </h2>
-  </div>
-
-  <div style={{ overflowX: 'auto' }}>
-    <table
-      style={{
-        width: '100%',
-        borderCollapse: 'collapse',
-        tableLayout: 'fixed',
-      }}
-    >
+  <div className="table-container">
+    <table>
       <thead>
         <tr>
-          <th style={thStyle}>Person</th>
-          <th style={thStyle}>Denied</th>
-          <th style={thStyle}>Total</th>
-          <th style={thStyle}>Rate</th>
+          <th>Person</th>
+          <th className="table-number">Denied</th>
+          <th className="table-number">Total</th>
+          <th className="table-number">Rate</th>
         </tr>
       </thead>
 
       <tbody>
-        {deniedAccess.map((row) => (
-          <tr key={row.person_id}>
-            <td style={tdStyle}>{row.person_id}</td>
-            <td style={tdStyle}>{row.denied_count}</td>
-            <td style={tdStyle}>{row.total_events}</td>
-            <td style={tdStyle}>
-              {row.denied_rate_pct}%
+        {deniedAccess.length > 0 ? (
+          deniedAccess.map((row) => (
+            <tr key={row.person_id}>
+              <td>{row.person_id}</td>
+              <td className="table-number">
+                {row.denied_count}
+              </td>
+              <td className="table-number">
+                {row.total_events}
+              </td>
+              <td className="table-number">
+                {row.denied_rate_pct}%
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td
+              colSpan={4}
+              style={{
+                textAlign: 'center',
+                color: '#888',
+                padding: '1rem',
+              }}
+            >
+              No denied access data available
             </td>
           </tr>
-        ))}
+        )}
       </tbody>
     </table>
   </div>
 </div>
 
-{/* ENTRY / EXIT IMBALANCE */}
+        {/* ENTRY / EXIT IMBALANCE */}
+        <div className="card card-static" style={{ marginBottom: '1.5rem' }}>
+  <h2>Entry / Exit Imbalance</h2>
 
-<div
-  className="card card-static"
-  style={{
-    padding: 0,
-    marginBottom: '1.5rem',
-  }}
->
-  <div
-    style={{
-      padding: '1.25rem 1.5rem',
-      borderBottom: '1px solid var(--border)',
-    }}
-  >
-    <h2 style={{ margin: 0 }}>
-      Entry / Exit Imbalance
-    </h2>
-  </div>
-
-  <div style={{ overflowX: 'auto' }}>
-    <table
-      style={{
-        width: '100%',
-        borderCollapse: 'collapse',
-        tableLayout: 'fixed',
-      }}
-    >
+  <div className="table-container">
+    <table>
       <thead>
         <tr>
-          <th style={thStyle}>Person</th>
-          <th style={thStyle}>Entries</th>
-          <th style={thStyle}>Exits</th>
-          <th style={thStyle}>Imbalance</th>
+          <th>Person</th>
+          <th className="table-number">Entries</th>
+          <th className="table-number">Exits</th>
+          <th className="table-number">Imbalance</th>
         </tr>
       </thead>
 
       <tbody>
-        {imbalance.map((row) => (
-          <tr key={row.person_id}>
-            <td style={tdStyle}>{row.person_id}</td>
-            <td style={tdStyle}>{row.entry_count}</td>
-            <td style={tdStyle}>{row.exit_count}</td>
-            <td style={tdStyle}>
-              {row.imbalance_score}
+        {imbalance.length > 0 ? (
+          imbalance.map((row) => (
+            <tr key={row.person_id}>
+              <td>{row.person_id}</td>
+              <td className="table-number">
+                {row.entry_count}
+              </td>
+              <td className="table-number">
+                {row.exit_count}
+              </td>
+              <td className="table-number">
+                {row.imbalance_score}
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td
+              colSpan={4}
+              style={{
+                textAlign: 'center',
+                color: '#888',
+                padding: '1rem',
+              }}
+            >
+              No imbalance data available
             </td>
           </tr>
-        ))}
+        )}
       </tbody>
     </table>
   </div>
 </div>
 
-{/* REVIEW QUEUE */}
 
-<div
-  className="card card-static"
-  style={{
-    padding: 0,
-  }}
->
-  <div
-    style={{
-      padding: '1.25rem 1.5rem',
-      borderBottom: '1px solid var(--border)',
-    }}
-  >
-    <h2 style={{ margin: 0 }}>
-      Review Queue
-    </h2>
-  </div>
+    {/* REVIEW QUEUE */}
+    <div className="card card-static">
+  <h2>Review Queue</h2>
 
-  <div style={{ overflowX: 'auto' }}>
-    <table
-      style={{
-        width: '100%',
-        borderCollapse: 'collapse',
-        tableLayout: 'fixed',
-      }}
-    >
+  <div className="table-container">
+    <table>
       <thead>
         <tr>
-          <th style={thStyle}>Person</th>
-          <th style={thStyle}>Score</th>
-          <th style={thStyle}>Reason</th>
-          <th style={thStyle}>Direction</th>
-          <th style={thStyle}>Result</th>
-          <th style={thStyle}>Actions</th>
+          <th>Person</th>
+          <th className="table-number">Score</th>
+          <th>Reason</th>
+          <th>Direction</th>
+          <th>Result</th>
+          <th>Actions</th>
         </tr>
       </thead>
 
       <tbody>
-        {queue.map((item) => (
-          <tr key={item.id}>
-            <td style={tdStyle}>
-              {item.full_name ?? item.person_id}
-            </td>
+        {queue.length > 0 ? (
+          queue.map((item) => (
+            <tr key={item.id}>
+              <td>
+                {item.full_name ?? item.person_id}
+              </td>
 
-            <td style={tdStyle}>
-              {Number(item.score ?? 0).toFixed(2)}
-            </td>
+              <td className="table-number">
+                {Number(item.score ?? 0).toFixed(2)}
+              </td>
 
-            <td style={tdStyle}>
-              {item.reason}
-            </td>
+              <td>{item.reason}</td>
 
-            <td style={tdStyle}>
-              {item.direction}
-            </td>
+              <td>{item.direction}</td>
 
-            <td style={tdStyle}>
-              {item.access_result}
-            </td>
+              <td>{item.access_result}</td>
 
-            <td style={tdStyle}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <button
-                  className="btn-primary"
-                  onClick={() =>
-                    handleReview(
-                      item.id,
-                      'confirm'
-                    )
-                  }
+              <td>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                  }}
                 >
-                  Confirm
-                </button>
+                  <button
+                    className="btn-primary"
+                    onClick={() =>
+                      handleReview(
+                        item.id,
+                        'confirm'
+                      )
+                    }
+                  >
+                    Confirm
+                  </button>
 
-                <button
-                  className="btn-secondary"
-                  onClick={() =>
-                    handleReview(
-                      item.id,
-                      'dismiss'
-                    )
-                  }
-                >
-                  Dismiss
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-
-        {queue.length === 0 && (
+                  <button
+                    className="btn-secondary"
+                    onClick={() =>
+                      handleReview(
+                        item.id,
+                        'dismiss'
+                      )
+                    }
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))
+        ) : (
           <tr>
             <td
               colSpan={6}
               style={{
                 textAlign: 'center',
-                padding: '2rem',
+                color: '#888',
+                padding: '1rem',
               }}
             >
               No flagged events awaiting review

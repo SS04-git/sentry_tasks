@@ -1,4 +1,5 @@
-const API_BASE = "http://backend:8000/api/v1/occupancy";
+// app/lib/occupancy.ts
+import { fetchWithAuth } from '@/app/lib/api';
 
 export interface OccupancyTrend {
   event_date: string;
@@ -19,31 +20,14 @@ export interface OccupancyKPI {
   min: number;
 }
 
-async function fetchOccupancy<T>(endpoint: string): Promise<T> {
-  const response = await fetch(
-    `${API_BASE}${endpoint}`,
-    {
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Occupancy API error: ${response.status} ${response.statusText}`
-    );
-  }
-
-  return response.json();
+export async function getTrend(token: string): Promise<OccupancyTrend[]> {
+  return fetchWithAuth('api/v1/occupancy/trend', token);
 }
 
-export async function getTrend(): Promise<OccupancyTrend[]> {
-  return fetchOccupancy<OccupancyTrend[]>("/trend");
+export async function getForecast(token: string): Promise<ForecastPoint[]> {
+  return fetchWithAuth('api/v1/occupancy/forecast', token);
 }
 
-export async function getForecast(): Promise<ForecastPoint[]> {
-  return fetchOccupancy<ForecastPoint[]>("/forecast");
-}
-
-export async function getKPI(): Promise<OccupancyKPI> {
-  return fetchOccupancy<OccupancyKPI>("/kpi");
+export async function getKPI(token: string): Promise<OccupancyKPI> {
+  return fetchWithAuth('api/v1/occupancy/kpi', token);
 }

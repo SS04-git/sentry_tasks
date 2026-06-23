@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User
 from app.core.security import verify_password, create_access_token
+from collections import defaultdict
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger("backend")
@@ -19,6 +21,10 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+FAILED_LOGINS = defaultdict(list)
+MAX_ATTEMPTS = 5
+LOCKOUT_MINUTES = 3
+
 # @router.post("/login")
 # def login(data: LoginRequest):
 #     if data.email != fake_user["email"]:
@@ -30,15 +36,75 @@ class LoginRequest(BaseModel):
 #     return {"access_token": token, "token_type": "bearer"}
 
 @router.post("/login")
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not verify_password(data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not user.is_active:
-        raise HTTPException(status_code=403, detail="Account disabled")
+def login(
+    data: LoginRequest,
+    db: Session = Depends(get_db),
+):
 
-    token = create_access_token({"sub": user.email, "role": user.role})
-    logger.info(f"Login successful for {user.email} with role {user.role}")
-    return {"access_token": token, "token_type": "bearer"}
+    attempts = FAILED_LOGINS[data.email]
+
+    cutoff = datetime.utcnow() - timedelta(
+        minutes=LOCKOUT_MINUTES
+    )
+
+    attempts[:] = [
+        t for t in attempts
+        if t > cutoff
+    ]
+
+    if len(attempts) >= MAX_ATTEMPTS:
+        raise HTTPException(
+            status_code=429,
+            detail="Account temporarily locked"
+        )
+
+    user = db.query(User).filter(
+        User.email == data.email
+    ).first()
+
+    if not user:
+        FAILED_LOGINS[data.email].append(
+            datetime.utcnow()
+        )
+
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials"
+        )
+
+    if not verify_password(
+        data.password,
+        user.hashed_password,
+    ):
+        FAILED_LOGINS[data.email].append(
+            datetime.utcnow()
+        )
+
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials"
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=403,
+            detail="Account disabled"
+        )
+
+    FAILED_LOGINS[data.email].clear()
+
+    token = create_access_token(
+        {
+            "sub": user.email,
+            "role": user.role,
+        }
+    )
+
+    logger.info(
+        f"Login successful for {user.email}"
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+    }

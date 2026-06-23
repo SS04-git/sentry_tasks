@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from app.core.dependencies import require_role
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -18,7 +19,10 @@ def get_db():
 
 @router.get("/kpi")
 def occupancy_kpi(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role("admin", "leadership", "manager", "employee")
+    ),
 ):
     result = db.execute(
         text(
@@ -37,7 +41,10 @@ def occupancy_kpi(
 
 @router.get("/trend")
 def occupancy_trend(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role("admin", "leadership", "manager", "employee")
+    ),
 ):
     rows = db.execute(
         text(
@@ -54,7 +61,10 @@ def occupancy_trend(
 
 @router.get("/mobile-adoption")
 def mobile_adoption(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role("admin", "leadership", "manager", "employee")
+    ),
 ):
     rows = db.execute(
         text(
@@ -71,7 +81,10 @@ def mobile_adoption(
 
 @router.get("/forecast")
 def forecast(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role("admin", "leadership", "manager", "employee")
+    ),
 ):
     df = get_forecast(db)
 

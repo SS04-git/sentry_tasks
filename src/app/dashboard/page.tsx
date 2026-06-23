@@ -5,6 +5,8 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { useAuth } from '@/app/context/AuthContext';
 import { getToken } from '@/app/lib/auth';
 import { fetchWithAuth } from '@/app/lib/api';
+import PageNav from '../components/PageNav';
+import { KpiCaveat } from '@/app/components/KpiCaveat';
 
 interface AuditLog {
   id: number;
@@ -33,6 +35,9 @@ interface AttendancePreview {
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const role = user?.role ?? 'employee';
+  const canViewIndividualMetrics =
+  role === 'admin' ||
+  role === 'leadership';
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const [activeUsers, setActiveUsers] = useState<number | null>(null);
@@ -41,6 +46,7 @@ export default function DashboardPage() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [attendance, setAttendance] = useState<AttendancePreview | null>(null);
   const [loadingAttendance, setLoadingAttendance] = useState(true);
+  const [caveats, setCaveats] = useState<Record<string, string>>({});
 
   const notifications = [
     { id: 1, title: 'Password changed', desc: 'Your password was updated successfully', time: '1d ago', icon: 'fa-key' },
@@ -66,41 +72,55 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      const token = getToken();
-      if (!token) return;
-      try {
-        if (['admin', 'leadership'].includes(role)) {
-          const users = await fetchWithAuth('api/v1/users/', token);
-          setActiveUsers(users.filter((u: { is_active: boolean }) => u.is_active).length);
-          const logs: AuditLog[] = await fetchWithAuth('api/v1/users/audit-logs', token);
-          setAuditCount(logs.length);
-          setRecentLogs(logs.slice(0, 3));
-        }
-      } catch (err) {
-        console.error('Failed to load dashboard data', err);
-      } finally {
-        setLoadingStats(false);
+  const loadDashboardData = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      if (['admin', 'leadership'].includes(role)) {
+        const users = await fetchWithAuth('api/v1/users/', token);
+        setActiveUsers(users.filter((u: { is_active: boolean }) => u.is_active).length);
+        const logs: AuditLog[] = await fetchWithAuth('api/v1/users/audit-logs', token);
+        setAuditCount(logs.length);
+        setRecentLogs(logs.slice(0, 3));
+        console.log('audit logs raw:', logs);   // ← here
+        console.log('role is:', role);          // ← here
       }
-    };
-    loadDashboardData();
-  }, [role]);
+    } catch (err) {
+      console.error('Failed to load dashboard data', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+  loadDashboardData();
+}, [role]);
+
+useEffect(() => {
+  const loadAttendance = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const data: AttendancePreview = await fetchWithAuth('api/v1/attendance/preview', token);
+      setAttendance(data);
+      console.log('attendance raw:', data);                                              // ← here
+      console.log('days_this_week:', data?.own?.days_this_week, typeof data?.own?.days_this_week); // ← here
+    } catch (err) {
+      console.error('Failed to load attendance preview', err);
+    } finally {
+      setLoadingAttendance(false);
+    }
+  };
+  loadAttendance();
+}, []);
 
   useEffect(() => {
-    const loadAttendance = async () => {
-      const token = getToken();
-      if (!token) return;
-      try {
-        const data: AttendancePreview = await fetchWithAuth('api/v1/attendance/preview', token);
-        setAttendance(data);
-      } catch (err) {
-        console.error('Failed to load attendance preview', err);
-      } finally {
-        setLoadingAttendance(false);
-      }
-    };
-    loadAttendance();
-  }, []);
+  const load = async () => {
+    const token = getToken();
+    if (!token) return;
+    const data = await fetchWithAuth('api/v1/governance/caveats', token);
+    setCaveats(data);
+  };
+  load();
+}, []);
 
   const stats = [
     {
@@ -151,65 +171,7 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <div className="page">
 
-        {/* ── Nav ── */}
-        <nav className="nav">
-          <div className="nav-inner">
-            <div className="nav-logo">
-              <div className="nav-logo-icon">
-                <i className="fa-solid fa-shield-halved icon-white icon-md"></i>
-              </div>
-              <span className="nav-logo-text">Sentry</span>
-            </div>
-
-            <div className="nav-links">
-              <a href="/dashboard" className="nav-link active">
-                <i className="fa-solid fa-gauge icon-sm" style={{ marginRight: '0.4rem' }}></i>Dashboard
-              </a>
-              {['admin', 'leadership', 'manager'].includes(role) && (
-                <a href="/reports" className="nav-link">
-                  <i className="fa-solid fa-chart-bar icon-sm" style={{ marginRight: '0.4rem' }}></i>Reports
-                </a>
-              )}
-              {['admin', 'leadership'].includes(role) && (
-                <a href="/admin" className="nav-link">
-                  <i className="fa-solid fa-screwdriver-wrench icon-sm" style={{ marginRight: '0.4rem' }}></i>Admin
-                </a>
-              )}
-            </div>
-
-            <div className="nav-user">
-              <div className="nav-notification">
-                <i className="fa-solid fa-bell icon-cyan"></i>
-                {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
-              </div>
-              <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
-                <i className="fa-solid fa-circle-user icon-cyan"></i>
-                {profileOpen && (
-                  <div className="profile-dropdown">
-                    <div className="profile-dropdown-header">
-                      <div className="profile-dropdown-avatar">
-                        <i className="fa-solid fa-user"></i>
-                      </div>
-                      <div className="profile-dropdown-info">
-                        <span className="profile-dropdown-email">{user?.email}</span>
-                        <span className="profile-dropdown-role">{role}</span>
-                      </div>
-                    </div>
-                    <div className="profile-dropdown-item">
-                      <i className="fa-solid fa-user-gear icon-sm"></i>Profile Settings
-                    </div>
-                    <div className="profile-dropdown-item">
-                      <i className="fa-solid fa-lock icon-sm"></i>Change Password
-                    </div>
-                    <div className="profile-dropdown-item danger" onClick={logout}>
-                      <i className="fa-solid fa-arrow-right-from-bracket icon-sm"></i>Log Out
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </nav>
+        <PageNav active="dashboard" />
 
         <div className="page-body">
 
@@ -222,7 +184,7 @@ export default function DashboardPage() {
                   Welcome back
                 </p>
                 <h1 className="banner-title">{user?.email?.split('@')[0]}</h1>
-                <p className="banner-subtitle">Security monitoring dashboard</p>
+                <p className="banner-subtitle">Operational insights with governance controls</p>
                 <span className="banner-badge">
                   <i className="fa-solid fa-id-badge"></i>
                   {role}
@@ -272,59 +234,6 @@ export default function DashboardPage() {
             {/* Left column */}
             <div className="dashboard-column">
 
-              {/* Recent security activity */}
-              <div className="card">
-                <div className="section-header">
-                  <i className="fa-solid fa-clock-rotate-left icon-cyan"></i>
-                  <h2>Recent Security Activity</h2>
-                </div>
-                <div className="activity-list">
-                  {['admin', 'leadership'].includes(role) ? (
-                    recentLogs.length > 0 ? (
-                      recentLogs.map((log) => {
-                        const meta = actionMeta[log.action] ?? { title: log.action, desc: () => log.detail ?? '' };
-                        return (
-                          <div className="activity-item" key={log.id}>
-                            <div className="activity-dot"></div>
-                            <div>
-                              <strong>{meta.title}</strong>
-                              <p>{meta.desc(log)}</p>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p style={{ fontSize: '0.875rem' }}>No recent activity</p>
-                    )
-                  ) : (
-                    <p style={{ fontSize: '0.875rem' }}>Activity logs are visible to admin and leadership roles only.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Permissions */}
-              <div className="card">
-                <div className="section-header">
-                  <i className="fa-solid fa-key icon-cyan"></i>
-                  <h2>Permissions</h2>
-                </div>
-                <div className="access-grid">
-                  {[
-                    { label: 'Dashboard',    icon: 'fa-gauge',              roles: ['admin','leadership','manager','employee'] },
-                    { label: 'Reports',      icon: 'fa-chart-bar',          roles: ['admin','leadership','manager'] },
-                    { label: 'Admin',        icon: 'fa-screwdriver-wrench', roles: ['admin','leadership'] },
-                    { label: 'Manage Users', icon: 'fa-users-gear',         roles: ['admin'] },
-                  ].map((item) => {
-                    const allowed = item.roles.includes(role);
-                    return (
-                      <div key={item.label} className={`access-pill ${allowed ? 'allowed' : ''}`}>
-                        <i className={`fa-solid ${item.icon}`}></i>
-                        {item.label}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
               {/* ── Attendance Preview Card (SENTRY-23) ── */}
               <div className="card">
@@ -401,6 +310,10 @@ export default function DashboardPage() {
                         <div key={kpi.label} style={{ padding: '0.85rem', borderRadius: '12px', background: 'rgba(6,182,212,0.04)', border: '1px solid rgba(6,182,212,0.1)' }}>
                           <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>{kpi.value}</div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{kpi.label}</div>
+                          { kpi.label === 'Attendance rate' && (
+                            <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.4rem', lineHeight: 1.4 }}>
+                              Presence data should not be used as a performance score.
+                            </p>)}
                           <AttendanceBar pct={kpi.pct} color={kpi.color} />
                         </div>
                       ))}
@@ -439,9 +352,51 @@ export default function DashboardPage() {
                         Team comparison hidden — cohort too small.
                       </p>
                     )}
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '1rem', fontStyle: 'italic'}}>
+                      Attendance metrics reflect workplace presence only and do not represent productivity, impact, or employee performance.
+                    </p>
                   </>
                 )}
               </div>
+
+              {/* Permissions */}
+              <div className="card">
+                <div className="section-header">
+                  <i className="fa-solid fa-key icon-cyan"></i>
+                  <h2>Permissions</h2>
+                </div>
+                <div className="access-grid">
+                  {[
+                    { label: 'Dashboard',    icon: 'fa-gauge',              roles: ['admin','leadership','manager','employee'] },
+                    { label: 'Reports',      icon: 'fa-chart-bar',          roles: ['admin','leadership','manager'] },
+                    { label: 'Admin',        icon: 'fa-screwdriver-wrench', roles: ['admin','leadership'] },
+                    { label: 'Manage Users', icon: 'fa-users-gear',         roles: ['admin'] },
+                  ].map((item) => {
+                    const allowed = item.roles.includes(role);
+                    return (
+                      <div key={item.label} className={`access-pill ${allowed ? 'allowed' : ''}`}>
+                        <i className={`fa-solid ${item.icon}`}></i>
+                        {item.label}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Governance Ops */}
+            <div className="card" style={{ marginBottom: '1rem' }}>
+              <div className="section-header">
+              <i className="fa-solid fa-scale-balanced icon-cyan"></i>
+              <h2>Governance Notice</h2>
+            </div>
+            <p style={{ fontSize: '0.85rem', lineHeight: 1.6 }}>
+            Attendance, occupancy and GitHub activity are reported separately.
+            Presence is not a measure of performance and no combined employee
+            score is calculated.
+            </p>
+            <KpiCaveat text={caveats['attendance']} />
+            <KpiCaveat text={caveats['commit_count']} />
+            </div>
 
             </div>
 
@@ -469,7 +424,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Team — admin only */}
-              {role === 'admin' && (
+              {canViewIndividualMetrics && (
                 <div className="card">
                   <div className="section-header">
                     <i className="fa-solid fa-people-group icon-cyan"></i>
@@ -494,6 +449,36 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
+
+              {/* Recent security activity */}
+              <div className="card">
+                <div className="section-header">
+                  <i className="fa-solid fa-clock-rotate-left icon-cyan"></i>
+                  <h2>Recent Security Activity</h2>
+                </div>
+                <div className="activity-list">
+                  {canViewIndividualMetrics ? (
+                    recentLogs.length > 0 ? (
+                      recentLogs.map((log) => {
+                        const meta = actionMeta[log.action] ?? { title: log.action, desc: () => log.detail ?? '' };
+                        return (
+                          <div className="activity-item" key={log.id}>
+                            <div className="activity-dot"></div>
+                            <div>
+                              <strong>{meta.title}</strong>
+                              <p>{meta.desc(log)}</p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p style={{ fontSize: '0.875rem' }}>No recent activity</p>
+                    )
+                  ) : (
+                    <p style={{ fontSize: '0.875rem' }}>Activity logs are visible to admin and leadership roles only.</p>
+                  )}
+                </div>
+              </div>
 
             </div>
           </div>

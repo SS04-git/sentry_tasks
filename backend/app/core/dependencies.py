@@ -15,35 +15,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         return {"email": user_id, "role": role}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-    
-
-# def get_current_user(token: str = Depends(oauth2_scheme)):
-#     try:
-#         print("TOKEN RECEIVED:", token)
-#         print("SECRET_KEY:", SECRET_KEY)
-
-#         payload = jwt.decode(
-#             token,
-#             SECRET_KEY,
-#             algorithms=[ALGORITHM]
-#         )
-
-#         print("PAYLOAD:", payload)
-
-#         user_id = payload.get("sub")
-#         role = payload.get("role")
-
-#         return {
-#             "email": user_id,
-#             "role": role
-#         }
-
-#     except Exception as e:
-#         print("JWT ERROR:", str(e))
-#         raise HTTPException(
-#             status_code=401,
-#             detail=str(e)
-#         )
 
 
 def require_role(*roles: str):

@@ -1396,3 +1396,39 @@ button.btn-sm {
   background: #ef4444;
   color: white;
 }
+
+
+/* Tables */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  padding: 12px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+tbody td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

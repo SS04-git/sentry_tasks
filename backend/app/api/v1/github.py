@@ -1,32 +1,51 @@
 import requests
 import time
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.db.database import SessionLocal
 from app.models.github_account import GitHubAccount
+from app.models.user import User
 from app.models.github_data import (
     GitRepo, GitCommit, GitContributorStat,
     GitPullRequest, GitFileChange, GitReview, GitSyncStatus
 )
 from fastapi.responses import RedirectResponse
 from app.core import config
-from app.core.security import create_access_token
+from app.core.security import create_access_token, SECRET_KEY, ALGORITHM
+from app.core.dependencies import get_current_user
+from jose import jwt, JWTError
 
 router = APIRouter()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def get_github_token() -> str:
+def get_github_token(user_id: int) -> str:
     db: Session = SessionLocal()
     try:
-        account = db.query(GitHubAccount).first()
+        account = db.query(GitHubAccount).filter(
+            GitHubAccount.user_id == user_id
+        ).first()
         if not account:
             raise HTTPException(status_code=401, detail="GitHub not connected")
         return account.access_token
+    finally:
+        db.close()
+
+
+def get_current_app_user(current_user=Depends(get_current_user)) -> User:
+    db: Session = SessionLocal()
+    try:
+        app_user = db.query(User).filter(
+            User.email == current_user["email"]
+        ).first()
+        if not app_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        db.expunge(app_user)
+        return app_user
     finally:
         db.close()
 
@@ -53,7 +72,7 @@ def check_rate_limit(token: str) -> dict:
     }
 
 
-def rate_limited_get(url: str, token: str, params: dict = None, min_remaining: int = 50) -> dict:
+def rate_limited_get(url: str, token: str, params: dict = None, min_remaining: int = 50):
     """GET with rate-limit awareness — sleeps if budget is low."""
     rate = check_rate_limit(token)
     if rate["remaining"] < min_remaining:
@@ -61,7 +80,6 @@ def rate_limited_get(url: str, token: str, params: dict = None, min_remaining: i
         sleep_secs = max(0, reset_time - time.time()) + 5
         print(f"Rate limit low ({rate['remaining']} left), sleeping {sleep_secs:.0f}s")
         time.sleep(min(sleep_secs, 60))
-
     res = requests.get(url, headers=gh_headers(token), params=params, timeout=15)
     return res
 
@@ -110,20 +128,48 @@ def parse_dt(s: str):
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @router.get("/login")
-def github_login():
+def github_login(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        role = payload.get("role")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    state_token = create_access_token({"sub": email, "role": role})
     github_url = (
         "https://github.com/login/oauth/authorize"
         f"?client_id={config.GITHUB_CLIENT_ID}"
         f"&redirect_uri={config.GITHUB_REDIRECT_URI}"
         "&scope=repo read:user"
+        f"&state={state_token}"
     )
     return RedirectResponse(github_url)
 
 
 @router.get("/callback")
-def github_callback(code: str):
+def github_callback(code: str, state: str = None):
     if not code:
         raise HTTPException(status_code=400, detail="Missing code")
+
+    if not state:
+        return RedirectResponse("http://localhost:3000/repositories?error=missing_state")
+
+    try:
+        payload = jwt.decode(state, SECRET_KEY, algorithms=[ALGORITHM])
+        user_email = payload.get("sub")
+    except JWTError:
+        return RedirectResponse("http://localhost:3000/repositories?error=invalid_state")
+
+    db: Session = SessionLocal()
+    try:
+        app_user = db.query(User).filter(User.email == user_email).first()
+        if not app_user:
+            return RedirectResponse("http://localhost:3000/repositories?error=user_not_found")
+    finally:
+        db.close()
 
     token_response = requests.post(
         "https://github.com/login/oauth/access_token",
@@ -138,22 +184,17 @@ def github_callback(code: str):
     token_json = token_response.json()
 
     if "error" in token_json:
-        return RedirectResponse(
-            f"http://localhost:3000/repositories?error={token_json['error']}"
-        )
-
+        return RedirectResponse("http://localhost:3000/repositories?error=" + token_json["error"])
     if "access_token" not in token_json:
         raise HTTPException(status_code=400, detail=token_json)
 
     access_token = token_json["access_token"]
-
     user_response = requests.get(
         "https://api.github.com/user",
         headers=gh_headers(access_token),
         timeout=10,
     )
     github_user = user_response.json()
-
     if "id" not in github_user:
         raise HTTPException(status_code=400, detail=github_user)
 
@@ -162,9 +203,9 @@ def github_callback(code: str):
         account = db.query(GitHubAccount).filter(
             GitHubAccount.github_id == github_user["id"]
         ).first()
-
         if not account:
             account = GitHubAccount(
+                user_id=app_user.id,
                 github_id=github_user["id"],
                 github_login=github_user["login"],
                 access_token=access_token,
@@ -172,36 +213,102 @@ def github_callback(code: str):
             db.add(account)
         else:
             account.access_token = access_token
+            account.user_id = app_user.id
 
         db.commit()
+        app_token = create_access_token({
+            "sub": app_user.email,
+            "role": app_user.role.value if hasattr(app_user.role, "value") else app_user.role,
+        })
     finally:
         db.close()
 
-    token = create_access_token({
-        "sub": github_user["login"],
-        "role": "employee"
-    })
-
-    return RedirectResponse(f"http://localhost:3000/repositories?token={token}")
+    return RedirectResponse(f"http://localhost:3000/repositories?token={app_token}")
 
 
 @router.delete("/disconnect")
-def disconnect_github():
+def disconnect_github(current_user=Depends(get_current_user)):
     db: Session = SessionLocal()
     try:
-        db.query(GitHubAccount).delete()
+        app_user = db.query(User).filter(User.email == current_user["email"]).first()
+        if not app_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        account = db.query(GitHubAccount).filter(
+            GitHubAccount.user_id == app_user.id
+        ).first()
+        if not account:
+            return {"message": "No GitHub account connected"}
+
+        repos = db.query(GitRepo).filter(GitRepo.github_account_id == account.id).all()
+        repo_ids = [r.repo_id for r in repos]
+
+        if repo_ids:
+            db.query(GitFileChange).filter(GitFileChange.repo_id.in_(repo_ids)).delete(synchronize_session=False)
+            db.query(GitCommit).filter(GitCommit.repo_id.in_(repo_ids)).delete(synchronize_session=False)
+            db.query(GitContributorStat).filter(GitContributorStat.repo_id.in_(repo_ids)).delete(synchronize_session=False)
+            db.query(GitReview).filter(GitReview.repo_id.in_(repo_ids)).delete(synchronize_session=False)
+            db.query(GitPullRequest).filter(GitPullRequest.repo_id.in_(repo_ids)).delete(synchronize_session=False)
+            db.query(GitSyncStatus).filter(
+                GitSyncStatus.repo_full_name.in_([r.full_name for r in repos])
+            ).delete(synchronize_session=False)
+            db.query(GitRepo).filter(GitRepo.repo_id.in_(repo_ids)).delete(synchronize_session=False)
+
+        db.delete(account)
         db.commit()
-        return {"message": "Disconnected"}
+        return {"message": "GitHub disconnected"}
     finally:
         db.close()
 
 
 # ── Repositories ──────────────────────────────────────────────────────────────
 
-@router.get("/repositories")
-def get_repositories(background_tasks: BackgroundTasks):
-    access_token = get_github_token()
+@router.get("/repos")
+def list_synced_repos(current_user=Depends(get_current_user)):
+    """
+    Returns repos already synced to the DB for the current user.
+    No GitHub OAuth needed — reads local git_repos rows only.
+    Used by the DORA page dropdown picker.
+    """
+    db: Session = SessionLocal()
+    try:
+        app_user = db.query(User).filter(User.email == current_user["email"]).first()
+        if not app_user:
+            raise HTTPException(status_code=404, detail="User not found")
 
+        account = db.query(GitHubAccount).filter(
+            GitHubAccount.user_id == app_user.id
+        ).first()
+        if not account:
+            return {"data": []}
+
+        repos = db.query(GitRepo).filter(
+            GitRepo.github_account_id == account.id
+        ).order_by(GitRepo.full_name).all()
+
+        return {
+            "data": [
+                {
+                    "owner":     r.owner,
+                    "name":      r.name,
+                    "full_name": r.full_name,
+                    "private":   r.private,
+                    "language":  r.language,
+                    "stars":     r.stars,
+                }
+                for r in repos
+            ]
+        }
+    finally:
+        db.close()
+
+
+@router.get("/repositories")
+def get_repositories(
+    background_tasks: BackgroundTasks,
+    app_user: User = Depends(get_current_app_user),
+):
+    access_token = get_github_token(app_user.id)
     response = requests.get(
         "https://api.github.com/user/repos",
         headers=gh_headers(access_token),
@@ -209,26 +316,23 @@ def get_repositories(background_tasks: BackgroundTasks):
         timeout=10,
     )
     data = response.json()
-
     if isinstance(data, dict) and data.get("message"):
         raise HTTPException(status_code=400, detail=data.get("message"))
-
-    background_tasks.add_task(sync_repos_to_db, data, access_token)
+    background_tasks.add_task(sync_repos_to_db, data, access_token, app_user.id)
     return data
 
 
-def sync_repos_to_db(repos: list, access_token: str):
+def sync_repos_to_db(repos: list, access_token: str, user_id: int):
     db: Session = SessionLocal()
     try:
-        account = db.query(GitHubAccount).first()
+        account = db.query(GitHubAccount).filter(
+            GitHubAccount.user_id == user_id
+        ).first()
         if not account:
             return
 
         for repo in repos:
-            existing = db.query(GitRepo).filter(
-                GitRepo.repo_id == repo["id"]
-            ).first()
-
+            existing = db.query(GitRepo).filter(GitRepo.repo_id == repo["id"]).first()
             if existing:
                 existing.stars = repo.get("stargazers_count", 0)
                 existing.forks = repo.get("forks_count", 0)
@@ -250,7 +354,6 @@ def sync_repos_to_db(repos: list, access_token: str):
                     open_issues=repo.get("open_issues_count", 0),
                     synced_at=datetime.utcnow(),
                 ))
-
         db.commit()
     except Exception as e:
         print(f"Sync repos error: {e}")
@@ -261,17 +364,20 @@ def sync_repos_to_db(repos: list, access_token: str):
 # ── Commits ───────────────────────────────────────────────────────────────────
 
 @router.get("/repos/{owner}/{repo}/commits")
-def get_commits(owner: str, repo: str, per_page: int = 30,
-                background_tasks: BackgroundTasks = None):
-    access_token = get_github_token()
-
+def get_commits(
+    owner: str,
+    repo: str,
+    background_tasks: BackgroundTasks,
+    per_page: int = 30,
+    app_user: User = Depends(get_current_app_user),
+):
+    access_token = get_github_token(app_user.id)
     response = rate_limited_get(
         f"https://api.github.com/repos/{owner}/{repo}/commits",
         access_token,
         params={"per_page": per_page},
     )
     data = response.json()
-
     if isinstance(data, dict) and data.get("message"):
         raise HTTPException(status_code=400, detail=data.get("message"))
 
@@ -288,9 +394,7 @@ def get_commits(owner: str, repo: str, per_page: int = 30,
             "url": c.get("html_url", ""),
         })
 
-    if background_tasks:
-        background_tasks.add_task(sync_commits_to_db, owner, repo, data, access_token)
-
+    background_tasks.add_task(sync_commits_to_db, owner, repo, data, access_token)
     return result
 
 
@@ -316,7 +420,6 @@ def sync_commits_to_db(owner: str, repo: str, commits: list, access_token: str):
             )
             detail = detail_res.json()
             stats = detail.get("stats", {})
-
             date_str = c.get("commit", {}).get("author", {}).get("date", "")
             committed_at = parse_dt(date_str) or datetime.utcnow()
 
@@ -337,7 +440,6 @@ def sync_commits_to_db(owner: str, repo: str, commits: list, access_token: str):
             db.add(commit)
             db.flush()
 
-            # Sync file changes
             for f in detail.get("files", []):
                 db.add(GitFileChange(
                     commit_sha=sha,
@@ -367,12 +469,95 @@ def sync_commits_to_db(owner: str, repo: str, commits: list, access_token: str):
         db.close()
 
 
+def sync_prs_to_db(owner: str, repo: str, prs: list, access_token: str):
+    """Persist PR list + their reviews to the DB."""
+    db: Session = SessionLocal()
+    try:
+        git_repo = db.query(GitRepo).filter(
+            GitRepo.full_name == f"{owner}/{repo}"
+        ).first()
+        if not git_repo:
+            return
+
+        prs_added = 0
+        for pr in prs:
+            if not isinstance(pr, dict):
+                continue
+
+            existing = db.query(GitPullRequest).filter(
+                GitPullRequest.repo_id == git_repo.repo_id,
+                GitPullRequest.pr_number == pr.get("number"),
+            ).first()
+
+            if existing:
+                existing.state     = pr.get("state")
+                existing.merged    = pr.get("merged_at") is not None
+                existing.merged_at = parse_dt(pr.get("merged_at"))
+                existing.closed_at = parse_dt(pr.get("closed_at"))
+                existing.synced_at = datetime.utcnow()
+            else:
+                db.add(GitPullRequest(
+                    repo_id       = git_repo.repo_id,
+                    pr_number     = pr.get("number"),
+                    title         = pr.get("title", ""),
+                    state         = pr.get("state", ""),
+                    author_login  = pr.get("user", {}).get("login"),
+                    author_avatar = pr.get("user", {}).get("avatar_url"),
+                    merged        = pr.get("merged_at") is not None,
+                    draft         = pr.get("draft", False),
+                    opened_at     = parse_dt(pr.get("created_at")),
+                    merged_at     = parse_dt(pr.get("merged_at")),
+                    closed_at     = parse_dt(pr.get("closed_at")),
+                    url           = pr.get("html_url"),
+                ))
+                prs_added += 1
+
+            # Sync reviews for this PR
+            reviews_res = rate_limited_get(
+                f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr.get('number')}/reviews",
+                access_token,
+            )
+            reviews = reviews_res.json()
+            if isinstance(reviews, list):
+                for review in reviews:
+                    existing_review = db.query(GitReview).filter(
+                        GitReview.repo_id        == git_repo.repo_id,
+                        GitReview.pr_number      == pr.get("number"),
+                        GitReview.reviewer_login == review.get("user", {}).get("login"),
+                        GitReview.state          == review.get("state"),
+                    ).first()
+                    if not existing_review:
+                        db.add(GitReview(
+                            repo_id         = git_repo.repo_id,
+                            pr_number       = pr.get("number"),
+                            reviewer_login  = review.get("user", {}).get("login"),
+                            reviewer_avatar = review.get("user", {}).get("avatar_url"),
+                            state           = review.get("state"),
+                            submitted_at    = parse_dt(review.get("submitted_at")),
+                            url             = review.get("html_url"),
+                        ))
+
+        db.commit()
+        # FIX: update prs_synced count in the same db session that did the work
+        update_sync_status(db, f"{owner}/{repo}", "success", prs=prs_added)
+
+    except Exception as e:
+        print(f"Sync PRs error: {e}")
+    finally:
+        db.close()
+
+
 # ── Contributor Stats ─────────────────────────────────────────────────────────
 
 @router.get("/repos/{owner}/{repo}/stats")
-def get_contributor_stats(owner: str, repo: str):
-    access_token = get_github_token()
+def get_contributor_stats(
+    owner: str,
+    repo: str,
+    app_user: User = Depends(get_current_app_user),
+):
+    access_token = get_github_token(app_user.id)
 
+    response = None
     for attempt in range(3):
         response = rate_limited_get(
             f"https://api.github.com/repos/{owner}/{repo}/stats/contributors",
@@ -384,7 +569,7 @@ def get_contributor_stats(owner: str, repo: str):
             time.sleep(2)
             continue
 
-    if response.status_code != 200:
+    if response is None or response.status_code != 200:
         return []
 
     data = response.json()
@@ -418,7 +603,6 @@ def get_contributor_stats(owner: str, repo: str):
                     GitContributorStat.repo_id == git_repo.repo_id,
                     GitContributorStat.github_login == login,
                 ).first()
-
                 if existing:
                     existing.total_commits = total_commits
                     existing.total_additions = total_additions
@@ -448,16 +632,20 @@ def get_contributor_stats(owner: str, repo: str):
 # ── Pull Requests ─────────────────────────────────────────────────────────────
 
 @router.get("/repos/{owner}/{repo}/pulls")
-def get_pull_requests(owner: str, repo: str, state: str = "all", per_page: int = 30):
-    access_token = get_github_token()
-
+def get_pull_requests(
+    owner: str,
+    repo: str,
+    state: str = "all",
+    per_page: int = 30,
+    app_user: User = Depends(get_current_app_user),
+):
+    access_token = get_github_token(app_user.id)
     response = rate_limited_get(
         f"https://api.github.com/repos/{owner}/{repo}/pulls",
         access_token,
         params={"state": state, "per_page": per_page},
     )
     data = response.json()
-
     if isinstance(data, dict) and data.get("message"):
         raise HTTPException(status_code=400, detail=data.get("message"))
 
@@ -470,17 +658,17 @@ def get_pull_requests(owner: str, repo: str, state: str = "all", per_page: int =
 
         for pr in data:
             pr_data = {
-                "number": pr.get("number"),
-                "title": pr.get("title"),
-                "state": pr.get("state"),
-                "author": pr.get("user", {}).get("login"),
-                "author_avatar": pr.get("user", {}).get("avatar_url"),
-                "merged": pr.get("merged_at") is not None,
-                "draft": pr.get("draft", False),
-                "opened_at": pr.get("created_at"),
-                "merged_at": pr.get("merged_at"),
-                "closed_at": pr.get("closed_at"),
-                "url": pr.get("html_url"),
+                "number":       pr.get("number"),
+                "title":        pr.get("title"),
+                "state":        pr.get("state"),
+                "author":       pr.get("user", {}).get("login"),
+                "author_avatar":pr.get("user", {}).get("avatar_url"),
+                "merged":       pr.get("merged_at") is not None,
+                "draft":        pr.get("draft", False),
+                "opened_at":    pr.get("created_at"),
+                "merged_at":    pr.get("merged_at"),
+                "closed_at":    pr.get("closed_at"),
+                "url":          pr.get("html_url"),
             }
             result.append(pr_data)
 
@@ -491,26 +679,25 @@ def get_pull_requests(owner: str, repo: str, state: str = "all", per_page: int =
                 ).first()
 
                 if existing:
-                    existing.state = pr.get("state")
-                    existing.merged = pr.get("merged_at") is not None
+                    existing.state     = pr.get("state")
+                    existing.merged    = pr.get("merged_at") is not None
                     existing.synced_at = datetime.utcnow()
                 else:
                     db.add(GitPullRequest(
-                        repo_id=git_repo.repo_id,
-                        pr_number=pr.get("number"),
-                        title=pr.get("title"),
-                        state=pr.get("state"),
-                        author_login=pr.get("user", {}).get("login"),
-                        author_avatar=pr.get("user", {}).get("avatar_url"),
-                        merged=pr.get("merged_at") is not None,
-                        draft=pr.get("draft", False),
-                        opened_at=parse_dt(pr.get("created_at")),
-                        merged_at=parse_dt(pr.get("merged_at")),
-                        closed_at=parse_dt(pr.get("closed_at")),
-                        url=pr.get("html_url"),
+                        repo_id       = git_repo.repo_id,
+                        pr_number     = pr.get("number"),
+                        title         = pr.get("title"),
+                        state         = pr.get("state"),
+                        author_login  = pr.get("user", {}).get("login"),
+                        author_avatar = pr.get("user", {}).get("avatar_url"),
+                        merged        = pr.get("merged_at") is not None,
+                        draft         = pr.get("draft", False),
+                        opened_at     = parse_dt(pr.get("created_at")),
+                        merged_at     = parse_dt(pr.get("merged_at")),
+                        closed_at     = parse_dt(pr.get("closed_at")),
+                        url           = pr.get("html_url"),
                     ))
 
-                # Sync reviews for this PR
                 reviews_res = rate_limited_get(
                     f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr.get('number')}/reviews",
                     access_token,
@@ -519,20 +706,20 @@ def get_pull_requests(owner: str, repo: str, state: str = "all", per_page: int =
                 if isinstance(reviews, list):
                     for review in reviews:
                         existing_review = db.query(GitReview).filter(
-                            GitReview.repo_id == git_repo.repo_id,
-                            GitReview.pr_number == pr.get("number"),
+                            GitReview.repo_id        == git_repo.repo_id,
+                            GitReview.pr_number      == pr.get("number"),
                             GitReview.reviewer_login == review.get("user", {}).get("login"),
-                            GitReview.state == review.get("state"),
+                            GitReview.state          == review.get("state"),
                         ).first()
                         if not existing_review:
                             db.add(GitReview(
-                                repo_id=git_repo.repo_id,
-                                pr_number=pr.get("number"),
-                                reviewer_login=review.get("user", {}).get("login"),
-                                reviewer_avatar=review.get("user", {}).get("avatar_url"),
-                                state=review.get("state"),
-                                submitted_at=parse_dt(review.get("submitted_at")),
-                                url=review.get("html_url"),
+                                repo_id         = git_repo.repo_id,
+                                pr_number       = pr.get("number"),
+                                reviewer_login  = review.get("user", {}).get("login"),
+                                reviewer_avatar = review.get("user", {}).get("avatar_url"),
+                                state           = review.get("state"),
+                                submitted_at    = parse_dt(review.get("submitted_at")),
+                                url             = review.get("html_url"),
                             ))
 
         db.commit()
@@ -545,16 +732,30 @@ def get_pull_requests(owner: str, repo: str, state: str = "all", per_page: int =
     return result
 
 
-# ── Sync Status ───────────────────────────────────────────────────────────────
+# ── Sync ──────────────────────────────────────────────────────────────────────
 
 @router.get("/sync-status")
-def get_sync_status():
-    access_token = get_github_token()
+def get_sync_status(app_user: User = Depends(get_current_app_user)):
+    access_token = get_github_token(app_user.id)
     rate = check_rate_limit(access_token)
 
     db: Session = SessionLocal()
     try:
-        statuses = db.query(GitSyncStatus).all()
+        account = db.query(GitHubAccount).filter(
+            GitHubAccount.user_id == app_user.id
+        ).first()
+        repo_full_names = []
+        if account:
+            repo_full_names = [
+                r.full_name for r in db.query(GitRepo).filter(
+                    GitRepo.github_account_id == account.id
+                ).all()
+            ]
+
+        statuses = db.query(GitSyncStatus).filter(
+            GitSyncStatus.repo_full_name.in_(repo_full_names)
+        ).all() if repo_full_names else []
+
         return {
             "rate_limit": {
                 "remaining": rate["remaining"],
@@ -564,12 +765,12 @@ def get_sync_status():
             },
             "repos": [
                 {
-                    "repo": s.repo_full_name,
-                    "last_sync_at": s.last_sync_at.isoformat() if s.last_sync_at else None,
-                    "status": s.last_sync_status,
-                    "error": s.last_error,
+                    "repo":           s.repo_full_name,
+                    "last_sync_at":   s.last_sync_at.isoformat() if s.last_sync_at else None,
+                    "status":         s.last_sync_status,
+                    "error":          s.last_error,
                     "commits_synced": s.commits_synced,
-                    "prs_synced": s.prs_synced,
+                    "prs_synced":     s.prs_synced,
                 }
                 for s in statuses
             ],
@@ -579,13 +780,25 @@ def get_sync_status():
 
 
 @router.post("/repos/{owner}/{repo}/sync")
-def trigger_sync(owner: str, repo: str, background_tasks: BackgroundTasks):
-    access_token = get_github_token()
+def trigger_sync(
+    owner: str,
+    repo: str,
+    background_tasks: BackgroundTasks,
+    app_user: User = Depends(get_current_app_user),
+):
+    access_token = get_github_token(app_user.id)
     background_tasks.add_task(full_repo_sync, owner, repo, access_token)
     return {"message": f"Sync started for {owner}/{repo}"}
 
 
 def full_repo_sync(owner: str, repo: str, access_token: str):
+    """
+    Fetches commits + PRs (all states) from GitHub and persists them.
+    FIX: previously called sync_prs_to_db which didn't exist, so PRs
+    were silently dropped on every background sync.
+    FIX: final status update now passes rate limit info without
+    clobbering the commits/prs counts written by the sub-helpers.
+    """
     db: Session = SessionLocal()
     try:
         update_sync_status(db, f"{owner}/{repo}", "running")
@@ -600,14 +813,17 @@ def full_repo_sync(owner: str, repo: str, access_token: str):
         if isinstance(commits, list):
             sync_commits_to_db(owner, repo, commits, access_token)
 
-        # PRs
+        # PRs — state=all so DORA views see merged PRs
         prs_res = rate_limited_get(
             f"https://api.github.com/repos/{owner}/{repo}/pulls",
             access_token,
             params={"state": "all", "per_page": 100},
         )
         prs = prs_res.json()
+        if isinstance(prs, list):
+            sync_prs_to_db(owner, repo, prs, access_token)
 
+        # Update rate-limit info only — don't overwrite commits/prs counts
         rate = check_rate_limit(access_token)
         update_sync_status(
             db, f"{owner}/{repo}", "success",
@@ -663,15 +879,15 @@ def get_repo_analytics(owner: str, repo: str):
         return {
             "repo": f"{owner}/{repo}",
             "total_commits_synced": total_commits,
-            "total_additions": total_additions,
-            "total_deletions": total_deletions,
-            "open_prs": open_prs,
-            "merged_prs": merged_prs,
+            "total_additions":      total_additions,
+            "total_deletions":      total_deletions,
+            "open_prs":             open_prs,
+            "merged_prs":           merged_prs,
             "top_contributors": [
                 {
-                    "login": c.github_login,
-                    "avatar": c.avatar_url,
-                    "commits": c.total_commits,
+                    "login":     c.github_login,
+                    "avatar":    c.avatar_url,
+                    "commits":   c.total_commits,
                     "additions": c.total_additions,
                     "deletions": c.total_deletions,
                 }

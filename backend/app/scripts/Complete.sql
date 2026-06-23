@@ -626,12 +626,528 @@ LEFT JOIN users u ON u.id::text = q.person_id
 WHERE q.status = 'pending';
 
 
+-- SENTRY-28: Prevent duplicate review queue entries for the same event/person/status
+-- This ensures the Isolation Forest job does NOT insert duplicates on repeated runs
+ALTER TABLE access_review_queue
+ADD CONSTRAINT uq_review_queue_event_person_status
+UNIQUE (event_id, person_id, status);
+
+
+-- SENTRY-28: Clean up previously generated ML anomaly entries
+-- Removes Isolation Forest seeded anomalies so only fresh ML results exist
+DELETE FROM access_review_queue
+WHERE reason = 'Isolation Forest anomaly';
 
 
 
 
 
 
+
+-- =====================================================
+-- SENTRY-31  Code Quality schema/views
+-- Per-file complexity & churn, lint findings, secret-scan alerts
+-- =====================================================
+
+-- ── Scan run tracking ────────────────────────────────
+-- One row per scan invocation against a repo.
+CREATE TABLE IF NOT EXISTS code_quality_scan (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner           TEXT NOT NULL,
+    repo            TEXT NOT NULL,
+    commit_sha      TEXT NOT NULL,
+    started_at      TIMESTAMP DEFAULT now(),
+    finished_at     TIMESTAMP NULL,
+    status          TEXT DEFAULT 'running',   -- running | completed | failed
+    error           TEXT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cq_scan_repo
+    ON code_quality_scan(owner, repo);
+CREATE INDEX IF NOT EXISTS idx_cq_scan_started
+    ON code_quality_scan(started_at);
+
+
+-- ── Per-file complexity & churn (E1, E2) ─────────────
+CREATE TABLE IF NOT EXISTS code_quality_file_metric (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    scan_id         UUID NOT NULL REFERENCES code_quality_scan(id) ON DELETE CASCADE,
+
+    file_path       TEXT NOT NULL,
+    language        TEXT,                      -- python | typescript | javascript | tsx | other
+
+    -- complexity (lizard)
+    cyclomatic_complexity   INTEGER,
+    function_count          INTEGER,
+    avg_function_complexity DOUBLE PRECISION,
+    nloc                     INTEGER,           -- non-comment lines of code
+
+    -- churn (git diff/blame over a lookback window)
+    lines_added      INTEGER DEFAULT 0,
+    lines_removed    INTEGER DEFAULT 0,
+    commit_count      INTEGER DEFAULT 0,        -- commits touching this file in window
+    churn_window_days INTEGER DEFAULT 30,
+
+    created_at      TIMESTAMP DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_cq_file_scan
+    ON code_quality_file_metric(scan_id);
+CREATE INDEX IF NOT EXISTS idx_cq_file_path
+    ON code_quality_file_metric(file_path);
+CREATE INDEX IF NOT EXISTS idx_cq_file_complexity
+    ON code_quality_file_metric(cyclomatic_complexity);
+
+
+-- ── Lint findings (E3) ────────────────────────────────
+CREATE TABLE IF NOT EXISTS code_quality_lint_finding (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    scan_id         UUID NOT NULL REFERENCES code_quality_scan(id) ON DELETE CASCADE,
+
+    file_path       TEXT NOT NULL,
+    line_number     INTEGER,
+    column_number   INTEGER,
+
+    tool            TEXT NOT NULL,        -- eslint | ruff
+    rule_id         TEXT,                  -- e.g. no-unused-vars, E501
+    severity        TEXT,                  -- error | warning | info
+    message         TEXT,
+
+    created_at      TIMESTAMP DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_cq_lint_scan
+    ON code_quality_lint_finding(scan_id);
+CREATE INDEX IF NOT EXISTS idx_cq_lint_severity
+    ON code_quality_lint_finding(severity);
+CREATE INDEX IF NOT EXISTS idx_cq_lint_file
+    ON code_quality_lint_finding(file_path);
+
+
+-- ── Secret / vuln scan alerts (E4, E5) ───────────────
+CREATE TABLE IF NOT EXISTS code_quality_secret_alert (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    scan_id         UUID NOT NULL REFERENCES code_quality_scan(id) ON DELETE CASCADE,
+
+    file_path       TEXT NOT NULL,
+    line_number     INTEGER,
+
+    tool            TEXT NOT NULL,        -- gitleaks | semgrep
+    rule_id         TEXT,                  -- e.g. generic-api-key, aws-access-key
+    severity        TEXT,                  -- critical | high | medium | low
+    description     TEXT,
+    secret_snippet  TEXT,                  -- redacted/truncated, never full secret
+    commit_sha      TEXT,
+
+    status          TEXT DEFAULT 'open',   -- open | acknowledged | resolved | false_positive
+    acknowledged_by TEXT NULL,
+    acknowledged_at TIMESTAMP NULL,
+
+    created_at      TIMESTAMP DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_cq_secret_scan
+    ON code_quality_secret_alert(scan_id);
+CREATE INDEX IF NOT EXISTS idx_cq_secret_status
+    ON code_quality_secret_alert(status);
+CREATE INDEX IF NOT EXISTS idx_cq_secret_severity
+    ON code_quality_secret_alert(severity);
+
+
+-- =====================================================
+-- VIEWS
+-- =====================================================
+
+-- latest completed scan per repo
+CREATE OR REPLACE VIEW v_cq_latest_scan AS
+SELECT DISTINCT ON (owner, repo)
+    id AS scan_id, owner, repo, commit_sha, started_at, finished_at
+FROM code_quality_scan
+WHERE status = 'completed'
+ORDER BY owner, repo, finished_at DESC;
+
+
+-- complexity summary per repo (latest scan only)
+CREATE OR REPLACE VIEW v_cq_complexity_summary AS
+SELECT
+    ls.owner,
+    ls.repo,
+    ls.scan_id,
+    ls.finished_at,
+    COUNT(*) AS file_count,
+    ROUND(AVG(fm.cyclomatic_complexity)::numeric, 2) AS avg_complexity,
+    MAX(fm.cyclomatic_complexity) AS max_complexity,
+    COUNT(*) FILTER (WHERE fm.cyclomatic_complexity > 10) AS high_complexity_files
+FROM v_cq_latest_scan ls
+JOIN code_quality_file_metric fm ON fm.scan_id = ls.scan_id
+GROUP BY ls.owner, ls.repo, ls.scan_id, ls.finished_at;
+
+
+-- churn summary per repo (latest scan only)
+CREATE OR REPLACE VIEW v_cq_churn_summary AS
+SELECT
+    ls.owner,
+    ls.repo,
+    ls.scan_id,
+    ls.finished_at,
+    SUM(fm.lines_added)   AS total_lines_added,
+    SUM(fm.lines_removed) AS total_lines_removed,
+    SUM(fm.commit_count)  AS total_commits,
+    COUNT(*) FILTER (
+        WHERE fm.commit_count >= 5
+    ) AS high_churn_files
+FROM v_cq_latest_scan ls
+JOIN code_quality_file_metric fm ON fm.scan_id = ls.scan_id
+GROUP BY ls.owner, ls.repo, ls.scan_id, ls.finished_at;
+
+
+-- lint density per repo (latest scan only)
+CREATE OR REPLACE VIEW v_cq_lint_density AS
+SELECT
+    ls.owner,
+    ls.repo,
+    ls.scan_id,
+    ls.finished_at,
+    COUNT(*) AS total_findings,
+    COUNT(*) FILTER (WHERE lf.severity = 'error')   AS error_count,
+    COUNT(*) FILTER (WHERE lf.severity = 'warning') AS warning_count,
+    ROUND(
+        COUNT(*)::numeric / NULLIF(
+            (SELECT SUM(fm.nloc) FROM code_quality_file_metric fm WHERE fm.scan_id = ls.scan_id), 0
+        ) * 1000, 2
+    ) AS findings_per_kloc
+FROM v_cq_latest_scan ls
+JOIN code_quality_lint_finding lf ON lf.scan_id = ls.scan_id
+GROUP BY ls.owner, ls.repo, ls.scan_id, ls.finished_at;
+
+
+-- open secret/vuln alerts feed (across all scans, not just latest)
+CREATE OR REPLACE VIEW v_cq_secret_alerts_open AS
+SELECT
+    sa.id,
+    s.owner,
+    s.repo,
+    sa.file_path,
+    sa.line_number,
+    sa.tool,
+    sa.rule_id,
+    sa.severity,
+    sa.description,
+    sa.commit_sha,
+    sa.status,
+    sa.created_at
+FROM code_quality_secret_alert sa
+JOIN code_quality_scan s ON s.id = sa.scan_id
+WHERE sa.status = 'open'
+ORDER BY
+    CASE sa.severity
+        WHEN 'critical' THEN 1
+        WHEN 'high'     THEN 2
+        WHEN 'medium'   THEN 3
+        ELSE 4
+    END,
+    sa.created_at DESC;
+
+
+-- complexity trend over time, per repo (all scans, daily granularity)
+CREATE OR REPLACE VIEW v_cq_complexity_trend AS
+SELECT
+    s.owner,
+    s.repo,
+    DATE(s.finished_at) AS scan_date,
+    ROUND(AVG(fm.cyclomatic_complexity)::numeric, 2) AS avg_complexity,
+    COUNT(*) FILTER (WHERE fm.cyclomatic_complexity > 10) AS high_complexity_files
+FROM code_quality_scan s
+JOIN code_quality_file_metric fm ON fm.scan_id = s.id
+WHERE s.status = 'completed'
+GROUP BY s.owner, s.repo, DATE(s.finished_at)
+ORDER BY scan_date;
+
+
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- SENTRY-35  DORA Delivery Metrics — aggregation views
+-- Run with:
+--   type backend\app\scripts\dora_views.sql | docker exec -i sentry-db-1 psql -U postgres -d sentry_db
+-- ─────────────────────────────────────────────────────────────────────────────
+
+DROP VIEW IF EXISTS v_dora_kpi_summary        CASCADE;
+DROP VIEW IF EXISTS v_dora_szz_blame          CASCADE;
+DROP VIEW IF EXISTS v_dora_review_latency     CASCADE;
+DROP VIEW IF EXISTS v_dora_time_to_restore    CASCADE;
+DROP VIEW IF EXISTS v_dora_change_failure_rate CASCADE;
+DROP VIEW IF EXISTS v_dora_lead_time          CASCADE;
+DROP VIEW IF EXISTS v_dora_deployment_freq    CASCADE;
+
+
+-- ── F1: Deployment Frequency ──────────────────────────────────────────────────
+-- Merged PRs are the deployment proxy. One row per repo per week.
+
+CREATE VIEW v_dora_deployment_freq AS
+SELECT
+    r.owner,
+    r.name                                             AS repo,
+    r.full_name,
+    DATE_TRUNC('week', pr.merged_at)::date             AS week,
+    COUNT(*)                                           AS deployments
+FROM git_pull_requests pr
+JOIN git_repos r ON r.repo_id = pr.repo_id
+WHERE pr.merged = true
+  AND pr.merged_at IS NOT NULL
+GROUP BY r.owner, r.name, r.full_name,
+         DATE_TRUNC('week', pr.merged_at)::date
+ORDER BY week DESC;
+
+
+-- ── F2: Lead Time for Change ──────────────────────────────────────────────────
+-- Time from PR opened → merged, in hours. One row per repo per week.
+
+CREATE VIEW v_dora_lead_time AS
+SELECT
+    r.owner,
+    r.name                                                       AS repo,
+    r.full_name,
+    DATE_TRUNC('week', pr.merged_at)::date                       AS week,
+    ROUND(AVG(
+        EXTRACT(EPOCH FROM (pr.merged_at - pr.opened_at)) / 3600.0
+    )::numeric, 2)                                               AS avg_lead_time_hours,
+    ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (
+        ORDER BY EXTRACT(EPOCH FROM (pr.merged_at - pr.opened_at)) / 3600.0
+    )::numeric, 2)                                               AS median_lead_time_hours,
+    COUNT(*)                                                     AS pr_count
+FROM git_pull_requests pr
+JOIN git_repos r ON r.repo_id = pr.repo_id
+WHERE pr.merged = true
+  AND pr.merged_at IS NOT NULL
+  AND pr.opened_at IS NOT NULL
+  AND pr.merged_at > pr.opened_at      -- sanity guard
+GROUP BY r.owner, r.name, r.full_name,
+         DATE_TRUNC('week', pr.merged_at)::date
+ORDER BY week DESC;
+
+
+-- ── F3: Change Failure Rate ────────────────────────────────────────────────────
+-- Fix/hotfix/bug/revert PRs as a percentage of total merged PRs, per week.
+
+CREATE VIEW v_dora_change_failure_rate AS
+SELECT
+    r.owner,
+    r.name                                                       AS repo,
+    r.full_name,
+    DATE_TRUNC('week', pr.merged_at)::date                       AS week,
+    COUNT(*)                                                     AS total_deployments,
+    COUNT(*) FILTER (
+        WHERE pr.title ~* '\y(fix|bug|hotfix|revert|patch|incident|rollback)\y'
+    )                                                            AS failed_deployments,
+    ROUND(
+        COUNT(*) FILTER (
+            WHERE pr.title ~* '\y(fix|bug|hotfix|revert|patch|incident|rollback)\y'
+        )::numeric
+        / NULLIF(COUNT(*), 0) * 100, 1
+    )                                                            AS failure_rate_pct
+FROM git_pull_requests pr
+JOIN git_repos r ON r.repo_id = pr.repo_id
+WHERE pr.merged = true
+  AND pr.merged_at IS NOT NULL
+GROUP BY r.owner, r.name, r.full_name,
+         DATE_TRUNC('week', pr.merged_at)::date
+ORDER BY week DESC;
+
+
+-- ── F4: Time to Restore ───────────────────────────────────────────────────────
+-- Duration of "fix" PRs (opened → merged). Proxy for MTTR.
+
+CREATE VIEW v_dora_time_to_restore AS
+SELECT
+    r.owner,
+    r.name                                                       AS repo,
+    r.full_name,
+    DATE_TRUNC('week', pr.merged_at)::date                       AS week,
+    ROUND(AVG(
+        EXTRACT(EPOCH FROM (pr.merged_at - pr.opened_at)) / 3600.0
+    )::numeric, 2)                                               AS avg_restore_hours,
+    ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (
+        ORDER BY EXTRACT(EPOCH FROM (pr.merged_at - pr.opened_at)) / 3600.0
+    )::numeric, 2)                                               AS median_restore_hours,
+    COUNT(*)                                                     AS fix_pr_count
+FROM git_pull_requests pr
+JOIN git_repos r ON r.repo_id = pr.repo_id
+WHERE pr.merged = true
+  AND pr.merged_at IS NOT NULL
+  AND pr.opened_at IS NOT NULL
+  AND pr.merged_at > pr.opened_at
+  AND pr.title ~* '\y(fix|bug|hotfix|revert|patch|incident|rollback)\y'
+GROUP BY r.owner, r.name, r.full_name,
+         DATE_TRUNC('week', pr.merged_at)::date
+ORDER BY week DESC;
+
+
+-- ── F5: PR Review Latency ─────────────────────────────────────────────────────
+-- Time from PR opened → first review, and first review → merged. Per week.
+
+CREATE VIEW v_dora_review_latency AS
+SELECT
+    r.owner,
+    r.name                                                       AS repo,
+    r.full_name,
+    DATE_TRUNC('week', pr.merged_at)::date                       AS week,
+    ROUND(AVG(
+        EXTRACT(EPOCH FROM (first_rv.first_review_at - pr.opened_at)) / 3600.0
+    )::numeric, 2)                                               AS avg_time_to_first_review_hours,
+    ROUND(AVG(
+        EXTRACT(EPOCH FROM (pr.merged_at - first_rv.first_review_at)) / 3600.0
+    )::numeric, 2)                                               AS avg_review_to_merge_hours,
+    ROUND(AVG(
+        EXTRACT(EPOCH FROM (pr.merged_at - pr.opened_at)) / 3600.0
+    )::numeric, 2)                                               AS avg_total_cycle_hours,
+    COUNT(*)                                                     AS pr_count
+FROM git_pull_requests pr
+JOIN git_repos r ON r.repo_id = pr.repo_id
+JOIN (
+    SELECT repo_id, pr_number, MIN(submitted_at) AS first_review_at
+    FROM git_reviews
+    WHERE submitted_at IS NOT NULL
+    GROUP BY repo_id, pr_number
+) first_rv ON first_rv.repo_id = pr.repo_id
+          AND first_rv.pr_number = pr.pr_number
+WHERE pr.merged = true
+  AND pr.merged_at IS NOT NULL
+  AND pr.opened_at IS NOT NULL
+  AND first_rv.first_review_at > pr.opened_at
+GROUP BY r.owner, r.name, r.full_name,
+         DATE_TRUNC('week', pr.merged_at)::date
+ORDER BY week DESC;
+
+
+-- ── F7: SZZ Blame ────────────────────────────────────────────────────────────
+-- Links each fix commit back to the most recent non-fix commit that last
+-- touched the same file — the likely bug-introducing commit.
+
+CREATE VIEW v_dora_szz_blame AS
+SELECT
+    r.owner,
+    r.name                      AS repo,
+    r.full_name,
+    fix_c.sha                   AS fix_sha,
+    fix_c.short_sha             AS fix_short_sha,
+    fix_c.message               AS fix_message,
+    fix_c.committed_at          AS fix_committed_at,
+    fix_c.author_github_login   AS fix_author,
+    fc.filename                 AS affected_file,
+    bug_c.sha                   AS bug_sha,
+    bug_c.short_sha             AS bug_short_sha,
+    bug_c.message               AS bug_message,
+    bug_c.committed_at          AS bug_committed_at,
+    bug_c.author_github_login   AS bug_author,
+    ROUND(
+        EXTRACT(EPOCH FROM (fix_c.committed_at - bug_c.committed_at))
+        / 3600.0
+    )::int                      AS hours_from_bug_to_fix
+FROM git_commits fix_c
+JOIN git_repos r       ON r.repo_id = fix_c.repo_id
+JOIN git_file_changes fc ON fc.commit_sha = fix_c.sha
+JOIN LATERAL (
+    -- most recent prior commit that touched the same file and is NOT itself a fix
+    SELECT c2.sha, c2.short_sha, c2.message, c2.committed_at, c2.author_github_login
+    FROM git_file_changes fc2
+    JOIN git_commits c2 ON c2.sha = fc2.commit_sha
+    WHERE fc2.filename    = fc.filename
+      AND c2.repo_id      = fix_c.repo_id
+      AND c2.committed_at < fix_c.committed_at
+      AND NOT (c2.message ~* '\y(fix|bug|hotfix|revert|patch|rollback)\y')
+    ORDER BY c2.committed_at DESC
+    LIMIT 1
+) bug_c ON true
+WHERE fix_c.message ~* '\y(fix|bug|hotfix|revert|patch|rollback)\y';
+
+
+-- ── KPI Summary (last 30 days, one row per repo) ─────────────────────────────
+-- Used for the four headline KPI cards on the dashboard.
+
+CREATE VIEW v_dora_kpi_summary AS
+SELECT
+    r.owner,
+    r.name                                                               AS repo,
+    r.full_name,
+
+    -- Deployment Frequency: avg deployments per week over last 4 completed weeks
+    ROUND(
+        COUNT(*) FILTER (
+            WHERE pr.merged_at >= NOW() - INTERVAL '28 days'
+        )::numeric / 4.0, 2
+    )                                                                    AS deployments_per_week,
+
+    -- Lead Time: avg hours, last 30 days
+    ROUND(AVG(
+        EXTRACT(EPOCH FROM (pr.merged_at - pr.opened_at)) / 3600.0
+    ) FILTER (
+        WHERE pr.merged_at >= NOW() - INTERVAL '30 days'
+          AND pr.opened_at IS NOT NULL
+          AND pr.merged_at > pr.opened_at
+    )::numeric, 2)                                                       AS avg_lead_time_hours,
+
+    -- Change Failure Rate: last 30 days
+    ROUND(
+        COUNT(*) FILTER (
+            WHERE pr.merged_at >= NOW() - INTERVAL '30 days'
+              AND pr.title ~* '\y(fix|bug|hotfix|revert|patch|incident|rollback)\y'
+        )::numeric
+        / NULLIF(
+            COUNT(*) FILTER (WHERE pr.merged_at >= NOW() - INTERVAL '30 days'),
+          0) * 100, 1
+    )                                                                    AS change_failure_rate_pct,
+
+    -- Time to Restore: avg hours for fix PRs, last 30 days
+    ROUND(AVG(
+        EXTRACT(EPOCH FROM (pr.merged_at - pr.opened_at)) / 3600.0
+    ) FILTER (
+        WHERE pr.merged_at >= NOW() - INTERVAL '30 days'
+          AND pr.opened_at IS NOT NULL
+          AND pr.merged_at > pr.opened_at
+          AND pr.title ~* '\y(fix|bug|hotfix|revert|patch|incident|rollback)\y'
+    )::numeric, 2)                                                       AS avg_restore_hours
+
+FROM git_pull_requests pr
+JOIN git_repos r ON r.repo_id = pr.repo_id
+WHERE pr.merged = true
+  AND pr.merged_at IS NOT NULL
+GROUP BY r.owner, r.name, r.full_name;
+
+
+-- Verify
+SELECT table_name FROM information_schema.tables
+WHERE table_name LIKE 'v_dora_%'
+ORDER BY table_name;
+
+
+
+--roi
+CREATE TABLE roi_tracking (
+    id SERIAL PRIMARY KEY,
+    quarter VARCHAR(20) NOT NULL,
+    rework_savings FLOAT DEFAULT 0,
+    delivery_savings FLOAT DEFAULT 0,
+    facilities_savings FLOAT DEFAULT 0,
+    incident_avoidance FLOAT DEFAULT 0,
+    realised_value FLOAT DEFAULT 0,
+    model_value FLOAT DEFAULT 0
+);
+
+INSERT INTO roi_tracking
+(
+ quarter,
+ rework_savings,
+ delivery_savings,
+ facilities_savings,
+ incident_avoidance,
+ realised_value,
+ model_value
+)
+VALUES
+('2025-Q1', 12000, 5000, 3000, 4000, 18000, 22000),
+('2025-Q2', 14000, 6500, 3500, 5000, 22000, 25000),
+('2025-Q3', 16000, 8000, 4000, 6000, 28000, 30000);
 
 
 

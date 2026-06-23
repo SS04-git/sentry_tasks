@@ -1151,6 +1151,42 @@ VALUES
 
 
 
+--dora and defect risk issues
+-- Check the actual values first
+UPDATE git_pull_requests 
+SET 
+  opened_at = merged_at,
+  merged_at = closed_at,
+  closed_at = opened_at
+WHERE merged = true;
+
+-- Remove venv and cache files from git_file_changes
+DELETE FROM git_file_changes 
+WHERE filename LIKE '%/venv/%'
+   OR filename LIKE '%/.venv/%'
+   OR filename LIKE '%__pycache__%'
+   OR filename LIKE '%.pyc'
+   OR filename LIKE '%.gz'
+   OR filename LIKE '%.pkl';
+
+-- Remove the bad PRs so re-sync writes clean data
+DELETE FROM git_reviews;
+DELETE FROM git_pull_requests;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 --TO check:answer must be 5
 SELECT table_name FROM information_schema.views WHERE table_schema = 'public';

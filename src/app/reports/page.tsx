@@ -22,35 +22,34 @@ export default function ReportsPage() {
   }, []);
 
   const reports = [
-    {
-      title: 'Access Events',
-      desc: 'View access activity by employee.',
-      icon: 'fa-door-open',
-      href: '/reports/access-events',
-    },
-    {
-      title: 'Audit Activity',
-      desc: 'Review system audit logs.',
-      icon: 'fa-clipboard-list',
-      href: '/reports/audit-activity',
-    },
-    {
-      title: 'Security Alerts',
-      desc: 'Analyze unusual access patterns.',
-      icon: 'fa-triangle-exclamation',
-      href: '/reports/security-alerts',
-    },
+    // {
+    //   title: 'Access Events',
+    //   desc: 'View access activity by employee.',
+    //   icon: 'fa-door-open',
+    //   href: '/reports/access-events',
+    // },
+    // {
+    //   title: 'Audit Activity',
+    //   desc: 'Review system audit logs.',
+    //   icon: 'fa-clipboard-list',
+    //   href: '/reports/audit-activity',
+    // },
+    // {
+    //   title: 'Security Alerts',
+    //   desc: 'Analyze unusual access patterns.',
+    //   icon: 'fa-triangle-exclamation',
+    //   href: '/reports/security-alerts',
+    // },
     {
       title: 'Attendance & Presence',
       desc: 'Days present, arrival times, session hours, and weekly trends.',
-      icon: 'fa-calendar-check',
+      icon: 'fa-solid fa-calendar-check',
       href: '/reports/attendance',
-      highlight: true,
     },
     {
        title: 'Occupancy Analytics',
        desc: 'Peak occupancy, forecasts, and mobile adoption trends.',
-       icon: 'fa-building-user',
+       icon: 'fa-solid fa-building-user',
        href: '/reports/occupancy',
     },
   ];
@@ -75,13 +74,13 @@ export default function ReportsPage() {
                 key={report.title}
                 style={{
                   textDecoration: 'none',
-                  border: report.highlight ? '1px solid rgba(6,182,212,0.3)' : undefined,
-                  background: report.highlight ? 'rgba(6,182,212,0.04)' : undefined,
                 }}
               >
-                <div className="icon-badge icon-badge-cyan">
-                  <i className={`fa-solid ${report.icon} icon-cyan icon-lg`}></i>
-                </div>
+                <div className="icon-row">
+                    <div className="icon-badge icon-badge-cyan">
+                    <i className={report.icon} />
+                    </div>
+                    </div>
                 <h3 style={{ marginBottom: '0.4rem' }}>{report.title}</h3>
                 <p style={{ fontSize: '0.875rem' }}>{report.desc}</p>
               </a>

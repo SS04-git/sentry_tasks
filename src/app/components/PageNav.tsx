@@ -52,7 +52,7 @@ export default function PageNav({ active }: { active?: string }) {
               <i className="fa-solid fa-chart-bar icon-sm" style={{ marginRight: '0.4rem' }}></i>Reports
             </Link>
           )}
-          {['admin', 'leadership'].includes(role) && (
+          {['admin'].includes(role) && (
             <Link href="/admin" className={`nav-link ${isActive('admin') ? 'active' : ''}`}>
               <i className="fa-solid fa-screwdriver-wrench icon-sm" style={{ marginRight: '0.4rem' }}></i>Admin
             </Link>

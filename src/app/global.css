@@ -584,27 +584,33 @@ button.btn-sm {
 
 
 .icon-badge {
-  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+
+  display: flex;
   align-items: center;
   justify-content: center;
 
-  width: 56px;
-  height: 56px;
-
-  border-radius: 18px;
-
   flex-shrink: 0;
-  margin-bottom: 1rem;
 }
 
-.icon-badge-cyan {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(6,182,212,.12),
-      rgba(6,182,212,.24)
-    );
+/* ICON COLOR EXACT MATCH */
+.icon-badge i {
+  color: #06b6d4;
+  font-size: 0.9rem;
 }
+
+/* BACKGROUND EXACT MATCH */
+.icon-badge-cyan {
+  background: rgba(6,182,212,0.1);
+}
+
+/* optional hover consistency */
+.icon-badge-cyan-soft {
+  background: rgba(6,182,212,0.07);
+}
+
 
 .icon-cyan    { color: #06b6d4; }
 .icon-amber   { color: #f59e0b; }

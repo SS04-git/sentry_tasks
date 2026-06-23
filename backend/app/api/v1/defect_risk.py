@@ -18,19 +18,26 @@ CODE_EXTENSIONS = {
     ".svelte", ".dart", ".scala", ".ex", ".exs", ".clj", ".hs",
 }
 
-# Filenames to always exclude regardless of extension
 EXCLUDED_NAMES = {
     "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
     "poetry.lock", "cargo.lock", "composer.lock",
     "go.sum", ".gitignore", ".env.example",
 }
 
+EXCLUDED_PATH_PREFIXES = (
+    "venv/", ".venv/", "backend/venv/", "backend/.venv/",
+    "node_modules/", "__pycache__/",
+)
 
 def _is_code_file(filename: str) -> bool:
     import os
-    if os.path.basename(filename).lower() in EXCLUDED_NAMES:
+    clean = filename.replace("\\", "/")
+    for prefix in EXCLUDED_PATH_PREFIXES:
+        if clean.startswith(prefix) or f"/{prefix}" in clean:
+            return False
+    if os.path.basename(clean).lower() in EXCLUDED_NAMES:
         return False
-    _, ext = os.path.splitext(filename)
+    _, ext = os.path.splitext(clean)
     return ext.lower() in CODE_EXTENSIONS
 
 

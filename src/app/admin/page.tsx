@@ -6,125 +6,102 @@ import { useAuth } from '@/app/context/AuthContext';
 import PageNav from '@/app/components/PageNav';
 
 const adminSections = [
-  {
-    heading: 'People & Access',
-    items: [
-      {
-        title: 'User Management',
-        desc: 'Create, edit, and manage user accounts and role assignments.',
-        icon: 'fa-users-gear',
-        href: '/admin/users',
-        meta: 'Roles · Permissions',
-        isBrand: false,
-        highlight: false,
-      },
-      {
-        title: 'Access Control',
-        desc: 'Configure access policies, zones, and permission scopes.',
-        icon: 'fa-key',
-        href: '/admin/access-control',
-        meta: 'Policies · Zones',
-        isBrand: false,
-        highlight: false,
-      },
-    ],
-  },
+  // {
+  //   heading: 'People & Access',
+  //   items: [
+  //     {
+  //       title: 'User Management',
+  //       desc: 'Create, edit, and manage user accounts and role assignments.',
+  //       icon: 'fa-users-gear',
+  //       href: '/admin/users',
+  //       meta: 'Roles · Permissions',
+  //     },
+  //     {
+  //       title: 'Access Control',
+  //       desc: 'Configure access policies, zones, and permission scopes.',
+  //       icon: 'fa-key',
+  //       href: '/admin/access-control',
+  //       meta: 'Policies · Zones',
+  //     },
+  //   ],
+  // },
   {
   heading: 'System',
   items: [
-    {
-      title: 'System Settings',
-      desc: 'Manage global configuration, feature flags, and preferences.',
-      icon: 'fa-sliders',
-      href: '/admin/settings',
-      meta: 'Config · Flags',
-      isBrand: false,
-      highlight: false,
-    },
-    {
-      title: 'Audit Logs',
-      desc: 'Full tamper-evident trail of every administrative action.',
-      icon: 'fa-file-shield',
-      href: '/admin/audit-logs',
-      meta: 'Logs · Compliance',
-      isBrand: false,
-      highlight: false,
-    },
+    // {
+    //   title: 'System Settings',
+    //   desc: 'Manage global configuration, feature flags, and preferences.',
+    //   icon: 'fa-sliders',
+    //   href: '/admin/settings',
+    //   meta: 'Config · Flags',
+    // },
+    // {
+    //   title: 'Audit Logs',
+    //   desc: 'Full tamper-evident trail of every administrative action.',
+    //   icon: 'fa-file-shield',
+    //   href: '/admin/audit-logs',
+    //   meta: 'Logs · Compliance',
+    // },
     {
       title: 'Security Center',
       desc: 'Review security metrics, flagged access events, and anomaly investigations.',
-      icon: 'fa-shield-halved',
+      icon: 'fa-solid fa-shield-halved',
       href: '/admin/security',
       meta: 'Metrics · Review Queue',
-      isBrand: false,
-      highlight: true,
     },
     {
       title: 'Code Quality Center',
       desc: 'View complexity trends, lint issues, secret scanning alerts, and repo health.',
-      icon: 'fa-code',
+      icon: 'fa-solid fa-code',
       href: '/admin/code_quality',
       meta: 'Quality · Security · Trends',
-      isBrand: false,
-      highlight: true,
     },
     {
       title: 'DORA Delivery Metrics',
       desc: 'Track deployment frequency, lead time, change failure rate, restore time, review latency, and defect origin analysis.',
-      icon: 'fa-chart-line',
+      icon: 'fa-solid fa-chart-line',
       href: '/admin/dora',
       meta: 'DORA · DevOps Metrics',
-      isBrand: false,
-      highlight: true,
     },
     {
       title: 'Behavioural Cohorts',
       desc: 'Cluster users based on session behavior patterns using ML (K-Means / DBSCAN).',
-      icon: 'fa-object-group',
+      icon: 'fa-solid fa-object-group',
       href: '/admin/cohorts',
       meta: 'ML · Segmentation',
-      isBrand: false,
-      highlight: true,
     },
     {
       title: 'Defect Risk Watchlist',
       desc: 'Rank files by predicted defect probability using ML.',
-      icon: 'fa-bug',
+      icon: 'fa-solid fa-bug',
       href: '/admin/defect_risk',
       meta: 'ML · Risk · Code Health',
-      isBrand: false,
-      highlight: true,
     },
     {
       title: 'ROI Tracking',
       desc: 'Realised vs illustrative value tracking.',
-      icon: 'fa-dollar-sign',
+      icon: 'fa-solid fa-indian-rupee-sign',
       href: '/admin/roi',
       meta: 'ROI · Quarterly Review',
-      highlight: true,
     }
   ],
 },
   {
     heading: 'Integrations',
     items: [
-      {
-        title: 'Integrations',
-        desc: 'Connect and manage third-party services and webhooks.',
-        icon: 'fa-plug',
-        href: '/admin/integrations',
-        meta: 'Webhooks · APIs',
-        isBrand: false,
-        highlight: false,
-      },
+      // {
+      //   title: 'Integrations',
+      //   desc: 'Connect and manage third-party services and webhooks.',
+      //   icon: 'fa-plug',
+      //   href: '/admin/integrations',
+      //   meta: 'Webhooks · APIs',
+      // },
       {
         title: 'GitHub Sync',
         desc: 'Monitor sync status and API rate limits across repositories.',
-        icon: 'fa-github',
+        icon: 'fa-solid fa-github',
         href: '/admin/github_sync',
         meta: 'Sync · Rate Limits',
-        isBrand: true,
-        highlight: true,
       },
     ],
   },
@@ -177,8 +154,7 @@ export default function AdminPage() {
               <div
                 key={s.label}
                 className="card card-static"
-                style={{ padding: '1.1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem' }}
-              >
+                style={{ padding: '1.1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                 <div style={{
                   width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
                   background: 'rgba(6,182,212,0.1)',
@@ -227,25 +203,13 @@ export default function AdminPage() {
                         padding: '1.5rem',
                         display: 'flex',
                         flexDirection: 'column',
-                        border: item.highlight ? '1px solid rgba(6,182,212,0.3)' : undefined,
-                        background: item.highlight ? 'rgba(6,182,212,0.04)' : undefined,
-                      }}
-                    >
-                      {/* Icon row */}
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                        <div style={{
-                          width: '46px', height: '46px', borderRadius: '14px', flexShrink: 0,
-                          background: item.highlight ? 'rgba(6,182,212,0.14)' : 'rgba(6,182,212,0.08)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          <i
-                            className={`${item.isBrand ? 'fa-brands' : 'fa-solid'} ${item.icon}`}
-                            style={{ color: '#06b6d4', fontSize: '1.2rem' }}
-                          ></i>
-                        </div>
-                        <i className="fa-solid fa-arrow-right" style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginTop: '0.25rem' }}></i>
-                      </div>
-
+                      }}>
+                    {/* Icon row */}
+                    <div className="icon-row">
+                    <div className="icon-badge icon-badge-cyan">
+                    <i className={item.icon} />
+                    </div>
+                    </div>
                       <h3 style={{ marginBottom: '0.35rem', fontSize: '0.95rem' }}>{item.title}</h3>
                       <p style={{ fontSize: '0.82rem', lineHeight: 1.55, marginBottom: '1rem' }}>{item.desc}</p>
 

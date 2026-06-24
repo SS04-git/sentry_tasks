@@ -17,6 +17,7 @@ from app.core import config
 from app.core.security import create_access_token, SECRET_KEY, ALGORITHM
 from app.core.dependencies import get_current_user
 from jose import jwt, JWTError
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter()
 
@@ -410,7 +411,8 @@ def sync_commits_to_db(owner: str, repo: str, commits: list, access_token: str):
         commits_added = 0
         for c in commits:
             sha = c.get("sha", "")
-            existing = db.query(GitCommit).filter(GitCommit.sha == sha).first()
+            existing = db.query(GitCommit).filter(
+                GitCommit.sha == sha).first()
             if existing:
                 continue
 
@@ -437,9 +439,18 @@ def sync_commits_to_db(owner: str, repo: str, commits: list, access_token: str):
                 files_changed=len(detail.get("files", [])),
                 url=c.get("html_url", ""),
             )
-            db.add(commit)
-            db.flush()
 
+            try:
+                db.add(commit)
+                db.flush()
+            except IntegrityError as e:
+                db.rollback()
+                db = SessionLocal()
+                git_repo = db.query(GitRepo).filter(
+                    GitRepo.full_name == f"{owner}/{repo}").first()
+                continue
+
+            
             for f in detail.get("files", []):
                 db.add(GitFileChange(
                     commit_sha=sha,

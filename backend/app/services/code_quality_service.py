@@ -153,6 +153,7 @@ def _run_complexity(root: Path) -> dict[str, dict]:
 
 def _run_ruff(root: Path) -> list[dict]:
     """Returns list of {file_path, line, column, rule_id, severity, message}"""
+
     py_files = [p for p in _iter_source_files(root) if p.suffix == ".py"]
     if not py_files:
         return []
@@ -160,23 +161,33 @@ def _run_ruff(root: Path) -> list[dict]:
     try:
         proc = subprocess.run(
             ["ruff", "check", str(root), "--output-format=json"],
-            capture_output=True, text=True, timeout=120,
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
-        # ruff exits non-zero when findings exist — that's expected, not a failure
+
+        logger.warning("RUFF RC=%s", proc.returncode)
+        logger.warning("RUFF STDOUT=%s", proc.stdout[:2000])
+        logger.warning("RUFF STDERR=%s", proc.stderr[:2000])
+
         findings = json.loads(proc.stdout or "[]")
+
     except FileNotFoundError:
         logger.warning("ruff not installed — skipping Python lint")
         return []
+
     except (subprocess.TimeoutExpired, json.JSONDecodeError) as e:
         logger.warning("ruff scan failed: %s", e)
         return []
 
     out = []
+
     for f in findings:
         try:
             rel = str(Path(f["filename"]).relative_to(root))
         except ValueError:
             rel = f["filename"]
+
         out.append({
             "file_path": rel,
             "line_number": f.get("location", {}).get("row"),
@@ -186,8 +197,8 @@ def _run_ruff(root: Path) -> list[dict]:
             "severity": "error" if f.get("severity") == "error" else "warning",
             "message": f.get("message"),
         })
-    return out
 
+    return out
 
 def _run_eslint(root: Path) -> list[dict]:
     """Returns list of {file_path, line, column, rule_id, severity, message}.
@@ -204,6 +215,13 @@ def _run_eslint(root: Path) -> list[dict]:
 
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        logger.warning("ESLINT RC=%s", proc.returncode)
+        logger.warning("ESLINT STDOUT=%s", proc.stdout[:2000])
+        logger.warning("ESLINT STDERR=%s", proc.stderr[:2000])
+        if proc.returncode not in (0, 1):
+            logger.warning("eslint skipped for repo due to config/dependency issue")
+            return []
+        
         results = json.loads(proc.stdout or "[]")
     except FileNotFoundError:
         logger.warning("eslint/npx not installed — skipping JS/TS lint")
@@ -234,23 +252,38 @@ def _run_eslint(root: Path) -> list[dict]:
 # ── secrets (gitleaks) ────────────────────────────────────────────────────────
 
 def _run_gitleaks(root: Path) -> list[dict]:
-    """Returns list of {file_path, line_number, rule_id, severity, description, secret_snippet, commit_sha}"""
+    """
+    Returns list of
+    {file_path, line_number, rule_id, severity,
+     description, secret_snippet, commit_sha}
+    """
+
     report_path = root.parent / "gitleaks_report.json"
+
     try:
-        subprocess.run(
+        proc = subprocess.run(
             [
-                "gitleaks", "detect",
+                "gitleaks",
+                "detect",
                 "--source", str(root),
-                "--no-git",                       # scanning a tarball, not a git history
+                "--no-git",
                 "--report-format", "json",
                 "--report-path", str(report_path),
-                "--exit-code", "0",                # don't fail the process on findings
+                "--exit-code", "0",
             ],
-            capture_output=True, text=True, timeout=180,
+            capture_output=True,
+            text=True,
+            timeout=180,
         )
+
+        logger.warning("GITLEAKS RC=%s", proc.returncode)
+        logger.warning("GITLEAKS STDOUT=%s", proc.stdout[:2000])
+        logger.warning("GITLEAKS STDERR=%s", proc.stderr[:2000])
+
     except FileNotFoundError:
         logger.warning("gitleaks not installed — skipping secret scan")
         return []
+
     except subprocess.TimeoutExpired:
         logger.warning("gitleaks scan timed out")
         return []
@@ -266,12 +299,19 @@ def _run_gitleaks(root: Path) -> list[dict]:
         report_path.unlink(missing_ok=True)
 
     out = []
+
     for f in findings:
         try:
-            rel = str(Path(f.get("File", "")).relative_to(root)) if f.get("File") else str(root)
+            rel = (
+                str(Path(f.get("File", "")).relative_to(root))
+                if f.get("File")
+                else ""
+            )
         except ValueError:
             rel = f.get("File", "")
+
         secret = f.get("Secret", "")
+
         out.append({
             "file_path": rel,
             "line_number": f.get("StartLine"),
@@ -279,10 +319,14 @@ def _run_gitleaks(root: Path) -> list[dict]:
             "rule_id": f.get("RuleID"),
             "severity": "critical",
             "description": f.get("Description"),
-            # redact: keep first/last 3 chars only, never store the full secret
-            "secret_snippet": (secret[:3] + "…" + secret[-3:]) if len(secret) > 8 else "[redacted]",
+            "secret_snippet": (
+                secret[:3] + "…" + secret[-3:]
+                if len(secret) > 8
+                else "[redacted]"
+            ),
             "commit_sha": f.get("Commit"),
         })
+
     return out
 
 
@@ -292,31 +336,48 @@ SEMGREP_SEVERITY_MAP = {"ERROR": "high", "WARNING": "medium", "INFO": "low"}
 
 
 def _run_semgrep(root: Path) -> list[dict]:
-    """Returns list of {file_path, line_number, rule_id, severity, description}.
-    Uses semgrep's bundled `auto`/registry config if network access is available;
-    falls back to a local ruleset path via SEMGREP_RULES_PATH env var otherwise."""
+    """
+    Returns list of
+    {file_path, line_number, rule_id, severity, description}
+    """
+
     config = os.getenv("SEMGREP_RULES_PATH", "p/security-audit")
 
     try:
         proc = subprocess.run(
             ["semgrep", "scan", "--config", config, "--json", str(root)],
-            capture_output=True, text=True, timeout=300,
+            capture_output=True,
+            text=True,
+            timeout=300,
         )
+
+        logger.warning("SEMGREP RC=%s", proc.returncode)
+        logger.warning("SEMGREP STDOUT=%s", proc.stdout[:2000])
+        logger.warning("SEMGREP STDERR=%s", proc.stderr[:2000])
+
         data = json.loads(proc.stdout or "{}")
+
     except FileNotFoundError:
         logger.warning("semgrep not installed — skipping vuln scan")
         return []
+
     except (subprocess.TimeoutExpired, json.JSONDecodeError) as e:
         logger.warning("semgrep scan failed: %s", e)
         return []
 
     out = []
+
     for r in data.get("results", []):
         try:
             rel = str(Path(r["path"]).relative_to(root))
         except ValueError:
             rel = r.get("path", "")
-        severity = SEMGREP_SEVERITY_MAP.get(r.get("extra", {}).get("severity"), "medium")
+
+        severity = SEMGREP_SEVERITY_MAP.get(
+            r.get("extra", {}).get("severity"),
+            "medium",
+        )
+
         out.append({
             "file_path": rel,
             "line_number": r.get("start", {}).get("line"),
@@ -327,6 +388,7 @@ def _run_semgrep(root: Path) -> list[dict]:
             "secret_snippet": None,
             "commit_sha": None,
         })
+
     return out
 
 
@@ -474,6 +536,14 @@ def run_code_quality_scan(db: Session, owner: str, repo: str, token: str) -> dic
 
         lint_findings = _run_ruff(repo_root) + _run_eslint(repo_root)
         secret_findings = _run_gitleaks(repo_root) + _run_semgrep(repo_root)
+
+        logger.warning(
+    "Complexity=%s Churn=%s Lint=%s Secrets=%s",
+    len(complexity),
+    len(churn),
+    len(lint_findings),
+    len(secret_findings),
+)
 
         summary = _write_scan_results(
             db, scan_id, complexity, churn, lint_findings, secret_findings

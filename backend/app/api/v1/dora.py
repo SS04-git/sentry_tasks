@@ -1,5 +1,5 @@
 """
-SENTRY-36  DORA Delivery Metrics API (F1–F5 + F7)
+SENTRY-36  DORA Delivery Metrics API 
 ---------------------------------------------------
 F1  /deployment-frequency    Deployments per week (merged-PR proxy)
 F2  /lead-time               PR open → merge time series

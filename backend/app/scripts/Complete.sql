@@ -1177,6 +1177,278 @@ DELETE FROM git_pull_requests;
 
 
 
+-- ============================================================
+-- CODE QUALITY VIEWS
+-- ============================================================
+
+DROP VIEW IF EXISTS v_cq_latest_scan CASCADE;
+DROP VIEW IF EXISTS v_cq_complexity_summary CASCADE;
+DROP VIEW IF EXISTS v_cq_complexity_trend CASCADE;
+DROP VIEW IF EXISTS v_cq_churn_summary CASCADE;
+DROP VIEW IF EXISTS v_cq_lint_density CASCADE;
+DROP VIEW IF EXISTS v_cq_secret_alerts_open CASCADE;
+
+-- ============================================================
+-- Latest completed scan per repository
+-- ============================================================
+
+CREATE OR REPLACE VIEW v_cq_latest_scan AS
+SELECT DISTINCT ON (owner, repo)
+       id AS scan_id,
+       owner,
+       repo,
+       commit_sha,
+       started_at,
+       finished_at
+FROM code_quality_scan
+WHERE status = 'completed'
+ORDER BY owner, repo, finished_at DESC;
+
+-- ============================================================
+-- Complexity Summary
+-- ============================================================
+
+CREATE OR REPLACE VIEW v_cq_complexity_summary AS
+SELECT
+    ls.owner,
+    ls.repo,
+    ls.scan_id,
+    ls.finished_at,
+
+    COUNT(*) AS file_count,
+
+    ROUND(
+        AVG(fm.cyclomatic_complexity)::numeric,
+        2
+    ) AS avg_complexity,
+
+    MAX(fm.cyclomatic_complexity) AS max_complexity,
+
+    COUNT(*) FILTER (
+        WHERE fm.cyclomatic_complexity > 10
+    ) AS high_complexity_files
+
+FROM v_cq_latest_scan ls
+JOIN code_quality_file_metric fm
+    ON fm.scan_id = ls.scan_id
+
+GROUP BY
+    ls.owner,
+    ls.repo,
+    ls.scan_id,
+    ls.finished_at;
+
+-- ============================================================
+-- Complexity Trend
+-- ============================================================
+
+CREATE OR REPLACE VIEW v_cq_complexity_trend AS
+SELECT
+    s.owner,
+    s.repo,
+
+    DATE(s.finished_at) AS scan_date,
+
+    ROUND(
+        AVG(fm.cyclomatic_complexity)::numeric,
+        2
+    ) AS avg_complexity,
+
+    COUNT(*) FILTER (
+        WHERE fm.cyclomatic_complexity > 10
+    ) AS high_complexity_files
+
+FROM code_quality_scan s
+JOIN code_quality_file_metric fm
+    ON fm.scan_id = s.id
+
+WHERE s.status = 'completed'
+
+GROUP BY
+    s.owner,
+    s.repo,
+    DATE(s.finished_at)
+
+ORDER BY
+    scan_date;
+
+-- ============================================================
+-- Churn Summary
+-- ============================================================
+
+CREATE OR REPLACE VIEW v_cq_churn_summary AS
+SELECT
+    ls.owner,
+    ls.repo,
+    ls.scan_id,
+    ls.finished_at,
+
+    COALESCE(SUM(fm.lines_added),0) AS total_lines_added,
+    COALESCE(SUM(fm.lines_removed),0) AS total_lines_removed,
+
+    COALESCE(SUM(fm.commit_count),0) AS total_commits,
+
+    COUNT(*) FILTER (
+        WHERE fm.commit_count >= 5
+    ) AS high_churn_files
+
+FROM v_cq_latest_scan ls
+JOIN code_quality_file_metric fm
+    ON fm.scan_id = ls.scan_id
+
+GROUP BY
+    ls.owner,
+    ls.repo,
+    ls.scan_id,
+    ls.finished_at;
+
+-- ============================================================
+-- Lint Density
+-- ============================================================
+
+CREATE OR REPLACE VIEW v_cq_lint_density AS
+SELECT
+    ls.owner,
+    ls.repo,
+    ls.scan_id,
+    ls.finished_at,
+
+    COUNT(*) AS total_findings,
+
+    COUNT(*) FILTER (
+        WHERE lf.severity = 'error'
+    ) AS error_count,
+
+    COUNT(*) FILTER (
+        WHERE lf.severity = 'warning'
+    ) AS warning_count,
+
+    ROUND(
+        (
+            COUNT(*)::numeric
+            /
+            NULLIF(
+                (
+                    SELECT SUM(fm.nloc)
+                    FROM code_quality_file_metric fm
+                    WHERE fm.scan_id = ls.scan_id
+                ),
+                0
+            )
+        ) * 1000,
+        2
+    ) AS findings_per_kloc
+
+FROM v_cq_latest_scan ls
+JOIN code_quality_lint_finding lf
+    ON lf.scan_id = ls.scan_id
+
+GROUP BY
+    ls.owner,
+    ls.repo,
+    ls.scan_id,
+    ls.finished_at;
+
+-- ============================================================
+-- Open Secret Alerts
+-- ============================================================
+
+CREATE OR REPLACE VIEW v_cq_secret_alerts_open AS
+SELECT
+    sa.id,
+    s.owner,
+    s.repo,
+
+    sa.file_path,
+    sa.line_number,
+
+    sa.tool,
+    sa.rule_id,
+    sa.severity,
+
+    sa.description,
+    sa.commit_sha,
+
+    sa.status,
+    sa.created_at
+
+FROM code_quality_secret_alert sa
+JOIN code_quality_scan s
+    ON s.id = sa.scan_id
+
+WHERE sa.status = 'open'
+
+ORDER BY
+    CASE sa.severity
+        WHEN 'critical' THEN 1
+        WHEN 'high' THEN 2
+        WHEN 'medium' THEN 3
+        ELSE 4
+    END,
+    sa.created_at DESC;
+
+SELECT viewname
+FROM pg_views
+WHERE schemaname='public'
+AND viewname LIKE 'v_cq%';
+SELECT * FROM v_cq_latest_scan LIMIT 5;
+
+SELECT * FROM v_cq_complexity_summary LIMIT 5;
+
+SELECT * FROM v_cq_complexity_trend LIMIT 5;
+
+SELECT * FROM v_cq_churn_summary LIMIT 5;
+
+SELECT * FROM v_cq_lint_density LIMIT 5;
+
+SELECT * FROM v_cq_secret_alerts_open LIMIT 5;
+
+SELECT
+    total_lines_added,
+    total_lines_removed,
+    total_commits,
+    ROUND(
+        (total_lines_added + total_lines_removed)::numeric
+        / NULLIF(total_commits,0),
+        2
+    ) AS avg_lines_changed_per_commit
+FROM v_cq_churn_summary
+WHERE repo='git_repo_con';
+
+SELECT * FROM v_cq_latest_scan;
+
+SELECT * FROM v_cq_complexity_summary;
+
+SELECT * FROM v_cq_churn_summary;
+
+SELECT * FROM v_cq_lint_density;
+
+SELECT * FROM v_cq_secret_alerts_open;
+
+SELECT COUNT(*) FROM code_quality_lint_finding;
+
+SELECT COUNT(*) FROM code_quality_secret_alert;
+
+SELECT *
+FROM code_quality_scan
+ORDER BY finished_at DESC
+LIMIT 5;
+
+SELECT
+    id,
+    owner,
+    repo,
+    status,
+    error,
+    started_at,
+    finished_at
+FROM code_quality_scan
+ORDER BY finished_at DESC
+LIMIT 10;
+
+
+
+
 
 
 

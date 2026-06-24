@@ -18,6 +18,7 @@ from app.api.v1 import governance
 from app.services.platform_service import start_scheduler
 from app.api.v1 import roi
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from app.api.v1 import profile
 import os
 
 logger.info("Starting application")
@@ -44,6 +45,7 @@ app.include_router(cohorts.router, prefix="/api/v1/cohorts", tags=["cohorts"])
 app.include_router(defect_risk.router, prefix="/api/v1/defect_risk", tags=["defect_risk"])
 app.include_router(governance.router, prefix="/api/v1/governance", tags=["Governance"],)
 app.include_router(roi.router, prefix="/api/v1/roi", tags=["ROI"],)
+app.include_router(profile.router, prefix="/api/v1/users", tags=["profile"])
 
 @app.get("/health")
 def health():

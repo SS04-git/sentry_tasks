@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 
 export default function PageNav({ active }: { active?: string }) {
@@ -10,13 +10,9 @@ export default function PageNav({ active }: { active?: string }) {
   const role = user?.role ?? 'employee';
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-
   const pathname = usePathname();
+  const router = useRouter();
 
-  // Derive the active tab from the real URL instead of relying on each
-  // page to pass the correct `active` string by hand — that's what let
-  // the highlight get out of sync ("stuck on reports"). The `active` prop
-  // is kept as an optional override but pathname is the source of truth.
   const isActive = (tab: string) =>
     active ? active === tab : pathname?.startsWith(`/${tab}`);
 
@@ -29,6 +25,11 @@ export default function PageNav({ active }: { active?: string }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const goToProfile = (section: 'profile' | 'password') => {
+    setProfileOpen(false);
+    router.push(`/profile?section=${section}`);
+  };
 
   return (
     <nav className="nav">
@@ -78,14 +79,26 @@ export default function PageNav({ active }: { active?: string }) {
                     <span className="profile-dropdown-role">{role}</span>
                   </div>
                 </div>
-                <div className="profile-dropdown-item">
-                  <i className="fa-solid fa-user-gear icon-sm"></i>Profile Settings
+
+                <div
+                  className="profile-dropdown-item"
+                  onClick={() => goToProfile('profile')}
+                >
+                  <i className="fa-solid fa-user-gear icon-sm"></i>
+                  Profile Settings
                 </div>
-                <div className="profile-dropdown-item">
-                  <i className="fa-solid fa-lock icon-sm"></i>Change Password
+
+                <div
+                  className="profile-dropdown-item"
+                  onClick={() => goToProfile('password')}
+                >
+                  <i className="fa-solid fa-lock icon-sm"></i>
+                  Change Password
                 </div>
+
                 <div className="profile-dropdown-item danger" onClick={logout}>
-                  <i className="fa-solid fa-arrow-right-from-bracket icon-sm"></i>Log Out
+                  <i className="fa-solid fa-arrow-right-from-bracket icon-sm"></i>
+                  Log Out
                 </div>
               </div>
             )}

@@ -15,6 +15,7 @@ import { jwtDecode } from 'jwt-decode';
 interface User {
   email: string;
   role: string;
+  full_name?: string;
 }
 
 interface AuthContextType {

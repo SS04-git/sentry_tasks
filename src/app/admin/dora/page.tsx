@@ -285,7 +285,7 @@ export default function DoraPage() {
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                       <input
                         style={inputStyle}
-                        placeholder="https://github.com/acme-corp/api  or  acme-corp/api"
+                        placeholder="https://github.com/"
                         value={urlInput}
                         onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
                         onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}

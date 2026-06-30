@@ -1,19 +1,13 @@
 """
-SENTRY-33  Code Quality KPI API (E1-E5)
------------------------------------------
+SENTRY-33  Code Quality KPI API
 E1  /complexity        per-repo complexity summary (latest scan)
 E2  /churn             per-repo churn summary (latest scan)
 E3  /lint              lint density summary + paginated findings list
 E4  /secrets           open secret-scan alert feed
 E5  /trend             complexity trend over time, per repo
-
-Plus:
-  /files/{owner}/{repo}   per-file metrics for the latest scan (drill-down)
-  /scans/{owner}/{repo}   scan history for a repo
-  /queue/{alert_id}/...   acknowledge / resolve / dismiss a secret alert
 """
-
 from __future__ import annotations
+print("LOADED CODE_QUALITY_API")
 
 from datetime import datetime
 from typing import Optional

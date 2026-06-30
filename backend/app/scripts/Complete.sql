@@ -1446,7 +1446,13 @@ FROM code_quality_scan
 ORDER BY finished_at DESC
 LIMIT 10;
 
-
+SELECT COUNT(*)
+FROM git_commits
+WHERE repo_id = (
+    SELECT repo_id
+    FROM git_repos
+    WHERE full_name = 'SS04-git/git_repo_con'
+);
 
 
 

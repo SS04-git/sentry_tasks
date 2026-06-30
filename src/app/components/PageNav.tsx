@@ -16,6 +16,8 @@ export default function PageNav({ active }: { active?: string }) {
   const isActive = (tab: string) =>
     active ? active === tab : pathname?.startsWith(`/${tab}`);
 
+  const bellActive = pathname?.startsWith('/notifications');
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
@@ -61,9 +63,21 @@ export default function PageNav({ active }: { active?: string }) {
         </div>
 
         <div className="nav-user">
-          <div className="nav-notification">
-            <i className="fa-solid fa-bell icon-cyan"></i>
-          </div>
+
+          <a
+            href="/notifications"
+            className="nav-notification"
+            style={{ textDecoration: 'none' }}
+          >
+            <i
+              className="fa-solid fa-bell"
+              style={{
+                fontSize: '1.1rem',
+                color: bellActive ? '#06b6d4' : 'var(--text-muted)',
+                transition: 'color 0.15s',
+              }}
+            />
+          </a>
 
           <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
             <i className="fa-solid fa-circle-user icon-cyan"></i>
@@ -80,18 +94,12 @@ export default function PageNav({ active }: { active?: string }) {
                   </div>
                 </div>
 
-                <div
-                  className="profile-dropdown-item"
-                  onClick={() => goToProfile('profile')}
-                >
+                <div className="profile-dropdown-item" onClick={() => goToProfile('profile')}>
                   <i className="fa-solid fa-user-gear icon-sm"></i>
                   Profile Settings
                 </div>
 
-                <div
-                  className="profile-dropdown-item"
-                  onClick={() => goToProfile('password')}
-                >
+                <div className="profile-dropdown-item" onClick={() => goToProfile('password')}>
                   <i className="fa-solid fa-lock icon-sm"></i>
                   Change Password
                 </div>

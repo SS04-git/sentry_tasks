@@ -356,10 +356,6 @@ export default function ProfilePage() {
                         <span className="security-value">{row.value}</span>
                       </div>
                     ))}
-
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontStyle: 'italic' }}>
-                      Session management and multi-device sign-out are not yet available. Contact your admin to revoke access.
-                    </p>
                   </div>
                 </div>
               )}

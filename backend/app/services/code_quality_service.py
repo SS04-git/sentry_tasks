@@ -344,12 +344,16 @@ def _run_semgrep(root: Path) -> list[dict]:
     config = os.getenv("SEMGREP_RULES_PATH", "p/security-audit")
 
     try:
+        cmd = ["semgrep", "scan", "--config", config, "--json",]
+        for d in SKIP_DIRS:
+            cmd += ["--exclude", d]
+            cmd.append(str(root))
+
         proc = subprocess.run(
-            ["semgrep", "scan", "--config", config, "--json", str(root)],
-            capture_output=True,
-            text=True,
-            timeout=300,
-        )
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=300,)
 
         logger.warning("SEMGREP RC=%s", proc.returncode)
         logger.warning("SEMGREP STDOUT=%s", proc.stdout[:2000])

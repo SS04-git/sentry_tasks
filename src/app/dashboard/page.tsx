@@ -408,6 +408,8 @@ useEffect(() => {
                 <div className="section-header">
                   <i className="fa-solid fa-bell icon-cyan"></i>
                   <h2>Recent Notifications</h2>
+                  <a href="/notifications" style={{ marginLeft: 'auto', fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>
+                   View all <i className="fa-solid fa-arrow-right" style={{ fontSize: '0.7rem' }} /></a>    
                 </div>
                 {notifications.length > 0 ? (
                   <div className="notification-single">

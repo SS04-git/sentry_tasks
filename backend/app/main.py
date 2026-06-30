@@ -10,7 +10,7 @@ from app.api.v1.occupancy import router as occupancy_router
 from app.api.v1 import github
 from app.api.v1 import attendance
 from app.api.v1 import security
-from app.api.v1 import code_quality
+from app.api.v1 import code_quality_api
 from app.api.v1 import dora
 from app.api.v1 import cohorts
 from app.api.v1 import defect_risk
@@ -39,7 +39,7 @@ app.include_router(github.router, prefix="/api/v1/github", tags=["GitHub"])
 app.include_router(attendance.router, prefix="/api/v1/attendance", tags=["attendance"])
 app.include_router(occupancy_router, prefix="/api/v1/occupancy", tags=["occupancy"])
 app.include_router(security.router, prefix="/api/v1/security", tags=["security"])
-app.include_router(code_quality.router, prefix="/api/v1/code_quality", tags=["code_quality"])
+app.include_router(code_quality_api.router, prefix="/api/v1/code_quality", tags=["code_quality"])
 app.include_router(dora.router, prefix="/api/v1/dora", tags=["dora_metrics"])
 app.include_router(cohorts.router, prefix="/api/v1/cohorts", tags=["cohorts"])
 app.include_router(defect_risk.router, prefix="/api/v1/defect_risk", tags=["defect_risk"])

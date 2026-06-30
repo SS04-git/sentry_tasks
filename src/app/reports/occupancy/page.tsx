@@ -89,22 +89,27 @@ export default function OccupancyPage() {
 
               {/* Charts */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                <div className="card card-static" style={{ padding: '1.5rem' }}>
-                  <div className="section-header" style={{ marginBottom: '1.5rem' }}>
-                    <i className="fa-solid fa-chart-line icon-cyan"></i>
-                    <h2>Occupancy Trend</h2>
-                  </div>
+                <div className="card card-static" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', minHeight: '450px' }}>
+                <div className="section-header" style={{ marginBottom: '1.5rem' }}>
+                  <i className="fa-solid fa-chart-line icon-cyan"></i>
+                  <h2>Occupancy Trend</h2>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <OccupancyTrendChart data={trend} />
                 </div>
-
-                <div className="card card-static" style={{ padding: '1.5rem' }}>
-                  <div className="section-header" style={{ marginBottom: '1.5rem' }}>
-                    <i className="fa-solid fa-wand-magic-sparkles icon-cyan"></i>
-                    <h2>Occupancy Forecast</h2>
-                  </div>
-                  <ForecastChart data={forecast} />
-                </div>
               </div>
+
+                <div className="card card-static" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', minHeight: '450px' }}>
+                <div className="section-header" style={{ marginBottom: '1.5rem' }}>
+                  <i className="fa-solid fa-wand-magic-sparkles icon-cyan"></i>
+                  <h2>Occupancy Forecast</h2>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <ForecastChart data={forecast} />
+                  </div>
+                </div>
+                </div>
+        
 
               {/* Notes + caveat */}
               <div className="card card-static" style={{ padding: '1.25rem 1.5rem' }}>

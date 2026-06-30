@@ -145,9 +145,9 @@ function RepositoriesContent() {
                     <i className="fa-solid fa-code-branch icon-cyan icon-lg"></i>
                   </div>
                   <h3 style={{ marginBottom: '0.4rem' }}>{repo.name}</h3>
-                  {repo.description && (
+                  {/* {repo.description && (
                     <p style={{ fontSize: '0.875rem', marginBottom: '0.75rem' }}>{repo.description}</p>
-                  )}
+                  )} */}
                   <span
                     className="banner-badge"
                     style={{

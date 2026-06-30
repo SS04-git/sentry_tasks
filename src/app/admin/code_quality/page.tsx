@@ -207,7 +207,7 @@ export default function CodeQualityPage() {
   ───────────────────────────── */
   const handleAlert = async (
     id: string,
-    action: 'acknowledge' | 'resolve' | 'dismiss'
+    action: 'resolve' | 'dismiss'
   ) => {
     try {
       const token = getToken();
@@ -391,7 +391,7 @@ export default function CodeQualityPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={thStyle}>Repo</th>
+                      {/* <th style={thStyle}>Repo</th> */}
                       <th style={thStyle}>Date</th>
                       <th style={thStyle}>Avg Complexity</th>
                       <th style={thStyle}>High Complexity Files</th>
@@ -401,7 +401,7 @@ export default function CodeQualityPage() {
                   <tbody>
                     {trend.map((t) => (
                       <tr key={t.repo + t.scan_date}>
-                        <td style={tdStyle}>{t.repo}</td>
+                        {/* <td style={tdStyle}>{t.repo}</td> */}
                         <td style={tdStyle}>{t.scan_date}</td>
                         <td style={tdStyle}>{t.avg_complexity}</td>
                         <td style={tdStyle}>{t.high_complexity_files}</td>
@@ -468,13 +468,6 @@ export default function CodeQualityPage() {
                         </td>
 
                         <td style={tdStyle}>
-                          <button
-                            className="btn-primary"
-                            onClick={() => handleAlert(a.id, 'acknowledge')}
-                          >
-                            Acknowledge
-                          </button>
-
                           <button
                             className="btn-secondary"
                             onClick={() => handleAlert(a.id, 'resolve')}

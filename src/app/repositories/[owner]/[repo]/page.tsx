@@ -26,6 +26,7 @@ export default function RepoDetailPage() {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const [pulls, setPulls] = useState<any[]>([]);
+  const [repoDetails, setRepoDetails] = useState<any>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -37,55 +38,70 @@ export default function RepoDetailPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
   const fetchAll = async () => {
     setLoading(true);
+
     try {
       const token = getToken();
-      const [commitsData, statsData, pullsData] = await Promise.all([
+
+      const [commitsData, statsData, pullsData, repoData] = await Promise.all([
         fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/commits`, token!),
         fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/stats`, token!),
         fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/pulls`, token!),
+        fetchWithAuth(`api/v1/github/repos/${owner}/${repo}`, token!),
       ]);
+
       setCommits(Array.isArray(commitsData) ? commitsData : []);
       setStats(Array.isArray(statsData) ? statsData : []);
       setPulls(Array.isArray(pullsData) ? pullsData : []);
+      setRepoDetails(repoData);
+
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
   fetchAll();
 }, [owner, repo]);
 
 const retryStats = () => {
   setStatsLoading(true);
+
   const token = getToken();
+
   fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/stats`, token!)
-    .then(d => { setStats(Array.isArray(d) ? d : []); })
+    .then((d) => {
+      setStats(Array.isArray(d) ? d : []);
+    })
     .catch(() => {})
     .finally(() => setStatsLoading(false));
 };
 
-  const tabStyle = (tab: Tab): React.CSSProperties => ({
-    padding: '0.5rem 1.25rem',
-    borderRadius: '999px',
-    fontWeight: 600,
-    fontSize: '0.875rem',
-    cursor: 'pointer',
-    border: 'none',
-    background: activeTab === tab
+const tabStyle = (tab: Tab): React.CSSProperties => ({
+  padding: '0.5rem 1.25rem',
+  borderRadius: '999px',
+  fontWeight: 600,
+  fontSize: '0.875rem',
+  cursor: 'pointer',
+  border: 'none',
+  background:
+    activeTab === tab
       ? 'linear-gradient(135deg, #06b6d4, #0891b2)'
       : 'transparent',
-    color: activeTab === tab ? 'white' : 'var(--text-muted)',
-    boxShadow: activeTab === tab ? '0 4px 14px rgba(6,182,212,0.35)' : 'none',
-    transition: 'all 0.2s ease',
-  });
+  color: activeTab === tab ? 'white' : 'var(--text-muted)',
+  boxShadow:
+    activeTab === tab
+      ? '0 4px 14px rgba(6,182,212,0.35)'
+      : 'none',
+  transition: 'all 0.2s ease',
+});
 
-  const totalAdditions = stats.reduce((sum, c) => sum + c.additions, 0);
-  const totalDeletions = stats.reduce((sum, c) => sum + c.deletions, 0);
-  const totalCommits = stats.reduce((sum, c) => sum + c.commits, 0);
+const totalAdditions = stats.reduce((sum, c) => sum + c.additions, 0);
+const totalDeletions = stats.reduce((sum, c) => sum + c.deletions, 0);
+const totalCommits = stats.reduce((sum, c) => sum + c.commits, 0);
 
   
 
@@ -123,6 +139,8 @@ const retryStats = () => {
                       {stats.length} contributors
                     </span>
                   )}
+                  {repoDetails?.description && (<p style={{ fontSize: '0.875rem', marginTop: '0.75rem', color: 'white' }}>
+                  {repoDetails.description}</p>)}
                 </div>
               )}
             </div>

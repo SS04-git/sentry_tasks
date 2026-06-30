@@ -907,3 +907,30 @@ def get_repo_analytics(owner: str, repo: str):
         }
     finally:
         db.close()
+
+@router.get("/repos/{owner}/{repo}")
+def get_repo_details(
+    owner: str,
+    repo: str,
+    app_user: User = Depends(get_current_app_user),
+):
+    access_token = get_github_token(app_user.id)
+
+    response = rate_limited_get(
+        f"https://api.github.com/repos/{owner}/{repo}",
+        access_token,
+    )
+
+    data = response.json()
+
+    if isinstance(data, dict) and data.get("message"):
+        raise HTTPException(status_code=400, detail=data["message"])
+
+    return {
+        "name": data.get("name"),
+        "full_name": data.get("full_name"),
+        "description": data.get("description"),
+        "language": data.get("language"),
+        "private": data.get("private"),
+        "html_url": data.get("html_url"),
+    }

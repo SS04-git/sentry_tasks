@@ -28,10 +28,14 @@ print("CLIENT_SECRET exists:", bool(os.getenv("GITHUB_CLIENT_SECRET")))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://sentry-tasks-535x.vercel.app/login",  
+    ],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],)
+    allow_headers=["*"],
+)
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])

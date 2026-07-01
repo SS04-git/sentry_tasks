@@ -1,3 +1,4 @@
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
 'use client';
 
 import {
@@ -82,28 +83,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      }
-    );
+  const res = await fetch(`${API_URL}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    if (!res.ok) throw new Error('Invalid credentials');
+  if (!res.ok) {
+    throw new Error(data?.detail || 'Invalid credentials');
+  }
 
-    saveToken(data.access_token);
+  saveToken(data.access_token);
 
-    const decoded: any = jwtDecode(data.access_token);
+  const decoded: any = jwtDecode(data.access_token);
 
-    setUser({
-      email: decoded.sub,
-      role: decoded.role,
-    });
-  };
+  setUser({
+    email: decoded.sub,
+    role: decoded.role,
+  });
+};
 
   const logout = () => {
     removeToken();

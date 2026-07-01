@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import PageNav from '@/app/components/PageNav';
@@ -53,7 +53,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const { user } = useAuth();
   const role = user?.role ?? 'employee';
   const searchParams = useSearchParams();
@@ -365,5 +365,24 @@ export default function ProfilePage() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <ProtectedRoute>
+          <div className="page">
+            <PageNav />
+            <div className="page-body">
+              <p>Loading...</p>
+            </div>
+          </div>
+        </ProtectedRoute>
+      }
+    >
+      <ProfilePageContent />
+    </Suspense>
   );
 }

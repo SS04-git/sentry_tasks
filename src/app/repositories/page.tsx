@@ -8,13 +8,8 @@ import { getToken } from '@/app/lib/auth';
 import { fetchWithAuth } from '@/app/lib/api';
 import PageNav from '@/app/components/PageNav';
 
-export default function RepositoriesPage() {
-  return (
-    <Suspense fallback={<div className="page" />}>
-      <RepositoriesContent />
-    </Suspense>
-  );
-}
+function RepositoriesPageContent() {
+  return <RepositoriesContent />;}
 
 function RepositoriesContent() {
   const { user, logout } = useAuth();
@@ -172,5 +167,24 @@ function RepositoriesContent() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function RepositoriesPage() {
+  return (
+    <Suspense
+      fallback={
+        <ProtectedRoute>
+          <div className="page">
+            <PageNav active="repositories" />
+            <div className="page-body">
+              <p>Loading...</p>
+            </div>
+          </div>
+        </ProtectedRoute>
+      }
+    >
+      <RepositoriesPageContent />
+    </Suspense>
   );
 }

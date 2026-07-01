@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import PageNav from '@/app/components/PageNav';
@@ -74,7 +74,7 @@ function KpiCard({ icon, label, value, unit }: {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 
-export default function DoraPage() {
+function DoraPageContent() {
   const searchParams = useSearchParams();
 
   const [owner, setOwner] = useState(searchParams.get('owner') ?? '');
@@ -441,5 +441,24 @@ export default function DoraPage() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function DoraPage() {
+  return (
+    <Suspense
+      fallback={
+        <ProtectedRoute>
+          <div className="page">
+            <PageNav active="admin" />
+            <div className="page-body">
+              <p>Loading...</p>
+            </div>
+          </div>
+        </ProtectedRoute>
+      }
+    >
+      <DoraPageContent />
+    </Suspense>
   );
 }

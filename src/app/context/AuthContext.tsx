@@ -1,5 +1,6 @@
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
 'use client';
+
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
 
 import {
   createContext,

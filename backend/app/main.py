@@ -30,7 +30,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://sentry-tasks-535x.vercel.app",
+        "https://sentry-tasks.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],

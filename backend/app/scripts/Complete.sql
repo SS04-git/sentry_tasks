@@ -1465,7 +1465,6 @@ WHERE repo_id = (
 
 
 
-
 --TO check:answer must be 5
 SELECT table_name FROM information_schema.views WHERE table_schema = 'public';
 SELECT COUNT(*) FROM users;

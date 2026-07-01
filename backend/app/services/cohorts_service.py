@@ -20,11 +20,17 @@ def choose_best_k(X, max_k=6):
     best_k = 2
     best_score = -1
 
+    # Can't have more clusters than samples, and need at least 2 samples per cluster
+    max_k = min(max_k, len(X) // 2)
+
+    # If we have too few points to cluster meaningfully, return 1
+    if max_k < 2:
+        return 1
+
     for k in range(2, max_k + 1):
         model = KMeans(n_clusters=k, random_state=42, n_init=10)
         labels = model.fit_predict(X)
 
-        # safety: ensure at least 2 clusters
         if len(set(labels)) < 2:
             continue
 
@@ -45,9 +51,12 @@ def train_cohorts(events):
 
     k = choose_best_k(X_scaled)
 
+    # k=1 means not enough data to cluster
+    if k == 1:
+        return {"k": 1, "labels": [0] * len(events), "centroids": [scaler.inverse_transform([X_scaled.mean(axis=0)])[0].tolist()]}
+
     model = KMeans(n_clusters=k, random_state=42, n_init=10)
     labels = model.fit_predict(X_scaled)
-
     centroids_scaled = model.cluster_centers_
     centroids = scaler.inverse_transform(centroids_scaled)
 

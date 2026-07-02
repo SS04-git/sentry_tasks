@@ -112,6 +112,7 @@ function DoraPageContent() {
 
   useEffect(() => {
     if (owner && repo) loadDashboard(owner, repo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadDashboard = async (ownerVal: string, repoVal: string) => {
@@ -130,7 +131,6 @@ function DoraPageContent() {
         getWithAuth(`api/v1/dora/szz-blame?${qs}`, token),
         getWithAuth(`api/v1/dora/kpi-summary?${qs}`, token),
       ]);
-      console.log('szz raw:', JSON.stringify(szzRes));
       setDeploymentFrequency({ value: summaryRes.deployments_per_week ?? 0 });
       setLeadTime({ value: summaryRes.avg_lead_time_hours ?? 0 });
       setFailureRate({ value: summaryRes.change_failure_rate_pct ?? 0 });
@@ -154,119 +154,71 @@ function DoraPageContent() {
   };
 
   const handleSync = async () => {
-  setUrlError('');
-  const parsed = parseGitHubUrl(urlInput);
-  if (!parsed) {
-    setUrlError('Could not parse a GitHub owner/repo from that input.');
-    return;
-  }
+    setUrlError('');
+    const parsed = parseGitHubUrl(urlInput);
+    if (!parsed) {
+      setUrlError('Could not parse a GitHub owner/repo from that input.');
+      return;
+    }
 
-  const token = getToken();
-  if (!token) { setUrlError('Please login again.'); return; }
+    const token = getToken();
+    if (!token) { setUrlError('Please login again.'); return; }
 
-  setSyncStatus('syncing');
-  setOwner(parsed.owner);
-  setRepo(parsed.repo);
+    setSyncStatus('syncing');
+    setOwner(parsed.owner);
+    setRepo(parsed.repo);
 
-  try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
 
-    await fetch(
-      `${apiBase}/api/v1/github/repos/${parsed.owner}/${parsed.repo}/sync`,
-      { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    // Poll sync-status every 5s for up to 2 minutes
-    let synced = false;
-    for (let i = 0; i < 24; i++) {
-      await new Promise(res => setTimeout(res, 5000));
-      const statusRes = await fetch(
-        `${apiBase}/api/v1/github/sync-status`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      await fetch(
+        `${apiBase}/api/v1/github/repos/${parsed.owner}/${parsed.repo}/sync`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
       );
-      const status = await statusRes.json();
-      const repoStatus = status.repos?.find(
-        (r: { repo: string; status: string }) =>
-          r.repo === `${parsed.owner}/${parsed.repo}`
-      );
-      if (repoStatus?.status === 'success') { synced = true; break; }
-      if (repoStatus?.status === 'error') {
-        throw new Error(repoStatus.error ?? 'Sync failed on the server.');
+
+      // Poll sync-status every 5s for up to 2 minutes
+      let synced = false;
+      for (let i = 0; i < 24; i++) {
+        await new Promise(res => setTimeout(res, 5000));
+        const statusRes = await fetch(
+          `${apiBase}/api/v1/github/sync-status`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const status = await statusRes.json();
+        const repoStatus = status.repos?.find(
+          (r: { repo: string; status: string }) =>
+            r.repo === `${parsed.owner}/${parsed.repo}`
+        );
+        if (repoStatus?.status === 'success') { synced = true; break; }
+        if (repoStatus?.status === 'error') {
+          throw new Error(repoStatus.error ?? 'Sync failed on the server.');
+        }
       }
-    }
 
-    if (!synced) {
-      throw new Error('Sync timed out — try clicking Sync again in a moment.');
-    }
-
-    setSyncStatus('synced');
-
-  } catch (err: any) {
-    setUrlError(err?.message ?? 'Sync failed. Check the repo name and try again.');
-    setSyncStatus('error');
-    setOwner('');
-    setRepo('');
-  }
-};
-
-const handleLoadMetrics = async () => {
-  const parsed = parseGitHubUrl(urlInput);
-  if (!parsed) return;
-  await loadDashboard(parsed.owner, parsed.repo);
-};
-
-  const token = getToken();
-  if (!token) { setUrlError('Please login again.'); return; }
-
-  setLoading(true);
-  setOwner(parsed.owner);
-  setRepo(parsed.repo);
-
-  try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
-
-    await fetch(
-      `${apiBase}/api/v1/github/repos/${parsed.owner}/${parsed.repo}/sync`,
-      { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    // Poll sync-status every 5s for up to 2 minutes
-    let synced = false;
-    for (let i = 0; i < 24; i++) {
-      await new Promise(res => setTimeout(res, 5000));
-      const statusRes = await fetch(
-        `${apiBase}/api/v1/github/sync-status`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const status = await statusRes.json();
-      const repoStatus = status.repos?.find(
-        (r: { repo: string; status: string }) =>
-          r.repo === `${parsed.owner}/${parsed.repo}`
-      );
-      if (repoStatus?.status === 'success') { synced = true; break; }
-      if (repoStatus?.status === 'error') {
-        throw new Error(repoStatus.error ?? 'Sync failed on the server.');
+      if (!synced) {
+        throw new Error('Sync timed out — try clicking Sync again in a moment.');
       }
-    }
 
-    if (!synced) {
-      throw new Error('Sync timed out — try clicking "Load Metrics" again in a moment.');
-    }
+      setSyncStatus('synced');
 
+    } catch (err: any) {
+      setUrlError(err?.message ?? 'Sync failed. Check the repo name and try again.');
+      setSyncStatus('error');
+      setOwner('');
+      setRepo('');
+    }
+  };
+
+  const handleLoadMetrics = async () => {
+    const parsed = parseGitHubUrl(urlInput);
+    if (!parsed) return;
     await loadDashboard(parsed.owner, parsed.repo);
-
-  } catch (err: any) {
-    setUrlError(err?.message ?? 'Sync failed. Check the repo name and try again.');
-    setOwner('');
-    setRepo('');
-    setLoading(false);
-  }
-};
+  };
 
   const handleReset = () => {
-  setOwner(''); setRepo(''); setSelectedFull(''); setUrlInput(''); setUrlError('');
-  setSyncStatus('idle');
-};
+    setOwner(''); setRepo(''); setSelectedFull(''); setUrlInput(''); setUrlError('');
+    setSyncStatus('idle');
+  };
 
   const showPicker = !owner || !repo;
 
@@ -381,32 +333,51 @@ const handleLoadMetrics = async () => {
 
                 {/* URL tab */}
                 {tab === 'url' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Paste any public GitHub URL. Sentry will sync it then load metrics.
-                  </p>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <input
-                      style={inputStyle}
-                      value={urlInput}
-                      onChange={e => { setUrlInput(e.target.value); setUrlError(''); setSyncStatus('idle'); }}
-                      onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
-                    />
-                    <button
-                      className="btn btn-primary"
-                      disabled={!urlInput.trim() || loading}
-                      onClick={handleUrlLoad}
-                      style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-                      {loading
-                        ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.4rem' }} />Syncing…</>
-                        : 'Sync & Load'}
-                    </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                      Paste any public GitHub URL. Sync it first, then load metrics.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      <input
+                        style={inputStyle}
+                        value={urlInput}
+                        onChange={e => { setUrlInput(e.target.value); setUrlError(''); setSyncStatus('idle'); }}
+                        onKeyDown={e => e.key === 'Enter' && syncStatus !== 'synced' && handleSync()}
+                      />
+                      <button
+                        className="btn btn-primary"
+                        disabled={!urlInput.trim() || syncStatus === 'syncing'}
+                        onClick={handleSync}
+                        style={{
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          opacity: syncStatus === 'synced' ? 0.5 : 1,
+                        }}
+                      >
+                        {syncStatus === 'syncing'
+                          ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.4rem' }} />Syncing…</>
+                          : <><i className="fa-solid fa-rotate-right" style={{ marginRight: '0.4rem' }} />Sync</>}
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        disabled={syncStatus !== 'synced' || loading}
+                        onClick={handleLoadMetrics}
+                        style={{
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          opacity: syncStatus === 'synced' ? 1 : 0.5,
+                        }}
+                      >
+                        {loading
+                          ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.4rem' }} />Loading…</>
+                          : 'Load Metrics'}
+                      </button>
+                    </div>
+                    {urlError && (
+                      <p style={{ fontSize: '0.82rem', color: '#ef4444', margin: 0 }}>{urlError}</p>
+                    )}
                   </div>
-                  {urlError && (
-                    <p style={{ fontSize: '0.82rem', color: '#ef4444', margin: 0 }}>{urlError}</p>
-                  )}
-                </div>
-              )}
+                )}
 
               </div>
             </div>
@@ -435,21 +406,21 @@ const handleLoadMetrics = async () => {
               </div>
 
               {loading ? (
-              <div className="card card-static" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <i className="fa-solid fa-spinner fa-spin icon-cyan" style={{ fontSize: '1.2rem', flexShrink: 0 }} />
-                <div>
-                  <p style={{ margin: 0, fontWeight: 600, color: 'var(--text)' }}>Syncing repository…</p>
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem' }}>
-                    Fetching commits and pull requests from GitHub. This may take up to 2 minutes for large repos.
-                  </p>
+                <div className="card card-static" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <i className="fa-solid fa-spinner fa-spin icon-cyan" style={{ fontSize: '1.2rem', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, color: 'var(--text)' }}>Loading metrics…</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem' }}>
+                      Reading DORA metrics for this repository.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ) : error ? (
-              <div className="card card-static" style={{ padding: '2rem', color: '#ef4444' }}>
-                {error}
-              </div>
-            ) : (
-              <>
+              ) : error ? (
+                <div className="card card-static" style={{ padding: '2rem', color: '#ef4444' }}>
+                  {error}
+                </div>
+              ) : (
+                <>
                   {/* KPI Cards */}
                   <div className="stats-grid" style={{ marginBottom: '2rem' }}>
                     <KpiCard icon="fa-solid fa-rocket"         label="Deployment Frequency"  value={deploymentFrequency?.value ?? null} unit="/ wk" />
@@ -499,37 +470,37 @@ const handleLoadMetrics = async () => {
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
                         <thead>
-  <tr>
-    <th style={TH}>Fix Commit</th>
-    <th style={TH}>Fix Message</th>
-    <th style={TH}>Bug-Introducing Commit</th>
-    <th style={TH}>Bug Message</th>
-    <th style={TH}>Author</th>
-    <th style={TH}>File</th>
-  </tr>
-</thead>
-<tbody>
-  {szzData.length === 0 ? (
-    <tr>
-      <td colSpan={6} style={{ ...TD, color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
-        No defect origin data available for this repository.
-      </td>
-    </tr>
-  ) : szzData.map((row, i) => (
-    <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-subtle, rgba(0,0,0,0.02))' }}>
-      <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.fix_short_sha ?? '—'}</td>
-      <td style={{ ...TD, fontSize: '0.8rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {row.fix_message ?? '—'}
-      </td>
-      <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.bug_short_sha ?? '—'}</td>
-      <td style={{ ...TD, fontSize: '0.8rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {row.bug_message ?? '—'}
-      </td>
-      <td style={TD}>{row.fix_author ?? '—'}</td>
-      <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.affected_file ?? '—'}</td>
-    </tr>
-  ))}
-</tbody>
+                          <tr>
+                            <th style={TH}>Fix Commit</th>
+                            <th style={TH}>Fix Message</th>
+                            <th style={TH}>Bug-Introducing Commit</th>
+                            <th style={TH}>Bug Message</th>
+                            <th style={TH}>Author</th>
+                            <th style={TH}>File</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {szzData.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} style={{ ...TD, color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+                                No defect origin data available for this repository.
+                              </td>
+                            </tr>
+                          ) : szzData.map((row, i) => (
+                            <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-subtle, rgba(0,0,0,0.02))' }}>
+                              <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.fix_short_sha ?? '—'}</td>
+                              <td style={{ ...TD, fontSize: '0.8rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {row.fix_message ?? '—'}
+                              </td>
+                              <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.bug_short_sha ?? '—'}</td>
+                              <td style={{ ...TD, fontSize: '0.8rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {row.bug_message ?? '—'}
+                              </td>
+                              <td style={TD}>{row.fix_author ?? '—'}</td>
+                              <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.affected_file ?? '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
                       </table>
                     </div>
                   </div>

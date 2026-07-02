@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import PageNav from '@/app/components/PageNav';
@@ -21,7 +21,7 @@ type SZZResult = {
   bug_author: string;
   hours_from_bug_to_fix: number;
 };
-type GitRepo    = { owner: string; name: string; full_name: string };
+type GitRepo = { owner: string; name: string; full_name: string };
 
 function parseGitHubUrl(input: string): { owner: string; repo: string } | null {
   const trimmed = input.trim();
@@ -32,7 +32,8 @@ function parseGitHubUrl(input: string): { owner: string; repo: string } | null {
   return null;
 }
 
-// ── Shared style tokens (match defect risk page) ───────────────────────────
+// ── Shared style tokens (match defect risk page) ────────────────────────────
+// Hoisted outside the component so they aren't recreated every render.
 
 const TH: React.CSSProperties = {
   padding: '0.65rem 1rem',
@@ -50,6 +51,34 @@ const TD: React.CSSProperties = {
   borderBottom: '1px solid var(--border)',
   fontSize: '0.85rem',
 };
+const INPUT_STYLE: React.CSSProperties = {
+  flex: 1,
+  padding: '0.5rem 0.75rem',
+  borderRadius: '6px',
+  border: '1px solid var(--border)',
+  background: 'var(--bg)',
+  color: 'var(--text)',
+  fontSize: '0.85rem',
+  minWidth: 0,
+};
+
+function tabBtnStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: '0.6rem 1.25rem',
+    border: 'none',
+    borderBottom: active ? '2px solid var(--accent, #6366f1)' : '2px solid transparent',
+    background: 'none',
+    cursor: 'pointer',
+    fontWeight: active ? 600 : 400,
+    color: active ? 'var(--accent, #6366f1)' : 'var(--text-muted)',
+    fontSize: '0.85rem',
+    transition: 'all 0.15s',
+    whiteSpace: 'nowrap',
+  };
+}
+
+const MAX_POLL_ATTEMPTS = 24; // 24 * 5s = 2 minutes
+const POLL_INTERVAL_MS = 5000;
 
 // ── KPI card ──────────────────────────────────────────────────────────────
 
@@ -78,24 +107,28 @@ function DoraPageContent() {
   const searchParams = useSearchParams();
 
   const [owner, setOwner] = useState(searchParams.get('owner') ?? '');
-  const [repo,  setRepo]  = useState(searchParams.get('repo')  ?? '');
+  const [repo, setRepo] = useState(searchParams.get('repo') ?? '');
 
-  const [tab,           setTab]           = useState<'dropdown' | 'url'>('dropdown');
-  const [repoList,      setRepoList]      = useState<GitRepo[]>([]);
-  const [reposLoading,  setReposLoading]  = useState(false);
-  const [selectedFull,  setSelectedFull]  = useState('');
-  const [urlInput,      setUrlInput]      = useState('');
-  const [urlError,      setUrlError]      = useState('');
+  const [tab, setTab] = useState<'dropdown' | 'url'>('dropdown');
+  const [repoList, setRepoList] = useState<GitRepo[]>([]);
+  const [reposLoading, setReposLoading] = useState(false);
+  const [selectedFull, setSelectedFull] = useState('');
+  const [urlInput, setUrlInput] = useState('');
+  const [urlError, setUrlError] = useState('');
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
-  const [loading,             setLoading]             = useState(false);
+  const [loading, setLoading] = useState(false);
   const [deploymentFrequency, setDeploymentFrequency] = useState<DoraMetric | null>(null);
-  const [leadTime,            setLeadTime]            = useState<DoraMetric | null>(null);
-  const [failureRate,         setFailureRate]         = useState<DoraMetric | null>(null);
-  const [restoreTime,         setRestoreTime]         = useState<DoraMetric | null>(null);
-  const [reviewLatency,       setReviewLatency]       = useState<DoraMetric | null>(null);
-  const [szzData,             setSzzData]             = useState<SZZResult[]>([]);
-  const [error,               setError]               = useState<string | null>(null);
+  const [leadTime, setLeadTime] = useState<DoraMetric | null>(null);
+  const [failureRate, setFailureRate] = useState<DoraMetric | null>(null);
+  const [restoreTime, setRestoreTime] = useState<DoraMetric | null>(null);
+  const [reviewLatency, setReviewLatency] = useState<DoraMetric | null>(null);
+  const [szzData, setSzzData] = useState<SZZResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  // Bumped every time the user resets/changes repo, so any in-flight sync
+  // poll loop can tell it's stale and stop touching state after the fact.
+  const requestGen = useRef(0);
 
   useEffect(() => {
     const token = getToken();
@@ -122,24 +155,27 @@ function DoraPageContent() {
       const token = getToken();
       if (!token) { setError('Please login again'); return; }
       const qs = `owner=${encodeURIComponent(ownerVal)}&repo=${encodeURIComponent(repoVal)}`;
-      const [, , , , reviewRes, szzRes, summaryRes] = await Promise.all([
-        getWithAuth(`api/v1/dora/deployment-frequency?${qs}`, token),
-        getWithAuth(`api/v1/dora/lead-time?${qs}`, token),
-        getWithAuth(`api/v1/dora/change-failure-rate?${qs}`, token),
-        getWithAuth(`api/v1/dora/time-to-restore?${qs}`, token),
+
+      // Only fetch what's actually rendered: kpi-summary covers deployment
+      // frequency, lead time, change failure rate, and restore time in one
+      // call — the individual weekly-series endpoints for those four were
+      // being fetched and immediately discarded, so they're dropped here.
+      const [reviewRes, szzRes, summaryRes] = await Promise.all([
         getWithAuth(`api/v1/dora/review-latency?${qs}`, token),
         getWithAuth(`api/v1/dora/szz-blame?${qs}`, token),
         getWithAuth(`api/v1/dora/kpi-summary?${qs}`, token),
       ]);
+
       setDeploymentFrequency({ value: summaryRes.deployments_per_week ?? 0 });
       setLeadTime({ value: summaryRes.avg_lead_time_hours ?? 0 });
       setFailureRate({ value: summaryRes.change_failure_rate_pct ?? 0 });
       setRestoreTime({ value: summaryRes.avg_restore_hours ?? 0 });
+
       const latestReview = reviewRes.data?.length ? reviewRes.data[reviewRes.data.length - 1] : null;
       setReviewLatency({ value: latestReview?.avg_time_to_first_review_hours ?? 0 });
       setSzzData(szzRes.data || []);
-    } catch (err) {
-      setError('Failed to load DORA metrics');
+    } catch {
+      setError('Failed to load DORA metrics. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -157,13 +193,14 @@ function DoraPageContent() {
     setUrlError('');
     const parsed = parseGitHubUrl(urlInput);
     if (!parsed) {
-      setUrlError('Could not parse a GitHub owner/repo from that input.');
+      setUrlError('Could not parse a GitHub owner/repo from that input. Try "owner/repo" or a full GitHub URL.');
       return;
     }
 
     const token = getToken();
     if (!token) { setUrlError('Please login again.'); return; }
 
+    const myGen = ++requestGen.current;
     setSyncStatus('syncing');
     setOwner(parsed.owner);
     setRepo(parsed.repo);
@@ -171,29 +208,38 @@ function DoraPageContent() {
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
 
-      await fetch(
+      const triggerRes = await fetch(
         `${apiBase}/api/v1/github/repos/${parsed.owner}/${parsed.repo}/sync`,
         { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
       );
+      if (!triggerRes.ok) {
+        throw new Error(`Could not start sync (status ${triggerRes.status}). Check the repo name.`);
+      }
 
-      // Poll sync-status every 5s for up to 2 minutes
       let synced = false;
-      for (let i = 0; i < 24; i++) {
-        await new Promise(res => setTimeout(res, 5000));
+      for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {
+        await new Promise((res) => setTimeout(res, POLL_INTERVAL_MS));
+
+        // Bail out quietly if the user reset/changed repos while we were polling.
+        if (requestGen.current !== myGen) return;
+
         const statusRes = await fetch(
           `${apiBase}/api/v1/github/sync-status`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        if (!statusRes.ok) continue; // transient — keep polling
+
         const status = await statusRes.json();
         const repoStatus = status.repos?.find(
-          (r: { repo: string; status: string }) =>
-            r.repo === `${parsed.owner}/${parsed.repo}`
+          (r: { repo: string; status: string }) => r.repo === `${parsed.owner}/${parsed.repo}`
         );
         if (repoStatus?.status === 'success') { synced = true; break; }
         if (repoStatus?.status === 'error') {
           throw new Error(repoStatus.error ?? 'Sync failed on the server.');
         }
       }
+
+      if (requestGen.current !== myGen) return;
 
       if (!synced) {
         throw new Error('Sync timed out — try clicking Sync again in a moment.');
@@ -202,6 +248,7 @@ function DoraPageContent() {
       setSyncStatus('synced');
 
     } catch (err: any) {
+      if (requestGen.current !== myGen) return;
       setUrlError(err?.message ?? 'Sync failed. Check the repo name and try again.');
       setSyncStatus('error');
       setOwner('');
@@ -216,38 +263,12 @@ function DoraPageContent() {
   };
 
   const handleReset = () => {
+    requestGen.current++; // invalidate any in-flight sync poll
     setOwner(''); setRepo(''); setSelectedFull(''); setUrlInput(''); setUrlError('');
     setSyncStatus('idle');
   };
 
   const showPicker = !owner || !repo;
-
-  // ── Shared input style ────────────────────────────────────────────────────
-
-  const inputStyle: React.CSSProperties = {
-    flex: 1,
-    padding: '0.5rem 0.75rem',
-    borderRadius: '6px',
-    border: '1px solid var(--border)',
-    background: 'var(--bg)',
-    color: 'var(--text)',
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-    minWidth: 0,
-  };
-
-  const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-    padding: '0.6rem 1.25rem',
-    border: 'none',
-    borderBottom: active ? '2px solid var(--accent, #6366f1)' : '2px solid transparent',
-    background: 'none',
-    cursor: 'pointer',
-    fontWeight: active ? 600 : 400,
-    color: active ? 'var(--accent, #6366f1)' : 'var(--text-muted)',
-    fontSize: '0.85rem',
-    transition: 'all 0.15s',
-    whiteSpace: 'nowrap',
-  });
 
   return (
     <ProtectedRoute>
@@ -311,7 +332,8 @@ function DoraPageContent() {
                         <select
                           value={selectedFull}
                           onChange={e => setSelectedFull(e.target.value)}
-                          style={inputStyle}
+                          style={{ ...INPUT_STYLE, cursor: 'pointer' }}
+                          aria-label="Select a connected repository"
                         >
                           <option value="">— choose a repository —</option>
                           {repoList.map(r => (
@@ -339,8 +361,10 @@ function DoraPageContent() {
                     </p>
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                       <input
-                        style={inputStyle}
+                        style={INPUT_STYLE}
                         value={urlInput}
+                        placeholder="owner/repo or https://github.com/owner/repo"
+                        aria-label="GitHub repository URL or owner/repo"
                         onChange={e => { setUrlInput(e.target.value); setUrlError(''); setSyncStatus('idle'); }}
                         onKeyDown={e => e.key === 'Enter' && syncStatus !== 'synced' && handleSync()}
                       />
@@ -423,11 +447,11 @@ function DoraPageContent() {
                 <>
                   {/* KPI Cards */}
                   <div className="stats-grid" style={{ marginBottom: '2rem' }}>
-                    <KpiCard icon="fa-solid fa-rocket"         label="Deployment Frequency"  value={deploymentFrequency?.value ?? null} unit="/ wk" />
-                    <KpiCard icon="fa-solid fa-hourglass-half" label="Lead Time for Change"   value={leadTime?.value ?? null}            unit="hrs" />
-                    <KpiCard icon="fa-solid fa-triangle-exclamation" label="Change Failure Rate" value={failureRate?.value ?? null}      unit="%" />
-                    <KpiCard icon="fa-solid fa-rotate-left"    label="Time to Restore"        value={restoreTime?.value ?? null}         unit="hrs" />
-                    <KpiCard icon="fa-solid fa-code-pull-request" label="PR Review Latency"  value={reviewLatency?.value ?? null}       unit="hrs" />
+                    <KpiCard icon="fa-solid fa-rocket" label="Deployment Frequency" value={deploymentFrequency?.value ?? null} unit="/ wk" />
+                    <KpiCard icon="fa-solid fa-hourglass-half" label="Lead Time for Change" value={leadTime?.value ?? null} unit="hrs" />
+                    <KpiCard icon="fa-solid fa-triangle-exclamation" label="Change Failure Rate" value={failureRate?.value ?? null} unit="%" />
+                    <KpiCard icon="fa-solid fa-rotate-left" label="Time to Restore" value={restoreTime?.value ?? null} unit="hrs" />
+                    <KpiCard icon="fa-solid fa-code-pull-request" label="PR Review Latency" value={reviewLatency?.value ?? null} unit="hrs" />
                   </div>
 
                   {/* Summary table */}
@@ -444,11 +468,11 @@ function DoraPageContent() {
                       </thead>
                       <tbody>
                         {[
-                          { label: 'Deployment Frequency',  value: `${deploymentFrequency?.value ?? 0} / wk` },
-                          { label: 'Lead Time for Change',  value: `${leadTime?.value ?? 0} hrs` },
-                          { label: 'Change Failure Rate',   value: `${failureRate?.value ?? 0}%` },
-                          { label: 'Time to Restore',       value: `${restoreTime?.value ?? 0} hrs` },
-                          { label: 'PR Review Latency',     value: `${reviewLatency?.value ?? 0} hrs` },
+                          { label: 'Deployment Frequency', value: `${deploymentFrequency?.value ?? 0} / wk` },
+                          { label: 'Lead Time for Change', value: `${leadTime?.value ?? 0} hrs` },
+                          { label: 'Change Failure Rate', value: `${failureRate?.value ?? 0}%` },
+                          { label: 'Time to Restore', value: `${restoreTime?.value ?? 0} hrs` },
+                          { label: 'PR Review Latency', value: `${reviewLatency?.value ?? 0} hrs` },
                         ].map((row, i) => (
                           <tr key={row.label} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-subtle, rgba(0,0,0,0.02))' }}>
                             <td style={TD}>{row.label}</td>

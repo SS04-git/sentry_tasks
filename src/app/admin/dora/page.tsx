@@ -86,6 +86,7 @@ function DoraPageContent() {
   const [selectedFull,  setSelectedFull]  = useState('');
   const [urlInput,      setUrlInput]      = useState('');
   const [urlError,      setUrlError]      = useState('');
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
   const [loading,             setLoading]             = useState(false);
   const [deploymentFrequency, setDeploymentFrequency] = useState<DoraMetric | null>(null);
@@ -152,13 +153,67 @@ function DoraPageContent() {
     loadDashboard(parsed.owner, parsed.repo);
   };
 
-  const handleUrlLoad = async () => {
+  const handleSync = async () => {
   setUrlError('');
   const parsed = parseGitHubUrl(urlInput);
   if (!parsed) {
     setUrlError('Could not parse a GitHub owner/repo from that input.');
     return;
   }
+
+  const token = getToken();
+  if (!token) { setUrlError('Please login again.'); return; }
+
+  setSyncStatus('syncing');
+  setOwner(parsed.owner);
+  setRepo(parsed.repo);
+
+  try {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
+
+    await fetch(
+      `${apiBase}/api/v1/github/repos/${parsed.owner}/${parsed.repo}/sync`,
+      { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // Poll sync-status every 5s for up to 2 minutes
+    let synced = false;
+    for (let i = 0; i < 24; i++) {
+      await new Promise(res => setTimeout(res, 5000));
+      const statusRes = await fetch(
+        `${apiBase}/api/v1/github/sync-status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const status = await statusRes.json();
+      const repoStatus = status.repos?.find(
+        (r: { repo: string; status: string }) =>
+          r.repo === `${parsed.owner}/${parsed.repo}`
+      );
+      if (repoStatus?.status === 'success') { synced = true; break; }
+      if (repoStatus?.status === 'error') {
+        throw new Error(repoStatus.error ?? 'Sync failed on the server.');
+      }
+    }
+
+    if (!synced) {
+      throw new Error('Sync timed out — try clicking Sync again in a moment.');
+    }
+
+    setSyncStatus('synced');
+
+  } catch (err: any) {
+    setUrlError(err?.message ?? 'Sync failed. Check the repo name and try again.');
+    setSyncStatus('error');
+    setOwner('');
+    setRepo('');
+  }
+};
+
+const handleLoadMetrics = async () => {
+  const parsed = parseGitHubUrl(urlInput);
+  if (!parsed) return;
+  await loadDashboard(parsed.owner, parsed.repo);
+};
 
   const token = getToken();
   if (!token) { setUrlError('Please login again.'); return; }
@@ -209,8 +264,9 @@ function DoraPageContent() {
 };
 
   const handleReset = () => {
-    setOwner(''); setRepo(''); setSelectedFull(''); setUrlInput(''); setUrlError('');
-  };
+  setOwner(''); setRepo(''); setSelectedFull(''); setUrlInput(''); setUrlError('');
+  setSyncStatus('idle');
+};
 
   const showPicker = !owner || !repo;
 
@@ -333,7 +389,7 @@ function DoraPageContent() {
                     <input
                       style={inputStyle}
                       value={urlInput}
-                      onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
+                      onChange={e => { setUrlInput(e.target.value); setUrlError(''); setSyncStatus('idle'); }}
                       onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
                     />
                     <button

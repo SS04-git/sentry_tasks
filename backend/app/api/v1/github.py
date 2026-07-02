@@ -893,8 +893,7 @@ def full_repo_sync(owner: str, repo: str, access_token: str):
     """
     Fetches commits + PRs (all states) from GitHub and persists them.
     Works for external/public repos too — creates the git_repos row
-    on first sync if it doesn't already exist, instead of requiring
-    the repo to already be in the user's own /user/repos list.
+    on first sync if it doesn't already exist.
     """
     db: Session = SessionLocal()
     try:
@@ -967,11 +966,10 @@ def full_repo_sync(owner: str, repo: str, access_token: str):
         )
 
     except Exception as e:
-        logger.exception(f"Full sync error for {owner}/{repo}")
+        print(f"Full sync error: {e}")
         update_sync_status(db, f"{owner}/{repo}", "error", error=str(e))
     finally:
         db.close()
-
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
 
@@ -1058,5 +1056,3 @@ def get_repo_details(
         "private": data.get("private"),
         "html_url": data.get("html_url"),
     }
-
-

@@ -1,3 +1,4 @@
+import os
 import requests
 import time
 from datetime import datetime
@@ -18,6 +19,9 @@ from app.core.security import create_access_token, SECRET_KEY, ALGORITHM
 from app.core.dependencies import get_current_user
 from jose import jwt, JWTError
 from sqlalchemy.exc import IntegrityError
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 
 router = APIRouter()
 
@@ -150,25 +154,108 @@ def github_login(token: str):
     return RedirectResponse(github_url)
 
 
+
+
+#localhost version
+# @router.get("/callback")
+# def github_callback(code: str, state: str = None):
+#     if not code:
+#         raise HTTPException(status_code=400, detail="Missing code")
+
+#     if not state:
+#         return RedirectResponse("http://localhost:3000/repositories?error=missing_state")
+
+#     try:
+#         payload = jwt.decode(state, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_email = payload.get("sub")
+#     except JWTError:
+#         return RedirectResponse("http://localhost:3000/repositories?error=invalid_state")
+
+#     db: Session = SessionLocal()
+#     try:
+#         app_user = db.query(User).filter(User.email == user_email).first()
+#         if not app_user:
+#             return RedirectResponse("http://localhost:3000/repositories?error=user_not_found")
+#     finally:
+#         db.close()
+
+#     token_response = requests.post(
+#         "https://github.com/login/oauth/access_token",
+#         headers={"Accept": "application/json"},
+#         data={
+#             "client_id": config.GITHUB_CLIENT_ID,
+#             "client_secret": config.GITHUB_CLIENT_SECRET,
+#             "code": code,
+#         },
+#         timeout=10,
+#     )
+#     token_json = token_response.json()
+
+#     if "error" in token_json:
+#         return RedirectResponse("http://localhost:3000/repositories?error=" + token_json["error"])
+#     if "access_token" not in token_json:
+#         raise HTTPException(status_code=400, detail=token_json)
+
+#     access_token = token_json["access_token"]
+#     user_response = requests.get(
+#         "https://api.github.com/user",
+#         headers=gh_headers(access_token),
+#         timeout=10,
+#     )
+#     github_user = user_response.json()
+#     if "id" not in github_user:
+#         raise HTTPException(status_code=400, detail=github_user)
+
+#     db: Session = SessionLocal()
+#     try:
+#         account = db.query(GitHubAccount).filter(
+#             GitHubAccount.github_id == github_user["id"]
+#         ).first()
+#         if not account:
+#             account = GitHubAccount(
+#                 user_id=app_user.id,
+#                 github_id=github_user["id"],
+#                 github_login=github_user["login"],
+#                 access_token=access_token,
+#             )
+#             db.add(account)
+#         else:
+#             account.access_token = access_token
+#             account.user_id = app_user.id
+
+#         db.commit()
+#         app_token = create_access_token({
+#             "sub": app_user.email,
+#             "role": app_user.role.value if hasattr(app_user.role, "value") else app_user.role,
+#         })
+#     finally:
+#         db.close()
+
+#     return RedirectResponse(f"http://localhost:3000/repositories?token={app_token}")
+
+
+
+
+
 @router.get("/callback")
 def github_callback(code: str, state: str = None):
     if not code:
         raise HTTPException(status_code=400, detail="Missing code")
 
     if not state:
-        return RedirectResponse("http://localhost:3000/repositories?error=missing_state")
+        return RedirectResponse(f"{FRONTEND_URL}/repositories?error=missing_state")
 
     try:
         payload = jwt.decode(state, SECRET_KEY, algorithms=[ALGORITHM])
         user_email = payload.get("sub")
     except JWTError:
-        return RedirectResponse("http://localhost:3000/repositories?error=invalid_state")
+        return RedirectResponse(f"{FRONTEND_URL}/repositories?error=invalid_state")
 
     db: Session = SessionLocal()
     try:
         app_user = db.query(User).filter(User.email == user_email).first()
         if not app_user:
-            return RedirectResponse("http://localhost:3000/repositories?error=user_not_found")
+            return RedirectResponse(f"{FRONTEND_URL}/repositories?error=user_not_found")
     finally:
         db.close()
 
@@ -185,7 +272,7 @@ def github_callback(code: str, state: str = None):
     token_json = token_response.json()
 
     if "error" in token_json:
-        return RedirectResponse("http://localhost:3000/repositories?error=" + token_json["error"])
+        return RedirectResponse(f"{FRONTEND_URL}/repositories?error=" + token_json["error"])
     if "access_token" not in token_json:
         raise HTTPException(status_code=400, detail=token_json)
 
@@ -224,7 +311,7 @@ def github_callback(code: str, state: str = None):
     finally:
         db.close()
 
-    return RedirectResponse(f"http://localhost:3000/repositories?token={app_token}")
+    return RedirectResponse(f"{FRONTEND_URL}/repositories?token={app_token}")
 
 
 @router.delete("/disconnect")

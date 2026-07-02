@@ -336,6 +336,16 @@ const runScan = async (owner: string, repo: string) => {
                 </option>
               ))}
             </select>
+            {selected && (
+              <button
+                onClick={() => runScan(selected.owner, selected.name)}
+                disabled={loading}
+                style={{ marginTop: '0.75rem' }}
+              >
+                <i className="fa-solid fa-rotate-right icon-sm" style={{ marginRight: '0.4rem' }}></i>
+                {loading ? 'Scanning…' : 'Run New Scan'}
+              </button>
+            )}
           </div>
 
           {!selected ? (

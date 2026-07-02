@@ -27,7 +27,9 @@ function RepositoriesContent() {
       alert('Please log in first.');
       return;
     }
-    window.location.href = `http://localhost:8000/api/v1/github/login?token=${token}`;
+    // for localhost
+    // window.location.href = `http://localhost:8000/api/v1/github/login?token=${token}`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/github/login?token=${token}`;
   };
 
   useEffect(() => {

@@ -142,61 +142,57 @@ export default function CodeQualityPage() {
      LOAD SCAN DATA (whenever the selected repo changes)
   ───────────────────────────── */
   useEffect(() => {
-    if (!selected) return;
-    loadData(selected.owner, selected.name);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFullName]);
+  if (!selected) return;
+  loadData(selected.owner, selected.name);
+}, [selectedFullName]);
 
-  const loadData = async (owner: string, repo: string) => {
+const loadData = async (owner: string, repo: string) => {
   setLoading(true);
   setScanError(null);
 
   try {
     const token = getToken();
-
     if (!token) {
       setScanError("No auth token found. Please login again.");
       return;
     }
 
-    // 1) trigger scan
-    const scanResult = await postWithAuth(
-      `api/v1/code_quality/scan/${owner}/${repo}`,
-      token,
-      {}
-    );
-
-    if (scanResult.status === 'failed') {
-      setScanError(scanResult.error || 'Scan failed');
-      setComplexity(null);
-      setChurn(null);
-      setTrend([]);
-      setLint([]);
-      setAlerts([]);
-      return;
-    }
-
-    //fetch
+    // Just read existing results — do NOT trigger a scan here
     const qs = `owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
-
-    const [complexityRes, churnRes, lintRes, secretsRes, trendRes] =
-      await Promise.all([
-        getWithAuth(`api/v1/code_quality/complexity?${qs}`, token),
-        getWithAuth(`api/v1/code_quality/churn?${qs}`, token),
-        getWithAuth(`api/v1/code_quality/lint?${qs}`, token),
-        getWithAuth(`api/v1/code_quality/secrets?${qs}`, token),
-        getWithAuth(`api/v1/code_quality/trend?${qs}`, token),
-      ]);
+    const [complexityRes, churnRes, lintRes, secretsRes, trendRes] = await Promise.all([
+      getWithAuth(`api/v1/code_quality/complexity?${qs}`, token),
+      getWithAuth(`api/v1/code_quality/churn?${qs}`, token),
+      getWithAuth(`api/v1/code_quality/lint?${qs}`, token),
+      getWithAuth(`api/v1/code_quality/secrets?${qs}`, token),
+      getWithAuth(`api/v1/code_quality/trend?${qs}`, token),
+    ]);
 
     setComplexity(complexityRes.data?.[0] ?? null);
     setChurn(churnRes.data?.[0] ?? null);
     setLint(lintRes.data || []);
     setAlerts(secretsRes.data || []);
     setTrend(trendRes.data || []);
-
   } catch (err) {
     console.error(err);
     setScanError(err instanceof Error ? err.message : 'Failed to load scan data');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const runScan = async (owner: string, repo: string) => {
+  setLoading(true);
+  setScanError(null);
+  try {
+    const token = getToken();
+    const scanResult = await postWithAuth(`api/v1/code_quality/scan/${owner}/${repo}`, token!, {});
+    if (scanResult.status === 'failed') {
+      setScanError(scanResult.error || 'Scan failed');
+      return;
+    }
+    await loadData(owner, repo); // refresh with new results
+  } catch (err) {
+    setScanError(err instanceof Error ? err.message : 'Scan failed');
   } finally {
     setLoading(false);
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { useAuth } from '@/app/context/AuthContext';
@@ -18,7 +18,7 @@ function parseGitHubUrl(input: string): { owner: string; repo: string } | null {
 const MAX_POLL_ATTEMPTS = 24; // 24 * 5s = 2 minutes
 const POLL_INTERVAL_MS = 5000;
 
-export default function GithubSyncPage() {
+function GithubSyncPageContent() {
   const { user } = useAuth();
   const role = user?.role ?? 'employee';
   const router = useRouter();
@@ -321,5 +321,24 @@ export default function GithubSyncPage() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function GithubSyncPage() {
+  return (
+    <Suspense
+      fallback={
+        <ProtectedRoute>
+          <div className="page">
+            <PageNav active="admin" />
+            <div className="page-body">
+              <p>Loading...</p>
+            </div>
+          </div>
+        </ProtectedRoute>
+      }
+    >
+      <GithubSyncPageContent />
+    </Suspense>
   );
 }

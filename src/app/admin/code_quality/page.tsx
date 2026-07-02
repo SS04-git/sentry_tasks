@@ -305,48 +305,51 @@ const runScan = async (owner: string, repo: string) => {
           </div>
 
           {/* REPO PICKER */}
-          <div className="card card-static" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
-            <label htmlFor="repo-select" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
-              Repository
-            </label>
-            <select
-              id="repo-select"
-              value={selectedFullName}
-              onChange={(e) => setSelectedFullName(e.target.value)}
-              disabled={reposLoading || repos.length === 0}
-              style={{
-                width: '100%',
-                maxWidth: '420px',
-                padding: '0.6rem 0.75rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                background: 'var(--bg, transparent)',
-              }}
-            >
-              <option value="" disabled>
-                {reposLoading
-                  ? 'Loading repositories…'
-                  : repos.length === 0
-                  ? 'No synced repositories found'
-                  : 'Select a repository'}
-              </option>
-              {repos.map((r) => (
-                <option key={r.full_name} value={r.full_name}>
-                  {r.full_name}
-                </option>
-              ))}
-            </select>
-            {selected && (
-              <button
-                onClick={() => runScan(selected.owner, selected.name)}
-                disabled={loading}
-                style={{ marginTop: '0.75rem' }}
-              >
-                <i className="fa-solid fa-rotate-right icon-sm" style={{ marginRight: '0.4rem' }}></i>
-                {loading ? 'Scanning…' : 'Run New Scan'}
-              </button>
-            )}
-          </div>
+<div className="card card-static" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
+  <label htmlFor="repo-select" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+    Repository
+  </label>
+
+  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <select
+      id="repo-select"
+      value={selectedFullName}
+      onChange={(e) => setSelectedFullName(e.target.value)}
+      disabled={reposLoading || repos.length === 0}
+      style={{
+        width: '100%',
+        maxWidth: '420px',
+        padding: '0.6rem 0.75rem',
+        borderRadius: '8px',
+        border: '1px solid var(--border)',
+        background: 'var(--bg, transparent)',
+      }}
+    >
+      <option value="" disabled>
+        {reposLoading
+          ? 'Loading repositories…'
+          : repos.length === 0
+          ? 'No synced repositories found'
+          : 'Select a repository'}
+      </option>
+      {repos.map((r) => (
+        <option key={r.full_name} value={r.full_name}>
+          {r.full_name}
+        </option>
+      ))}
+    </select>
+
+    {selected && (
+      <button
+        onClick={() => runScan(selected.owner, selected.name)}
+        disabled={loading}
+      >
+        <i className="fa-solid fa-rotate-right icon-sm" style={{ marginRight: '0.4rem' }}></i>
+        {loading ? 'Scanning…' : 'Run New Scan'}
+      </button>
+    )}
+  </div>
+</div>
 
           {!selected ? (
             <div className="card card-static" style={{ padding: '2rem' }}>

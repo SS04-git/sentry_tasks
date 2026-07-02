@@ -892,16 +892,53 @@ def trigger_sync(
 def full_repo_sync(owner: str, repo: str, access_token: str):
     """
     Fetches commits + PRs (all states) from GitHub and persists them.
-    FIX: previously called sync_prs_to_db which didn't exist, so PRs
-    were silently dropped on every background sync.
-    FIX: final status update now passes rate limit info without
-    clobbering the commits/prs counts written by the sub-helpers.
+    Works for external/public repos too — creates the git_repos row
+    on first sync if it doesn't already exist, instead of requiring
+    the repo to already be in the user's own /user/repos list.
     """
     db: Session = SessionLocal()
     try:
         update_sync_status(db, f"{owner}/{repo}", "running")
 
-        # Commits
+        # ── Ensure repo exists in git_repos ──────────────────────────────
+        git_repo = db.query(GitRepo).filter(
+            GitRepo.full_name == f"{owner}/{repo}"
+        ).first()
+        if not git_repo:
+            repo_res = rate_limited_get(
+                f"https://api.github.com/repos/{owner}/{repo}",
+                access_token,
+            )
+            repo_data = repo_res.json()
+            if "id" not in repo_data:
+                update_sync_status(
+                    db, f"{owner}/{repo}", "error",
+                    error=f"Repo not found on GitHub: {repo_data.get('message', 'unknown')}"
+                )
+                return
+
+            account = db.query(GitHubAccount).filter(
+                GitHubAccount.access_token == access_token
+            ).first()
+
+            db.add(GitRepo(
+                github_account_id = account.id if account else None,
+                repo_id           = repo_data["id"],
+                owner             = repo_data["owner"]["login"],
+                name              = repo_data["name"],
+                full_name         = repo_data["full_name"],
+                description       = repo_data.get("description"),
+                private           = repo_data.get("private", False),
+                language          = repo_data.get("language"),
+                default_branch    = repo_data.get("default_branch", "main"),
+                stars             = repo_data.get("stargazers_count", 0),
+                forks             = repo_data.get("forks_count", 0),
+                open_issues       = repo_data.get("open_issues_count", 0),
+                synced_at         = datetime.utcnow(),
+            ))
+            db.commit()
+
+        # ── Commits ───────────────────────────────────────────────────────
         commits_res = rate_limited_get(
             f"https://api.github.com/repos/{owner}/{repo}/commits",
             access_token,
@@ -911,7 +948,7 @@ def full_repo_sync(owner: str, repo: str, access_token: str):
         if isinstance(commits, list):
             sync_commits_to_db(owner, repo, commits, access_token)
 
-        # PRs — state=all so DORA views see merged PRs
+        # ── PRs — state=all so DORA views see merged PRs ────────────────
         prs_res = rate_limited_get(
             f"https://api.github.com/repos/{owner}/{repo}/pulls",
             access_token,
@@ -930,7 +967,7 @@ def full_repo_sync(owner: str, repo: str, access_token: str):
         )
 
     except Exception as e:
-        print(f"Full sync error: {e}")
+        logger.exception(f"Full sync error for {owner}/{repo}")
         update_sync_status(db, f"{owner}/{repo}", "error", error=str(e))
     finally:
         db.close()
@@ -1021,3 +1058,5 @@ def get_repo_details(
         "private": data.get("private"),
         "html_url": data.get("html_url"),
     }
+
+

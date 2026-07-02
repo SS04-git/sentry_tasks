@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import PageNav from '@/app/components/PageNav';
@@ -21,7 +21,7 @@ type SZZResult = {
   bug_author: string;
   hours_from_bug_to_fix: number;
 };
-type GitRepo = { owner: string; name: string; full_name: string };
+type GitRepo    = { owner: string; name: string; full_name: string };
 
 function parseGitHubUrl(input: string): { owner: string; repo: string } | null {
   const trimmed = input.trim();
@@ -32,8 +32,7 @@ function parseGitHubUrl(input: string): { owner: string; repo: string } | null {
   return null;
 }
 
-// ── Shared style tokens (match defect risk page) ────────────────────────────
-// Hoisted outside the component so they aren't recreated every render.
+// ── Shared style tokens (match defect risk page) ───────────────────────────
 
 const TH: React.CSSProperties = {
   padding: '0.65rem 1rem',
@@ -51,34 +50,6 @@ const TD: React.CSSProperties = {
   borderBottom: '1px solid var(--border)',
   fontSize: '0.85rem',
 };
-const INPUT_STYLE: React.CSSProperties = {
-  flex: 1,
-  padding: '0.5rem 0.75rem',
-  borderRadius: '6px',
-  border: '1px solid var(--border)',
-  background: 'var(--bg)',
-  color: 'var(--text)',
-  fontSize: '0.85rem',
-  minWidth: 0,
-};
-
-function tabBtnStyle(active: boolean): React.CSSProperties {
-  return {
-    padding: '0.6rem 1.25rem',
-    border: 'none',
-    borderBottom: active ? '2px solid var(--accent, #6366f1)' : '2px solid transparent',
-    background: 'none',
-    cursor: 'pointer',
-    fontWeight: active ? 600 : 400,
-    color: active ? 'var(--accent, #6366f1)' : 'var(--text-muted)',
-    fontSize: '0.85rem',
-    transition: 'all 0.15s',
-    whiteSpace: 'nowrap',
-  };
-}
-
-const MAX_POLL_ATTEMPTS = 24; // 24 * 5s = 2 minutes
-const POLL_INTERVAL_MS = 5000;
 
 // ── KPI card ──────────────────────────────────────────────────────────────
 
@@ -107,28 +78,23 @@ function DoraPageContent() {
   const searchParams = useSearchParams();
 
   const [owner, setOwner] = useState(searchParams.get('owner') ?? '');
-  const [repo, setRepo] = useState(searchParams.get('repo') ?? '');
+  const [repo,  setRepo]  = useState(searchParams.get('repo')  ?? '');
 
-  const [tab, setTab] = useState<'dropdown' | 'url'>('dropdown');
-  const [repoList, setRepoList] = useState<GitRepo[]>([]);
-  const [reposLoading, setReposLoading] = useState(false);
-  const [selectedFull, setSelectedFull] = useState('');
-  const [urlInput, setUrlInput] = useState('');
-  const [urlError, setUrlError] = useState('');
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
+  const [tab,           setTab]           = useState<'dropdown' | 'url'>('dropdown');
+  const [repoList,      setRepoList]      = useState<GitRepo[]>([]);
+  const [reposLoading,  setReposLoading]  = useState(false);
+  const [selectedFull,  setSelectedFull]  = useState('');
+  const [urlInput,      setUrlInput]      = useState('');
+  const [urlError,      setUrlError]      = useState('');
 
-  const [loading, setLoading] = useState(false);
+  const [loading,             setLoading]             = useState(false);
   const [deploymentFrequency, setDeploymentFrequency] = useState<DoraMetric | null>(null);
-  const [leadTime, setLeadTime] = useState<DoraMetric | null>(null);
-  const [failureRate, setFailureRate] = useState<DoraMetric | null>(null);
-  const [restoreTime, setRestoreTime] = useState<DoraMetric | null>(null);
-  const [reviewLatency, setReviewLatency] = useState<DoraMetric | null>(null);
-  const [szzData, setSzzData] = useState<SZZResult[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  // Bumped every time the user resets/changes repo, so any in-flight sync
-  // poll loop can tell it's stale and stop touching state after the fact.
-  const requestGen = useRef(0);
+  const [leadTime,            setLeadTime]            = useState<DoraMetric | null>(null);
+  const [failureRate,         setFailureRate]         = useState<DoraMetric | null>(null);
+  const [restoreTime,         setRestoreTime]         = useState<DoraMetric | null>(null);
+  const [reviewLatency,       setReviewLatency]       = useState<DoraMetric | null>(null);
+  const [szzData,             setSzzData]             = useState<SZZResult[]>([]);
+  const [error,               setError]               = useState<string | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -145,7 +111,6 @@ function DoraPageContent() {
 
   useEffect(() => {
     if (owner && repo) loadDashboard(owner, repo);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadDashboard = async (ownerVal: string, repoVal: string) => {
@@ -155,27 +120,25 @@ function DoraPageContent() {
       const token = getToken();
       if (!token) { setError('Please login again'); return; }
       const qs = `owner=${encodeURIComponent(ownerVal)}&repo=${encodeURIComponent(repoVal)}`;
-
-      // Only fetch what's actually rendered: kpi-summary covers deployment
-      // frequency, lead time, change failure rate, and restore time in one
-      // call — the individual weekly-series endpoints for those four were
-      // being fetched and immediately discarded, so they're dropped here.
-      const [reviewRes, szzRes, summaryRes] = await Promise.all([
+      const [, , , , reviewRes, szzRes, summaryRes] = await Promise.all([
+        getWithAuth(`api/v1/dora/deployment-frequency?${qs}`, token),
+        getWithAuth(`api/v1/dora/lead-time?${qs}`, token),
+        getWithAuth(`api/v1/dora/change-failure-rate?${qs}`, token),
+        getWithAuth(`api/v1/dora/time-to-restore?${qs}`, token),
         getWithAuth(`api/v1/dora/review-latency?${qs}`, token),
         getWithAuth(`api/v1/dora/szz-blame?${qs}`, token),
         getWithAuth(`api/v1/dora/kpi-summary?${qs}`, token),
       ]);
-
+      console.log('szz raw:', JSON.stringify(szzRes));
       setDeploymentFrequency({ value: summaryRes.deployments_per_week ?? 0 });
       setLeadTime({ value: summaryRes.avg_lead_time_hours ?? 0 });
       setFailureRate({ value: summaryRes.change_failure_rate_pct ?? 0 });
       setRestoreTime({ value: summaryRes.avg_restore_hours ?? 0 });
-
       const latestReview = reviewRes.data?.length ? reviewRes.data[reviewRes.data.length - 1] : null;
       setReviewLatency({ value: latestReview?.avg_time_to_first_review_hours ?? 0 });
       setSzzData(szzRes.data || []);
-    } catch {
-      setError('Failed to load DORA metrics. Please try again.');
+    } catch (err) {
+      setError('Failed to load DORA metrics');
     } finally {
       setLoading(false);
     }
@@ -189,86 +152,47 @@ function DoraPageContent() {
     loadDashboard(parsed.owner, parsed.repo);
   };
 
-  const handleSync = async () => {
+  const handleUrlLoad = () => {
     setUrlError('');
     const parsed = parseGitHubUrl(urlInput);
-    if (!parsed) {
-      setUrlError('Could not parse a GitHub owner/repo from that input. Try "owner/repo" or a full GitHub URL.');
-      return;
-    }
-
-    const token = getToken();
-    if (!token) { setUrlError('Please login again.'); return; }
-
-    const myGen = ++requestGen.current;
-    setSyncStatus('syncing');
+    if (!parsed) { setUrlError('Could not parse a GitHub owner/repo from that input.'); return; }
     setOwner(parsed.owner);
     setRepo(parsed.repo);
-
-    try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
-
-      const triggerRes = await fetch(
-        `${apiBase}/api/v1/github/repos/${parsed.owner}/${parsed.repo}/sync`,
-        { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!triggerRes.ok) {
-        throw new Error(`Could not start sync (status ${triggerRes.status}). Check the repo name.`);
-      }
-
-      let synced = false;
-      for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {
-        await new Promise((res) => setTimeout(res, POLL_INTERVAL_MS));
-
-        // Bail out quietly if the user reset/changed repos while we were polling.
-        if (requestGen.current !== myGen) return;
-
-        const statusRes = await fetch(
-          `${apiBase}/api/v1/github/sync-status`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!statusRes.ok) continue; // transient — keep polling
-
-        const status = await statusRes.json();
-        const repoStatus = status.repos?.find(
-          (r: { repo: string; status: string }) => r.repo === `${parsed.owner}/${parsed.repo}`
-        );
-        if (repoStatus?.status === 'success') { synced = true; break; }
-        if (repoStatus?.status === 'error') {
-          throw new Error(repoStatus.error ?? 'Sync failed on the server.');
-        }
-      }
-
-      if (requestGen.current !== myGen) return;
-
-      if (!synced) {
-        throw new Error('Sync timed out — try clicking Sync again in a moment.');
-      }
-
-      setSyncStatus('synced');
-
-    } catch (err: any) {
-      if (requestGen.current !== myGen) return;
-      setUrlError(err?.message ?? 'Sync failed. Check the repo name and try again.');
-      setSyncStatus('error');
-      setOwner('');
-      setRepo('');
-    }
-  };
-
-  const handleLoadMetrics = async () => {
-    const parsed = parseGitHubUrl(urlInput);
-    if (!parsed) return;
-    await loadDashboard(parsed.owner, parsed.repo);
+    loadDashboard(parsed.owner, parsed.repo);
   };
 
   const handleReset = () => {
-    requestGen.current++; // invalidate any in-flight sync poll
     setOwner(''); setRepo(''); setSelectedFull(''); setUrlInput(''); setUrlError('');
-    setSyncStatus('idle');
   };
 
   const showPicker = !owner || !repo;
+
+  // ── Shared input style ────────────────────────────────────────────────────
+
+  const inputStyle: React.CSSProperties = {
+    flex: 1,
+    padding: '0.5rem 0.75rem',
+    borderRadius: '6px',
+    border: '1px solid var(--border)',
+    background: 'var(--bg)',
+    color: 'var(--text)',
+    fontSize: '0.85rem',
+    cursor: 'pointer',
+    minWidth: 0,
+  };
+
+  const tabBtnStyle = (active: boolean): React.CSSProperties => ({
+    padding: '0.6rem 1.25rem',
+    border: 'none',
+    borderBottom: active ? '2px solid var(--accent, #6366f1)' : '2px solid transparent',
+    background: 'none',
+    cursor: 'pointer',
+    fontWeight: active ? 600 : 400,
+    color: active ? 'var(--accent, #6366f1)' : 'var(--text-muted)',
+    fontSize: '0.85rem',
+    transition: 'all 0.15s',
+    whiteSpace: 'nowrap',
+  });
 
   return (
     <ProtectedRoute>
@@ -332,8 +256,7 @@ function DoraPageContent() {
                         <select
                           value={selectedFull}
                           onChange={e => setSelectedFull(e.target.value)}
-                          style={{ ...INPUT_STYLE, cursor: 'pointer' }}
-                          aria-label="Select a connected repository"
+                          style={inputStyle}
                         >
                           <option value="">— choose a repository —</option>
                           {repoList.map(r => (
@@ -357,44 +280,23 @@ function DoraPageContent() {
                 {tab === 'url' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                      Paste any public GitHub URL. Sync it first, then load metrics.
+                      Paste a GitHub URL or type <code>owner/repo</code>.
                     </p>
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                       <input
-                        style={INPUT_STYLE}
+                        style={inputStyle}
+                        placeholder="https://github.com/"
                         value={urlInput}
-                        placeholder="owner/repo or https://github.com/owner/repo"
-                        aria-label="GitHub repository URL or owner/repo"
-                        onChange={e => { setUrlInput(e.target.value); setUrlError(''); setSyncStatus('idle'); }}
-                        onKeyDown={e => e.key === 'Enter' && syncStatus !== 'synced' && handleSync()}
+                        onChange={e => { setUrlInput(e.target.value); setUrlError(''); }}
+                        onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
                       />
                       <button
                         className="btn btn-primary"
-                        disabled={!urlInput.trim() || syncStatus === 'syncing'}
-                        onClick={handleSync}
-                        style={{
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0,
-                          opacity: syncStatus === 'synced' ? 0.5 : 1,
-                        }}
+                        disabled={!urlInput.trim()}
+                        onClick={handleUrlLoad}
+                        style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
                       >
-                        {syncStatus === 'syncing'
-                          ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.4rem' }} />Syncing…</>
-                          : <><i className="fa-solid fa-rotate-right" style={{ marginRight: '0.4rem' }} />Sync</>}
-                      </button>
-                      <button
-                        className="btn btn-primary"
-                        disabled={syncStatus !== 'synced' || loading}
-                        onClick={handleLoadMetrics}
-                        style={{
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0,
-                          opacity: syncStatus === 'synced' ? 1 : 0.5,
-                        }}
-                      >
-                        {loading
-                          ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.4rem' }} />Loading…</>
-                          : 'Load Metrics'}
+                        Load Metrics
                       </button>
                     </div>
                     {urlError && (
@@ -430,14 +332,8 @@ function DoraPageContent() {
               </div>
 
               {loading ? (
-                <div className="card card-static" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <i className="fa-solid fa-spinner fa-spin icon-cyan" style={{ fontSize: '1.2rem', flexShrink: 0 }} />
-                  <div>
-                    <p style={{ margin: 0, fontWeight: 600, color: 'var(--text)' }}>Loading metrics…</p>
-                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem' }}>
-                      Reading DORA metrics for this repository.
-                    </p>
-                  </div>
+                <div className="card card-static" style={{ padding: '2rem', color: 'var(--text-muted)' }}>
+                  Loading DORA metrics…
                 </div>
               ) : error ? (
                 <div className="card card-static" style={{ padding: '2rem', color: '#ef4444' }}>
@@ -447,11 +343,11 @@ function DoraPageContent() {
                 <>
                   {/* KPI Cards */}
                   <div className="stats-grid" style={{ marginBottom: '2rem' }}>
-                    <KpiCard icon="fa-solid fa-rocket" label="Deployment Frequency" value={deploymentFrequency?.value ?? null} unit="/ wk" />
-                    <KpiCard icon="fa-solid fa-hourglass-half" label="Lead Time for Change" value={leadTime?.value ?? null} unit="hrs" />
-                    <KpiCard icon="fa-solid fa-triangle-exclamation" label="Change Failure Rate" value={failureRate?.value ?? null} unit="%" />
-                    <KpiCard icon="fa-solid fa-rotate-left" label="Time to Restore" value={restoreTime?.value ?? null} unit="hrs" />
-                    <KpiCard icon="fa-solid fa-code-pull-request" label="PR Review Latency" value={reviewLatency?.value ?? null} unit="hrs" />
+                    <KpiCard icon="fa-solid fa-rocket"         label="Deployment Frequency"  value={deploymentFrequency?.value ?? null} unit="/ wk" />
+                    <KpiCard icon="fa-solid fa-hourglass-half" label="Lead Time for Change"   value={leadTime?.value ?? null}            unit="hrs" />
+                    <KpiCard icon="fa-solid fa-triangle-exclamation" label="Change Failure Rate" value={failureRate?.value ?? null}      unit="%" />
+                    <KpiCard icon="fa-solid fa-rotate-left"    label="Time to Restore"        value={restoreTime?.value ?? null}         unit="hrs" />
+                    <KpiCard icon="fa-solid fa-code-pull-request" label="PR Review Latency"  value={reviewLatency?.value ?? null}       unit="hrs" />
                   </div>
 
                   {/* Summary table */}
@@ -468,11 +364,11 @@ function DoraPageContent() {
                       </thead>
                       <tbody>
                         {[
-                          { label: 'Deployment Frequency', value: `${deploymentFrequency?.value ?? 0} / wk` },
-                          { label: 'Lead Time for Change', value: `${leadTime?.value ?? 0} hrs` },
-                          { label: 'Change Failure Rate', value: `${failureRate?.value ?? 0}%` },
-                          { label: 'Time to Restore', value: `${restoreTime?.value ?? 0} hrs` },
-                          { label: 'PR Review Latency', value: `${reviewLatency?.value ?? 0} hrs` },
+                          { label: 'Deployment Frequency',  value: `${deploymentFrequency?.value ?? 0} / wk` },
+                          { label: 'Lead Time for Change',  value: `${leadTime?.value ?? 0} hrs` },
+                          { label: 'Change Failure Rate',   value: `${failureRate?.value ?? 0}%` },
+                          { label: 'Time to Restore',       value: `${restoreTime?.value ?? 0} hrs` },
+                          { label: 'PR Review Latency',     value: `${reviewLatency?.value ?? 0} hrs` },
                         ].map((row, i) => (
                           <tr key={row.label} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-subtle, rgba(0,0,0,0.02))' }}>
                             <td style={TD}>{row.label}</td>
@@ -494,37 +390,37 @@ function DoraPageContent() {
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
                         <thead>
-                          <tr>
-                            <th style={TH}>Fix Commit</th>
-                            <th style={TH}>Fix Message</th>
-                            <th style={TH}>Bug-Introducing Commit</th>
-                            <th style={TH}>Bug Message</th>
-                            <th style={TH}>Author</th>
-                            <th style={TH}>File</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {szzData.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} style={{ ...TD, color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
-                                No defect origin data available for this repository.
-                              </td>
-                            </tr>
-                          ) : szzData.map((row, i) => (
-                            <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-subtle, rgba(0,0,0,0.02))' }}>
-                              <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.fix_short_sha ?? '—'}</td>
-                              <td style={{ ...TD, fontSize: '0.8rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {row.fix_message ?? '—'}
-                              </td>
-                              <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.bug_short_sha ?? '—'}</td>
-                              <td style={{ ...TD, fontSize: '0.8rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {row.bug_message ?? '—'}
-                              </td>
-                              <td style={TD}>{row.fix_author ?? '—'}</td>
-                              <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.affected_file ?? '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
+  <tr>
+    <th style={TH}>Fix Commit</th>
+    <th style={TH}>Fix Message</th>
+    <th style={TH}>Bug-Introducing Commit</th>
+    <th style={TH}>Bug Message</th>
+    <th style={TH}>Author</th>
+    <th style={TH}>File</th>
+  </tr>
+</thead>
+<tbody>
+  {szzData.length === 0 ? (
+    <tr>
+      <td colSpan={6} style={{ ...TD, color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+        No defect origin data available for this repository.
+      </td>
+    </tr>
+  ) : szzData.map((row, i) => (
+    <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-subtle, rgba(0,0,0,0.02))' }}>
+      <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.fix_short_sha ?? '—'}</td>
+      <td style={{ ...TD, fontSize: '0.8rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {row.fix_message ?? '—'}
+      </td>
+      <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.bug_short_sha ?? '—'}</td>
+      <td style={{ ...TD, fontSize: '0.8rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {row.bug_message ?? '—'}
+      </td>
+      <td style={TD}>{row.fix_author ?? '—'}</td>
+      <td style={{ ...TD, fontFamily: 'monospace', fontSize: '0.8rem' }}>{row.affected_file ?? '—'}</td>
+    </tr>
+  ))}
+</tbody>
                       </table>
                     </div>
                   </div>

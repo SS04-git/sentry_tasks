@@ -93,7 +93,6 @@ export default function NotificationsPage() {
       // notifications about their own profile changes.
       try {
         const ownLogs = await fetchWithAuth('api/v1/users/audit-logs/me', token);
-      );
         if (Array.isArray(ownLogs)) {
           ownLogs.slice(0, 20).forEach((log: any) => pushLog('own', log));
         }

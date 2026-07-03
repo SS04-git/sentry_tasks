@@ -92,9 +92,7 @@ export default function NotificationsPage() {
       // previously gated behind admin/leadership, so employees never saw
       // notifications about their own profile changes.
       try {
-        const ownLogs = await fetchWithAuth(
-        `api/v1/users/audit-logs?target_user=${encodeURIComponent(user?.email ?? '')}`,
-        token
+        const ownLogs = await fetchWithAuth('api/v1/users/audit-logs/me', token);
       );
         if (Array.isArray(ownLogs)) {
           ownLogs.slice(0, 20).forEach((log: any) => pushLog('own', log));

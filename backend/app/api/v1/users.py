@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User, RoleEnum
 from app.models.audit_log import AuditLog
-from app.core.dependencies import require_role
-from app.core.security import hash_password
+from app.core.dependencies import require_role, get_current_user
+from app.core.security import hash_password, verify_password
 import logging
 
 logger = logging.getLogger("backend")
@@ -26,6 +26,13 @@ class UpdateUserRequest(BaseModel):
 
 class AssignRoleRequest(BaseModel):
     role: RoleEnum
+
+class UpdateOwnProfileRequest(BaseModel):
+    full_name: str | None = None
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 class UserResponse(BaseModel):
     id: int
@@ -94,6 +101,59 @@ def get_audit_logs(
     logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(100).all()
     return logs
 
+@router.get("/audit-logs/me")
+def get_own_audit_logs(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    logs = (
+        db.query(AuditLog)
+        .filter(AuditLog.target_user == current_user["email"])
+        .order_by(AuditLog.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    return logs
+
+@router.patch("/me", response_model=UserResponse)
+def update_own_profile(
+    data: UpdateOwnProfileRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    user = db.query(User).filter(User.email == current_user["email"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if data.full_name is not None:
+        user.full_name = data.full_name
+
+    db.commit()
+    db.refresh(user)
+
+    log_action(db, "update_profile", current_user["email"], user.email, str(data.dict(exclude_none=True)))
+    return user
+
+
+@router.patch("/me/password", response_model=UserResponse)
+def change_own_password(
+    data: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    user = db.query(User).filter(User.email == current_user["email"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not verify_password(data.current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    user.hashed_password = hash_password(data.new_password)
+    db.commit()
+    db.refresh(user)
+
+    log_action(db, "change_password", current_user["email"], user.email)
+    return user
 
 @router.put("/{user_id}", response_model=UserResponse)
 def update_user(

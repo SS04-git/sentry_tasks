@@ -139,6 +139,8 @@ export default function AttendanceReportPage() {
     kpi.data[0] ?? null,
   );
 
+  const hasData = !!kpi && kpi.data.length > 0;
+
   return (
     <ProtectedRoute>
       <div className="page">
@@ -176,6 +178,22 @@ export default function AttendanceReportPage() {
             <div className="card card-static" style={{ padding: '2rem', textAlign: 'center' }}>
               <i className="fa-solid fa-triangle-exclamation" style={{ color: '#f43f5e', fontSize: '1.5rem', marginBottom: '0.75rem', display: 'block' }}></i>
               <p>{error}</p>
+            </div>
+          ) : !hasData ? (
+            <div className="card card-static" style={{ padding: '3rem', textAlign: 'center' }}>
+              <i className="fa-solid fa-chart-simple" style={{ fontSize: '1.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'block' }}></i>
+              <p style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '0.4rem' }}>No attendance data yet</p>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                {['admin', 'leadership'].includes(role)
+                  ? 'Upload a CSV of access-event records to see attendance stats.'
+                  : "Attendance data hasn't been imported yet. Check back once it's uploaded."}
+              </p>
+              {['admin', 'leadership'].includes(role) && (
+                <a href="/reports/admin" className="btn btn-primary"
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem' }}>
+                  <i className="fa-solid fa-upload" /> Upload data
+                </a>
+              )}
             </div>
           ) : (
             <>

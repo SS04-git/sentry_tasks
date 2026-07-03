@@ -2,6 +2,10 @@
 SENTRY-22  Attendance KPI API  (A1-A6)
 --------------------------------------
 """
+import csv
+import io
+from datetime import datetime
+from fastapi import UploadFile, File, HTTPException
 
 from __future__ import annotations
 
@@ -275,4 +279,109 @@ def get_attendance_preview(
                 cohort_size,
             ),
         },
+    }
+
+# ── CSV UPLOAD ─────────────────────────────────────────────────────────────
+
+REQUIRED_CSV_COLUMNS = {"person_id", "event_ts", "direction"}
+
+@router.post("/upload")
+async def upload_attendance_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("admin", "leadership")),
+):
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="File must be a .csv")
+
+    raw = await file.read()
+    try:
+        text_content = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Could not decode file as UTF-8")
+
+    reader = csv.DictReader(io.StringIO(text_content))
+    if not reader.fieldnames or not REQUIRED_CSV_COLUMNS.issubset(set(reader.fieldnames)):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "CSV must include columns: person_id, event_ts, direction. "
+                "Optional: email (used instead of person_id), access_method, access_result"
+            ),
+        )
+
+    users = db.execute(text("SELECT id, email FROM users")).mappings().all()
+    email_to_id = {u["email"].lower(): str(u["id"]) for u in users}
+    valid_ids = {str(u["id"]) for u in users}
+
+    inserted, skipped, errors = 0, 0, []
+
+    for i, row in enumerate(reader, start=2):  # start=2 → header is line 1
+        raw_person = (row.get("person_id") or "").strip()
+        raw_email  = (row.get("email") or "").strip().lower()
+
+        person_id = None
+        if raw_person and raw_person in valid_ids:
+            person_id = raw_person
+        elif raw_email and raw_email in email_to_id:
+            person_id = email_to_id[raw_email]
+
+        if not person_id:
+            errors.append(f"Row {i}: unknown person_id/email ('{raw_person or raw_email}')")
+            skipped += 1
+            continue
+
+        direction = (row.get("direction") or "").strip().lower()
+        if direction not in ("entry", "exit"):
+            errors.append(f"Row {i}: direction must be 'entry' or 'exit', got '{direction}'")
+            skipped += 1
+            continue
+
+        raw_ts = (row.get("event_ts") or "").strip()
+        try:
+            event_ts = datetime.fromisoformat(raw_ts)
+        except ValueError:
+            errors.append(f"Row {i}: invalid event_ts '{raw_ts}' (use ISO format, e.g. 2026-06-01T08:15:00)")
+            skipped += 1
+            continue
+
+        access_method = (row.get("access_method") or None)
+        access_result = (row.get("access_result") or "granted")
+
+        try:
+            db.execute(text("""
+                INSERT INTO fact_access_event
+                    (id, person_id, event_ts, direction, access_method, access_result, created_at)
+                VALUES
+                    (gen_random_uuid(), :person_id, :event_ts, :direction, :access_method, :access_result, now())
+                ON CONFLICT ON CONSTRAINT uq_access_event DO NOTHING
+            """), {
+                "person_id": person_id,
+                "event_ts": event_ts,
+                "direction": direction,
+                "access_method": access_method,
+                "access_result": access_result,
+            })
+            inserted += 1
+        except Exception as e:
+            errors.append(f"Row {i}: insert failed ({e})")
+            skipped += 1
+
+    db.commit()
+
+    db.execute(text("""
+        INSERT INTO audit_logs (action, performed_by, target_user, detail, created_at)
+        VALUES (:action, :performed_by, NULL, :detail, now())
+    """), {
+        "action": "attendance_csv_upload",
+        "performed_by": current_user["email"],
+        "detail": f"file={file.filename} inserted={inserted} skipped={skipped}",
+    })
+    db.commit()
+
+    return {
+        "filename": file.filename,
+        "rows_inserted": inserted,
+        "rows_skipped": skipped,
+        "errors": errors[:50],
     }

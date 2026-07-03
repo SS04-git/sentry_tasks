@@ -218,49 +218,49 @@ CREATE INDEX IF NOT EXISTS idx_fact_access_ts_only   ON fact_access_event(event_
 -- manager@sentry.com, leader@sentry.com, employee2@sentry.com)
 -- are left untouched.
 
--- ── STEP 4: Seed access events ───────────────────────────────
+-- ── STEP 4: Seed access events, hardcoding data of attendance───────────────────────────────
 -- Uses person_id values '1'..'5' as synthetic demo data (matches the
 -- original script's convention regardless of your real user IDs).
 
-INSERT INTO fact_access_event (id, person_id, event_ts, direction, created_at)
-SELECT
-    gen_random_uuid(),
-    u.person_id,
-    (date_trunc('day', day)
-        + interval '8 hours'
-        + (random() * interval '2 hours')
-        + (random() * interval '10 minutes')
-    ) AT TIME ZONE 'UTC',
-    'entry',
-    now()
-FROM
-    (SELECT generate_series(
-        current_date - interval '60 days',
-        current_date - interval '1 day',
-        interval '1 day'
-    ) AS day) days
-    CROSS JOIN (VALUES ('1'),('2'),('3'),('4'),('5')) AS u(person_id)
-WHERE
-    EXTRACT(DOW FROM day) BETWEEN 1 AND 5
-    AND random() < 0.85
-ON CONFLICT ON CONSTRAINT uq_access_event DO NOTHING;
-
-INSERT INTO fact_access_event (id, person_id, event_ts, direction, created_at)
-SELECT
-    gen_random_uuid(),
-    e.person_id,
-    e.event_ts + interval '6 hours' + (random() * interval '3 hours'),
-    'exit',
-    now()
-FROM fact_access_event e
-WHERE e.direction = 'entry'
-  AND NOT EXISTS (
-      SELECT 1 FROM fact_access_event x
-      WHERE x.person_id = e.person_id
-        AND x.direction = 'exit'
-        AND DATE(x.event_ts AT TIME ZONE 'UTC') = DATE(e.event_ts AT TIME ZONE 'UTC')
-  )
-ON CONFLICT ON CONSTRAINT uq_access_event DO NOTHING;
+--INSERT INTO fact_access_event (id, person_id, event_ts, direction, created_at)
+--SELECT
+--    gen_random_uuid(),
+--    u.person_id,
+--    (date_trunc('day', day)
+--        + interval '8 hours'
+--        + (random() * interval '2 hours')
+--        + (random() * interval '10 minutes')
+--    ) AT TIME ZONE 'UTC',
+--    'entry',
+--    now()
+--FROM
+--    (SELECT generate_series(
+--        current_date - interval '60 days',
+--        current_date - interval '1 day',
+--        interval '1 day'
+--    ) AS day) days
+--    CROSS JOIN (VALUES ('1'),('2'),('3'),('4'),('5')) AS u(person_id)
+--WHERE
+--    EXTRACT(DOW FROM day) BETWEEN 1 AND 5
+--    AND random() < 0.85
+--ON CONFLICT ON CONSTRAINT uq_access_event DO NOTHING;
+--
+--INSERT INTO fact_access_event (id, person_id, event_ts, direction, created_at)
+--SELECT
+--    gen_random_uuid(),
+--    e.person_id,
+--    e.event_ts + interval '6 hours' + (random() * interval '3 hours'),
+--    'exit',
+--    now()
+--FROM fact_access_event e
+--WHERE e.direction = 'entry'
+--  AND NOT EXISTS (
+--      SELECT 1 FROM fact_access_event x
+--      WHERE x.person_id = e.person_id
+--        AND x.direction = 'exit'
+--        AND DATE(x.event_ts AT TIME ZONE 'UTC') = DATE(e.event_ts AT TIME ZONE 'UTC')
+--  )
+--ON CONFLICT ON CONSTRAINT uq_access_event DO NOTHING;
 
 -- ── STEP 5: Attendance views ──────────────────────────────────
 
@@ -806,6 +806,11 @@ UNION ALL SELECT 'v_attendance_kpi',          COUNT(*) FROM v_attendance_kpi
 UNION ALL SELECT 'v_attendance_weekly_trend', COUNT(*) FROM v_attendance_weekly_trend
 UNION ALL SELECT 'v_occupancy_daily_peak',    COUNT(*) FROM v_occupancy_daily_peak
 UNION ALL SELECT 'v_occupancy_trend',         COUNT(*) FROM v_occupancy_trend;
+
+
+
+
+
 
 -- To verify at the end (users count should stay at 5, unchanged):
 -- SELECT COUNT(*) FROM users;

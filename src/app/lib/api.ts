@@ -9,14 +9,14 @@ export async function fetchWithAuth(
 ) {
   const url = `${API_URL}/${endpoint.replace(/^\//, '')}`;
 
-  console.log('fetching:', url); // ← add here
+  const isFormData = options.body instanceof FormData;
 
   const response = await fetch(url, {
     ...options,
     headers: {
       ...(options.headers || {}),
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     },
   });
 

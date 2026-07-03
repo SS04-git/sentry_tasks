@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { useAuth } from '@/app/context/AuthContext';
 import { getToken } from '@/app/lib/auth';
@@ -51,6 +51,13 @@ interface TrendResponse {
   data: TrendPoint[];
 }
 
+interface UploadResult {
+  filename: string;
+  rows_inserted: number;
+  rows_skipped: number;
+  errors: string[];
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const pctColor = (pct: number | null) => {
@@ -64,6 +71,11 @@ const shortWeek = (iso: string) => {
   const d = new Date(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 };
+
+const SAMPLE_CSV = `person_id,email,event_ts,direction,access_method,access_result
+,employee@sentry.com,2026-06-01T08:12:00,entry,card,granted
+,employee@sentry.com,2026-06-01T17:03:00,exit,card,granted
+`;
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -85,6 +97,157 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+// ── Upload panel (admin/leadership only) ────────────────────────────────────
+
+function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile]         = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [result, setResult]     = useState<UploadResult | null>(null);
+  const [error, setError]       = useState<string | null>(null);
+
+  const handleFileSelect = (f: File | null) => {
+    setResult(null);
+    setError(null);
+    setFile(f);
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    const token = getToken();
+    if (!token) return;
+
+    setUploading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res: UploadResult = await fetchWithAuth('api/v1/attendance/upload', token, {
+        method: 'POST',
+        body: formData,
+      });
+
+      setResult(res);
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (res.rows_inserted > 0) onUploaded();
+    } catch (err: any) {
+      setError(err?.message ?? 'Upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const downloadSample = () => {
+    const blob = new Blob([SAMPLE_CSV], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'attendance-upload-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="card card-static" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+      <div className="section-header" style={{ marginBottom: '1rem' }}>
+        <i className="fa-solid fa-file-csv icon-cyan" />
+        <h2>Upload attendance CSV</h2>
+      </div>
+
+      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+        Required columns: <code>person_id</code>, <code>event_ts</code>, <code>direction</code>.
+        Optional: <code>email</code> (used instead of <code>person_id</code> if left blank),
+        <code> access_method</code>, <code>access_result</code>.
+        <br />
+        <code>event_ts</code> must be ISO format, e.g. <code>2026-06-01T08:15:00</code>.
+        <code> direction</code> must be <code>entry</code> or <code>exit</code>. Duplicate rows are skipped automatically.
+      </p>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={e => handleFileSelect(e.target.files?.[0] ?? null)}
+          style={{ fontSize: '0.85rem' }}
+        />
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleUpload}
+          disabled={!file || uploading}
+          style={{ minWidth: '110px' }}
+        >
+          {uploading
+            ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }} />Uploading…</>
+            : 'Upload'
+          }
+        </button>
+        <button type="button" className="btn" onClick={downloadSample} style={{ fontSize: '0.8rem' }}>
+          <i className="fa-solid fa-download" style={{ marginRight: '0.4rem' }} />
+          Sample template
+        </button>
+      </div>
+
+      {error && (
+        <div style={{
+          padding: '0.85rem 1rem', borderRadius: '10px',
+          background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.3)',
+          color: '#f43f5e', fontSize: '0.85rem', marginTop: '0.75rem',
+        }}>
+          <i className="fa-solid fa-circle-xmark" style={{ marginRight: '0.5rem' }} />
+          {error}
+        </div>
+      )}
+
+      {result && (
+        <div style={{ marginTop: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <div style={{
+              flex: 1, padding: '0.75rem 1rem', borderRadius: '10px',
+              background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)',
+            }}>
+              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>Rows inserted</p>
+              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#10b981' }}>{result.rows_inserted}</p>
+            </div>
+            <div style={{
+              flex: 1, padding: '0.75rem 1rem', borderRadius: '10px',
+              background: result.rows_skipped > 0 ? 'rgba(245,158,11,0.08)' : 'rgba(6,182,212,0.08)',
+              border: `1px solid ${result.rows_skipped > 0 ? 'rgba(245,158,11,0.3)' : 'rgba(6,182,212,0.3)'}`,
+            }}>
+              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>Rows skipped</p>
+              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: result.rows_skipped > 0 ? '#f59e0b' : '#06b6d4' }}>
+                {result.rows_skipped}
+              </p>
+            </div>
+          </div>
+
+          {result.errors.length > 0 && (
+            <div style={{
+              padding: '0.75rem 1rem', borderRadius: '10px',
+              background: 'rgba(245,158,11,0.05)', border: '1px solid var(--border)',
+              maxHeight: '180px', overflowY: 'auto',
+            }}>
+              <p style={{ margin: '0 0 0.4rem', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text)' }}>
+                Row errors {result.rows_skipped > result.errors.length ? '(showing first 50)' : ''}
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                {result.errors.map((e, i) => (
+                  <li key={i} style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function AttendanceReportPage() {
@@ -97,6 +260,9 @@ export default function AttendanceReportPage() {
   const [trend, setTrend]   = useState<TrendResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState<string | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
+
+  const canUpload = ['admin', 'leadership'].includes(role);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -107,25 +273,28 @@ export default function AttendanceReportPage() {
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  useEffect(() => {
-    const load = async () => {
-      const token = getToken();
-      if (!token) return;
-      try {
-        const [k, t] = await Promise.all([
-          fetchWithAuth('api/v1/attendance/kpi', token),
-          fetchWithAuth('api/v1/attendance/trend', token),
-        ]);
-        setKpi(k);
-        setTrend(t);
-      } catch (e) {
-        setError('Failed to load attendance data.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+  const loadData = useCallback(async () => {
+    const token = getToken();
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [k, t] = await Promise.all([
+        fetchWithAuth('api/v1/attendance/kpi', token),
+        fetchWithAuth('api/v1/attendance/trend', token),
+      ]);
+      setKpi(k);
+      setTrend(t);
+    } catch (e) {
+      setError('Failed to load attendance data.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Derived
   const cohortAvg = kpi
@@ -162,12 +331,23 @@ export default function AttendanceReportPage() {
               <h1>Attendance & Presence</h1>
               <p>30-day rolling window · cohort-framed · data suppressed for groups under 5</p>
             </div>
-            {['admin', 'leadership'].includes(role) && (
-              <a href="/reports/admin" className="btn btn-primary"
-                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }} >
-                <i className="fa-solid fa-upload" /> Upload data </a>
+            {canUpload && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setShowUpload(v => !v)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <i className={`fa-solid ${showUpload ? 'fa-xmark' : 'fa-upload'}`} />
+                {showUpload ? 'Close' : 'Upload data'}
+              </button>
             )}
           </div>
+
+          {/* Inline upload panel — toggled open, refreshes stats after a successful upload */}
+          {canUpload && showUpload && (
+            <UploadPanel onUploaded={loadData} />
+          )}
 
           {loading ? (
             <div className="card card-static" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '2rem' }}>
@@ -184,15 +364,19 @@ export default function AttendanceReportPage() {
               <i className="fa-solid fa-chart-simple" style={{ fontSize: '1.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'block' }}></i>
               <p style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '0.4rem' }}>No attendance data yet</p>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                {['admin', 'leadership'].includes(role)
+                {canUpload
                   ? 'Upload a CSV of access-event records to see attendance stats.'
                   : "Attendance data hasn't been imported yet. Check back once it's uploaded."}
               </p>
-              {['admin', 'leadership'].includes(role) && (
-                <a href="/reports/admin" className="btn btn-primary"
-                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem' }}>
+              {canUpload && !showUpload && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setShowUpload(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem' }}
+                >
                   <i className="fa-solid fa-upload" /> Upload data
-                </a>
+                </button>
               )}
             </div>
           ) : (

@@ -29,12 +29,19 @@ const CATEGORY_COLORS: Record<string, { bg: string; color: string }> = {
   governance: { bg: 'rgba(245,158,11,0.08)',  color: '#f59e0b' },
 };
 
+// NOTE: `change_password` and `update_profile` are guesses at the backend
+// action names. Confirm the real `log.action` values your API writes for
+// self-service password changes / name edits / role changes and rename
+// these keys to match — otherwise those events will be silently dropped
+// (same as any action string not present in this map).
 const ACTION_META: Record<string, { title: string; desc: (target: string, detail: string) => string; icon: string; category: NotifCategory }> = {
-  create_user:  { title: 'User Created',   desc: (t) => `${t} was added to the system.`,          icon: 'fa-user-plus',   category: 'security' },
-  update_user:  { title: 'User Updated',   desc: (t) => `${t}'s profile was updated.`,             icon: 'fa-user-pen',    category: 'security' },
-  disable_user: { title: 'User Disabled',  desc: (t) => `${t}'s account was disabled.`,            icon: 'fa-user-slash',  category: 'security' },
-  enable_user:  { title: 'User Enabled',   desc: (t) => `${t}'s account was re-enabled.`,          icon: 'fa-user-check',  category: 'security' },
-  assign_role:  { title: 'Role Changed',   desc: (t, d) => `${t}'s role was changed. ${d}`,        icon: 'fa-id-badge',    category: 'security' },
+  create_user:      { title: 'User Created',      desc: (t) => `${t} was added to the system.`,            icon: 'fa-user-plus',   category: 'security' },
+  update_user:       { title: 'User Updated',      desc: (t) => `${t}'s profile was updated.`,              icon: 'fa-user-pen',    category: 'security' },
+  disable_user:      { title: 'User Disabled',     desc: (t) => `${t}'s account was disabled.`,             icon: 'fa-user-slash',  category: 'security' },
+  enable_user:       { title: 'User Enabled',      desc: (t) => `${t}'s account was re-enabled.`,           icon: 'fa-user-check',  category: 'security' },
+  assign_role:       { title: 'Role Changed',      desc: (t, d) => `${t}'s role was changed. ${d}`,         icon: 'fa-id-badge',    category: 'security' },
+  change_password:   { title: 'Password Changed',  desc: (t) => `Password was changed for ${t}.`,           icon: 'fa-key',         category: 'security' },
+  update_profile:    { title: 'Profile Updated',   desc: (t, d) => `${t}'s profile was updated. ${d}`,      icon: 'fa-user-pen',    category: 'security' },
 };
 
 function timeAgo(dateStr: string): string {
@@ -60,74 +67,94 @@ export default function NotificationsPage() {
       const token = getToken();
       if (!token) return;
       const built: Notification[] = [];
+      const seenIds = new Set<string>();
 
+      const pushLog = (prefix: string, log: any) => {
+        const meta = ACTION_META[log.action];
+        if (!meta) return;
+        const id = `${prefix}-${log.id}`;
+        if (seenIds.has(id)) return; // avoid dupes if self + admin fetches overlap
+        seenIds.add(id);
+        built.push({
+          id,
+          title:    meta.title,
+          desc:     meta.desc(log.target_user ?? '', log.detail ?? ''),
+          time:     timeAgo(log.created_at),
+          icon:     meta.icon,
+          category: meta.category,
+          read:     false,
+        });
+      };
+
+      // ── Security: everyone's own account activity ────────────────────────
+      // Password changes, name/profile edits, and role changes that happen
+      // to *your own* account should show up regardless of role. This was
+      // previously gated behind admin/leadership, so employees never saw
+      // notifications about their own profile changes.
       try {
-        // ── Security: audit logs (admin/leadership only) ──────────────────
-        if (['admin', 'leadership'].includes(role)) {
+        const ownLogs = await fetchWithAuth(
+        `api/v1/users/audit-logs?target_user=${encodeURIComponent(user?.email ?? '')}`,
+        token
+      );
+        if (Array.isArray(ownLogs)) {
+          ownLogs.slice(0, 20).forEach((log: any) => pushLog('own', log));
+        }
+      } catch { /* self audit trail not available — skip */ }
+
+      // ── Security: full audit log (admin/leadership only) ─────────────────
+      if (['admin', 'leadership'].includes(role)) {
+        try {
           const logs = await fetchWithAuth('api/v1/users/audit-logs', token);
           if (Array.isArray(logs)) {
-            logs.slice(0, 20).forEach((log: any) => {
-              const meta = ACTION_META[log.action];
-              if (!meta) return;
+            logs.slice(0, 20).forEach((log: any) => pushLog('audit', log));
+          }
+        } catch { /* audit logs not available — skip, don't abort the rest */ }
+      }
+
+      // ── System: GitHub sync status ────────────────────────────────────
+      try {
+        const syncStatus = await fetchWithAuth('api/v1/github/sync-status', token);
+        if (Array.isArray(syncStatus?.repos)) {
+          syncStatus.repos.forEach((r: any) => {
+            if (r.last_sync_at) {
+              const isError = r.status === 'error';
               built.push({
-                id:       `audit-${log.id}`,
-                title:    meta.title,
-                desc:     meta.desc(log.target_user ?? '', log.detail ?? ''),
-                time:     timeAgo(log.created_at),
-                icon:     meta.icon,
-                category: meta.category,
+                id:       `sync-${r.repo}`,
+                title:    isError ? `Sync failed: ${r.repo}` : `Sync completed: ${r.repo}`,
+                desc:     isError
+                  ? `Error: ${r.error ?? 'unknown'}`
+                  : `${r.commits_synced ?? 0} commits · ${r.prs_synced ?? 0} PRs updated.`,
+                time:     timeAgo(r.last_sync_at),
+                icon:     isError ? 'fa-circle-xmark' : 'fa-code-branch',
+                category: 'system',
                 read:     false,
               });
-            });
-          }
+            }
+          });
         }
+      } catch { /* GitHub not connected — skip */ }
 
-        // ── System: GitHub sync status ────────────────────────────────────
-        try {
-          const syncStatus = await fetchWithAuth('api/v1/github/sync-status', token);
-          if (Array.isArray(syncStatus?.repos)) {
-            syncStatus.repos.forEach((r: any) => {
-              if (r.last_sync_at) {
-                const isError = r.status === 'error';
-                built.push({
-                  id:       `sync-${r.repo}`,
-                  title:    isError ? `Sync failed: ${r.repo}` : `Sync completed: ${r.repo}`,
-                  desc:     isError
-                    ? `Error: ${r.error ?? 'unknown'}`
-                    : `${r.commits_synced ?? 0} commits · ${r.prs_synced ?? 0} PRs updated.`,
-                  time:     timeAgo(r.last_sync_at),
-                  icon:     isError ? 'fa-circle-xmark' : 'fa-code-branch',
-                  category: 'system',
-                  read:     false,
-                });
-              }
-            });
-          }
-        } catch { /* GitHub not connected — skip */ }
+      // ── Governance: attendance suppression notice ─────────────────────
+      try {
+        const preview = await fetchWithAuth('api/v1/attendance/preview', token);
+        if (preview?.cohort?.avg_attendance_pct === null) {
+          built.push({
+            id:       'gov-suppression',
+            title:    'Team data suppressed',
+            desc:     'Cohort is below 5 members — team-level attendance figures are hidden per governance policy.',
+            time:     'now',
+            icon:     'fa-scale-balanced',
+            category: 'governance',
+            read:     false,
+          });
+        }
+      } catch { /* attendance not available — skip */ }
 
-        // ── Governance: attendance suppression notice ─────────────────────
-        try {
-          const preview = await fetchWithAuth('api/v1/attendance/preview', token);
-          if (preview?.cohort?.avg_attendance_pct === null) {
-            built.push({
-              id:       'gov-suppression',
-              title:    'Team data suppressed',
-              desc:     'Cohort is below 5 members — team-level attendance figures are hidden per governance policy.',
-              time:     'now',
-              icon:     'fa-scale-balanced',
-              category: 'governance',
-              read:     false,
-            });
-          }
-        } catch { /* attendance not available — skip */ }
-
-      } finally {
-        setNotifications(built);
-        setLoading(false);
-      }
+      setNotifications(built);
+      setLoading(false);
     };
     load();
-  }, [role]);
+  }, [role, user?.email]);
 
   const visible = notifications
     .filter(n => !dismissed.has(n.id))
@@ -163,6 +190,7 @@ export default function NotificationsPage() {
               </div>
               {unread > 0 && (
                 <button
+                  type="button"
                   onClick={markAllRead}
                   style={{
                     background: 'transparent', border: '1px solid var(--border)',
@@ -186,7 +214,12 @@ export default function NotificationsPage() {
             width: 'fit-content', backdropFilter: 'blur(8px)',
           }}>
             {(Object.keys(CATEGORY_LABELS) as NotifCategory[]).map(cat => (
-              <button key={cat} style={tabStyle(filter === cat)} onClick={() => setFilter(cat)}>
+              <button
+                type="button"
+                key={cat}
+                style={tabStyle(filter === cat)}
+                onClick={() => setFilter(cat)}
+              >
                 {CATEGORY_LABELS[cat]}
                 {cat === 'all' && unread > 0 && (
                   <span style={{
@@ -260,6 +293,7 @@ export default function NotificationsPage() {
                     </div>
 
                     <button
+                      type="button"
                       onClick={e => { e.stopPropagation(); dismiss(notif.id); }}
                       style={{
                         background: 'none', border: 'none', boxShadow: 'none',

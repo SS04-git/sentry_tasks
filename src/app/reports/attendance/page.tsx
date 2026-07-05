@@ -72,11 +72,6 @@ const shortWeek = (iso: string) => {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 };
 
-const SAMPLE_CSV = `person_id,email,event_ts,direction,access_method,access_result
-,employee@sentry.com,2026-06-01T08:12:00,entry,card,granted
-,employee@sentry.com,2026-06-01T17:03:00,exit,card,granted
-`;
-
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -141,16 +136,6 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
     }
   };
 
-  const downloadSample = () => {
-    const blob = new Blob([SAMPLE_CSV], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'attendance-upload-template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="card card-static" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
       <div className="section-header" style={{ marginBottom: '1rem' }}>
@@ -186,10 +171,6 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
             ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }} />Uploading…</>
             : 'Upload'
           }
-        </button>
-        <button type="button" className="btn" onClick={downloadSample} style={{ fontSize: '0.8rem' }}>
-          <i className="fa-solid fa-download" style={{ marginRight: '0.4rem' }} />
-          Sample template
         </button>
       </div>
 

@@ -258,7 +258,7 @@ export default function AttendanceReportPage() {
 
   const [kpi, setKpi]       = useState<KpiResponse | null>(null);
   const [trend, setTrend]   = useState<TrendResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError]   = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
 
@@ -293,8 +293,13 @@ export default function AttendanceReportPage() {
   }, []);
 
   useEffect(() => {
+  // Admins/leadership see the upload panel first. Results only render
+  // after they upload a CSV (via onUploaded={loadData} in UploadPanel).
+  // Employees/managers can't upload, so we still load existing data for them.
+  if (!canUpload) {
     loadData();
-  }, [loadData]);
+  }
+}, [loadData, canUpload]);
 
   // Derived
   const cohortAvg = kpi

@@ -67,6 +67,7 @@ def get_attendance_kpi(
 
     # ── Git commit correlation (REMOVABLE) — delete this one line to disable ──
     commit_counts = _get_commit_counts(db)
+    lint_counts = _get_lint_error_counts(db)  # REMOVABLE
     # ── end ─────────────────────────────────────────────────────────────────
 
     def _build(r):
@@ -90,6 +91,8 @@ def get_attendance_kpi(
             "total_session_hours": float(r["total_session_hours"]) if r["total_session_hours"] else None,
             "is_own": is_own,
             "commit_count": commit_counts.get(r["person_id"]),  # REMOVABLE — git commit correlation
+            "lint_errors": lint_counts.get(r["person_id"], {}).get("error_count"),  # REMOVABLE
+            "lint_warnings": lint_counts.get(r["person_id"], {}).get("warning_count"),  # REMOVABLE
         }
 
     if role == "employee":
@@ -103,7 +106,6 @@ def get_attendance_kpi(
         result = [_build(r) for r in rows]
 
     return {"cohort_size": cohort_size, "window_days": 30, "data": result}
-
 
 # ── TREND ────────────────────────────────────────────────────────────────────
 
@@ -320,7 +322,7 @@ async def upload_attendance_csv(
 
     inserted, skipped, errors = 0, 0, []
 
-    for i, row in enumerate(reader, start=2):  # start=2 → header is line 1
+    for i, row in enumerate(reader, start=2):
         raw_person = (row.get("person_id") or "").strip()
         raw_email  = (row.get("email") or "").strip().lower()
 
@@ -353,7 +355,7 @@ async def upload_attendance_csv(
         access_result = (row.get("access_result") or "granted")
 
         try:
-            db.execute(text("""
+            result = db.execute(text("""
                 INSERT INTO fact_access_event
                     (id, person_id, event_ts, direction, access_method, access_result, created_at)
                 VALUES
@@ -366,7 +368,11 @@ async def upload_attendance_csv(
                 "access_method": access_method,
                 "access_result": access_result,
             })
-            inserted += 1
+            if result.rowcount > 0:
+                inserted += 1
+            else:
+                skipped += 1
+                errors.append(f"Row {i}: duplicate event (already exists), skipped")
         except Exception as e:
             errors.append(f"Row {i}: insert failed ({e})")
             skipped += 1
@@ -412,3 +418,25 @@ def _get_commit_counts(db: Session, window_days: int = 30) -> dict[str, int]:
 
     return {r["person_id"]: r["commit_count"] for r in rows}
 # ── end removable block ─────────────────────────────────────────────────────
+
+
+
+# ── Lint error attribution (REMOVABLE) ──────────────────────────────
+def _get_lint_error_counts(db: Session) -> dict[str, dict]:
+    try:
+        rows = db.execute(text("""
+            SELECT person_id, attributed_findings, error_count, warning_count
+            FROM public.v_lint_blame_by_person
+        """)).mappings().all()
+    except Exception:
+        logger.warning("v_lint_blame_by_person unavailable; skipping lint correlation", exc_info=True)
+        return {}
+    return {
+        r["person_id"]: {
+            "attributed_findings": r["attributed_findings"],
+            "error_count": r["error_count"],
+            "warning_count": r["warning_count"],
+        }
+        for r in rows
+    }
+# ── end removable block ─────────────────────────────────────────────

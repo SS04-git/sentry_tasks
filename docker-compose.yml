@@ -16,14 +16,14 @@ services:
     build:
       context: ./backend
     ports:
-      - "8000:8000"
+      - "8000:10000"
     env_file:
       - ./backend/.env
     volumes:
       - ./backend:/app
     depends_on:
-      db:                              # ← changed from "- db"
-        condition: service_healthy     # ← added
+      db:                              
+        condition: service_healthy     
 
   db:
     image: postgres:17

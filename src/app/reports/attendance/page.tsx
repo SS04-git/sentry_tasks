@@ -30,6 +30,8 @@ interface KpiRow {
   avg_session_hours: number | null;
   total_session_hours: number | null;
   commit_count: number | null; // REMOVABLE — git commit correlation
+  lint_errors: number | null;   // REMOVABLE — lint blame correlation
+  lint_warnings: number | null; // REMOVABLE — lint blame correlation
   is_own: boolean;
 }
 
@@ -496,6 +498,11 @@ export default function AttendanceReportPage() {
                             Commits (30d)
                           </th>
                         )}
+                        {SHOW_COMMIT_CORRELATION && (
+                        <th style={{ padding: '0.75rem 1.25rem', textAlign: 'left', fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
+                          Lint Errors
+                        </th>
+                      )}
                       </tr>
                     </thead>
                       <tbody>
@@ -538,6 +545,11 @@ export default function AttendanceReportPage() {
                                 {r.commit_count !== null && r.commit_count !== undefined ? r.commit_count : '—'}
                               </td>
                             )}
+                            {SHOW_COMMIT_CORRELATION && (
+                            <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text)' }}>
+                              {r.lint_errors !== null && r.lint_errors !== undefined ? r.lint_errors : '—'}
+                            </td>
+                          )}
                           </tr>
                         ))}
                       </tbody>

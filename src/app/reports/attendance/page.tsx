@@ -12,6 +12,9 @@ import {
 } from 'recharts';
 import PageNav from "@/app/components/PageNav";
 
+// REMOVABLE FEATURE FLAG — set to false (or delete this + the gated JSX below) to hide commit correlation
+const SHOW_COMMIT_CORRELATION = true;
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface KpiRow {
@@ -26,6 +29,7 @@ interface KpiRow {
   arrival_consistency: number | null;
   avg_session_hours: number | null;
   total_session_hours: number | null;
+  commit_count: number | null; // REMOVABLE — git commit correlation
   is_own: boolean;
 }
 
@@ -481,14 +485,19 @@ export default function AttendanceReportPage() {
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                       <thead>
-                        <tr style={{ background: 'rgba(6,182,212,0.04)' }}>
-                          {['Name', 'Role', 'Days present', 'Attendance', 'Avg arrival', 'Avg session', 'Total hours'].map((h) => (
-                            <th key={h} style={{ padding: '0.75rem 1.25rem', textAlign: 'left', fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
-                              {h}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
+                      <tr style={{ background: 'rgba(6,182,212,0.04)' }}>
+                        {['Name', 'Role', 'Days present', 'Attendance', 'Avg arrival', 'Avg session', 'Total hours'].map((h) => (
+                          <th key={h} style={{ padding: '0.75rem 1.25rem', textAlign: 'left', fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
+                            {h}
+                          </th>
+                        ))}
+                        {SHOW_COMMIT_CORRELATION && (
+                          <th style={{ padding: '0.75rem 1.25rem', textAlign: 'left', fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
+                            Commits (30d)
+                          </th>
+                        )}
+                      </tr>
+                    </thead>
                       <tbody>
                         {kpi.data.map((r, i) => (
                           <tr
@@ -524,6 +533,11 @@ export default function AttendanceReportPage() {
                             <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text)' }}>
                               {r.total_session_hours !== null ? `${r.total_session_hours.toFixed(1)}h` : '—'}
                             </td>
+                            {SHOW_COMMIT_CORRELATION && (
+                              <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text)' }}>
+                                {r.commit_count !== null && r.commit_count !== undefined ? r.commit_count : '—'}
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>

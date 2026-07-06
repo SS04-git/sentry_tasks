@@ -816,11 +816,7 @@ UNION ALL SELECT 'v_occupancy_trend',         COUNT(*) FROM v_occupancy_trend;
 
 
 
-
-SELECT COUNT(*), MIN(event_ts), MAX(event_ts) FROM fact_access_event;
-TRUNCATE TABLE fact_access_event;
-SELECT current_database();
-
+SELECT current_database(), current_schema();
 
 
 

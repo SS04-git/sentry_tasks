@@ -65,6 +65,10 @@ def get_attendance_kpi(
 
     cohort_size = len(rows)
 
+    # ── Git commit correlation (REMOVABLE) — delete this one line to disable ──
+    commit_counts = _get_commit_counts(db)
+    # ── end ─────────────────────────────────────────────────────────────────
+
     def _build(r):
         is_own = r["email"] == email
         visible = role in ("admin", "leadership") or is_own
@@ -85,6 +89,7 @@ def get_attendance_kpi(
             "avg_session_hours": float(r["avg_session_hours"]) if r["avg_session_hours"] else None,
             "total_session_hours": float(r["total_session_hours"]) if r["total_session_hours"] else None,
             "is_own": is_own,
+            "commit_count": commit_counts.get(r["person_id"]),  # REMOVABLE — git commit correlation
         }
 
     if role == "employee":
@@ -384,3 +389,26 @@ async def upload_attendance_csv(
         "rows_skipped": skipped,
         "errors": errors[:50],
     }
+
+# ── Git commit correlation (REMOVABLE FEATURE) ──────────────────────────────
+# To remove: delete this function and the one call to it inside get_attendance_kpi.
+
+def _get_commit_counts(db: Session, window_days: int = 30) -> dict[str, int]:
+    """
+    Maps person_id -> commit count in the last `window_days`, via
+    users -> github_accounts -> git_commits (matched on github_login).
+    Users without a linked GitHub account simply won't appear in the result.
+    """
+    rows = db.execute(text("""
+        SELECT
+            ga.user_id::text AS person_id,
+            COUNT(gc.sha) AS commit_count
+        FROM github_accounts ga
+        JOIN git_commits gc
+            ON gc.author_github_login = ga.github_login
+        WHERE gc.committed_at >= now() - (:window_days || ' days')::interval
+        GROUP BY ga.user_id
+    """), {"window_days": window_days}).mappings().all()
+
+    return {r["person_id"]: r["commit_count"] for r in rows}
+# ── end removable block ─────────────────────────────────────────────────────

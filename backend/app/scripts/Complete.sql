@@ -855,9 +855,7 @@ SELECT * FROM v_lint_blame_by_person LIMIT 5;
 
 
 
-
-
-
+-- to clear data at attendance
 TRUNCATE TABLE fact_access_event;
 SELECT COUNT(*) FROM fact_access_event;  -- should return 0
 

@@ -25,7 +25,7 @@ router = APIRouter()
 
 
 
-# ── helpers ──
+# helpers
 
 def _minutes_to_hhmm(minutes: Optional[float]) -> Optional[str]:
     if minutes is None:
@@ -231,7 +231,7 @@ def get_daily_detail(
     }
 
 
-# ── PREVIEW ──
+# PREVIEW
 
 @router.get("/preview")
 def get_attendance_preview(
@@ -291,7 +291,7 @@ def get_attendance_preview(
         },
     }
 
-# ── CSV UPLOAD ──
+# CSV UPLOAD
 
 REQUIRED_CSV_COLUMNS = {"person_id", "event_ts", "direction"}
 
@@ -324,10 +324,8 @@ async def upload_attendance_csv(
     email_to_id = {u["email"].lower(): str(u["id"]) for u in users}
     valid_ids = {str(u["id"]) for u in users}
 
-    # ── Clear existing data so this upload becomes a clean replacement ──
     db.execute(text("TRUNCATE TABLE fact_access_event"))
     db.commit()
-    # ── end ──
 
     inserted, skipped, errors = 0, 0, []
 
@@ -405,9 +403,6 @@ async def upload_attendance_csv(
         "errors": errors[:50],
     }
 
-# ── Git commit correlation (REMOVABLE FEATURE) ──────────────────────────────
-# To remove: delete this function and the one call to it inside get_attendance_kpi.
-
 def _get_commit_counts(db: Session, window_days: int = 30) -> dict[str, int]:
     """
     Maps person_id -> commit count in the last `window_days`, via
@@ -426,11 +421,10 @@ def _get_commit_counts(db: Session, window_days: int = 30) -> dict[str, int]:
     """), {"window_days": window_days}).mappings().all()
 
     return {r["person_id"]: r["commit_count"] for r in rows}
-# ── end removable block ─────────────────────────────────────────────────────
 
 
 
-# ── Lint error attribution (REMOVABLE) ──────────────────────────────
+# Lint error attribution 
 def _get_lint_error_counts(db: Session) -> dict[str, dict]:
     try:
         rows = db.execute(text("""
@@ -448,4 +442,3 @@ def _get_lint_error_counts(db: Session) -> dict[str, dict]:
         }
         for r in rows
     }
-# ── end removable block ──

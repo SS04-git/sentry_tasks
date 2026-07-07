@@ -258,21 +258,18 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────
-
 export default function AttendanceReportPage() {
   const { user, logout } = useAuth();
+  console.log('user from useAuth:', user);
   const role = user?.role ?? 'employee';
   const showCommitCorrelation = role === 'admin';  
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-
   const [kpi, setKpi]       = useState<KpiResponse | null>(null);
   const [trend, setTrend]   = useState<TrendResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
-
   const canUpload = ['admin', 'leadership'].includes(role);
 
   useEffect(() => {

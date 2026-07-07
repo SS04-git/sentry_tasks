@@ -25,7 +25,7 @@ router = APIRouter()
 
 
 
-# ── helpers ──────────────────────────────────────────────────────────────────
+# ── helpers ──
 
 def _minutes_to_hhmm(minutes: Optional[float]) -> Optional[str]:
     if minutes is None:
@@ -35,7 +35,7 @@ def _minutes_to_hhmm(minutes: Optional[float]) -> Optional[str]:
     return f"{h:02d}:{m:02d}"
 
 
-# ── KPI ──────────────────────────────────────────────────────────────────────
+# ── KPI ──
 
 @router.get("/kpi")
 def get_attendance_kpi(
@@ -65,10 +65,14 @@ def get_attendance_kpi(
 
     cohort_size = len(rows)
 
-    # ── Git commit correlation (REMOVABLE) — delete this one line to disable ──
-    commit_counts = _get_commit_counts(db)
-    lint_counts = _get_lint_error_counts(db)  # REMOVABLE
-    # ── end ─────────────────────────────────────────────────────────────────
+    # ── Git commit correlation (REMOVABLE) — admin-only ──
+    if role == "admin":
+        commit_counts = _get_commit_counts(db)
+        lint_counts = _get_lint_error_counts(db)
+    else:
+        commit_counts = {}
+        lint_counts = {}
+    # ── end ──
 
     def _build(r):
         is_own = r["email"] == email
@@ -90,9 +94,9 @@ def get_attendance_kpi(
             "avg_session_hours": float(r["avg_session_hours"]) if r["avg_session_hours"] else None,
             "total_session_hours": float(r["total_session_hours"]) if r["total_session_hours"] else None,
             "is_own": is_own,
-            "commit_count": commit_counts.get(r["person_id"]),  # REMOVABLE — git commit correlation
-            "lint_errors": lint_counts.get(r["person_id"], {}).get("error_count"),  # REMOVABLE
-            "lint_warnings": lint_counts.get(r["person_id"], {}).get("warning_count"),  # REMOVABLE
+            "commit_count": commit_counts.get(r["person_id"]) if role == "admin" else None,
+            "lint_errors": lint_counts.get(r["person_id"], {}).get("error_count") if role == "admin" else None,
+            "lint_warnings": lint_counts.get(r["person_id"], {}).get("warning_count") if role == "admin" else None,
         }
 
     if role == "employee":
@@ -107,7 +111,7 @@ def get_attendance_kpi(
 
     return {"cohort_size": cohort_size, "window_days": 30, "data": result}
 
-# ── TREND ────────────────────────────────────────────────────────────────────
+# ── TREND ──
 
 @router.get("/trend")
 def get_attendance_trend(
@@ -179,7 +183,7 @@ def get_attendance_trend(
     }
 
 
-# ── DAILY ────────────────────────────────────────────────────────────────────
+# ── DAILY ──
 
 @router.get("/daily")
 def get_daily_detail(
@@ -227,7 +231,7 @@ def get_daily_detail(
     }
 
 
-# ── PREVIEW ──────────────────────────────────────────────────────────────────
+# ── PREVIEW ──
 
 @router.get("/preview")
 def get_attendance_preview(
@@ -287,7 +291,7 @@ def get_attendance_preview(
         },
     }
 
-# ── CSV UPLOAD ─────────────────────────────────────────────────────────────
+# ── CSV UPLOAD ──
 
 REQUIRED_CSV_COLUMNS = {"person_id", "event_ts", "direction"}
 
@@ -444,4 +448,4 @@ def _get_lint_error_counts(db: Session) -> dict[str, dict]:
         }
         for r in rows
     }
-# ── end removable block ─────────────────────────────────────────────
+# ── end removable block ──

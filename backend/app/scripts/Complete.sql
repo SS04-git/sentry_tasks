@@ -811,6 +811,48 @@ UNION ALL SELECT 'v_occupancy_trend',         COUNT(*) FROM v_occupancy_trend;
 
 
 
+-- for admin to view all git commits and errors via attendance
+
+CREATE OR REPLACE VIEW v_lint_blame_current AS
+SELECT
+    lf.id AS finding_id,
+    ls.owner, ls.repo, ls.finished_at AS scan_finished_at,
+    lf.file_path, lf.severity, lf.rule_id, lf.message,
+    blame.author_github_login,
+    blame.sha AS blamed_commit_sha,
+    blame.committed_at AS blamed_commit_at
+FROM v_cq_latest_scan ls
+JOIN code_quality_lint_finding lf ON lf.scan_id = ls.scan_id
+JOIN git_repos r ON r.owner = ls.owner AND r.name = ls.repo
+JOIN LATERAL (
+    SELECT c.sha, c.author_github_login, c.committed_at
+    FROM git_file_changes fc
+    JOIN git_commits c ON c.sha = fc.commit_sha
+    WHERE fc.filename = lf.file_path
+      AND c.repo_id = r.repo_id
+      AND c.committed_at <= COALESCE(ls.finished_at, now())
+    ORDER BY c.committed_at DESC
+    LIMIT 1
+) blame ON true;
+
+
+
+CREATE OR REPLACE VIEW v_lint_blame_by_person AS
+SELECT
+    ga.user_id::text AS person_id,
+    COUNT(*) AS attributed_findings,
+    COUNT(*) FILTER (WHERE lb.severity = 'error')   AS error_count,
+    COUNT(*) FILTER (WHERE lb.severity = 'warning') AS warning_count
+FROM v_lint_blame_current lb
+JOIN github_accounts ga ON ga.github_login = lb.author_github_login
+GROUP BY ga.user_id;
+
+
+
+SELECT * FROM v_lint_blame_by_person LIMIT 5;
+-- ─────────────────────────────────────
+
+
 
 
 
@@ -818,6 +860,7 @@ UNION ALL SELECT 'v_occupancy_trend',         COUNT(*) FROM v_occupancy_trend;
 
 TRUNCATE TABLE fact_access_event;
 SELECT COUNT(*) FROM fact_access_event;  -- should return 0
+
 
 
 

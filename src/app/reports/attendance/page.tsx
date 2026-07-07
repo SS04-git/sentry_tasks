@@ -12,9 +12,6 @@ import {
 } from 'recharts';
 import PageNav from "@/app/components/PageNav";
 
-// REMOVABLE FEATURE FLAG — set to false (or delete this + the gated JSX below) to hide commit correlation
-const SHOW_COMMIT_CORRELATION = true;
-
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface KpiRow {
@@ -240,6 +237,7 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
 export default function AttendanceReportPage() {
   const { user, logout } = useAuth();
   const role = user?.role ?? 'employee';
+  const showCommitCorrelation = role === 'admin';  
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -493,12 +491,12 @@ export default function AttendanceReportPage() {
                             {h}
                           </th>
                         ))}
-                        {SHOW_COMMIT_CORRELATION && (
+                        {showCommitCorrelation && (
                           <th style={{ padding: '0.75rem 1.25rem', textAlign: 'left', fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
                             Commits (30d)
                           </th>
                         )}
-                        {SHOW_COMMIT_CORRELATION && (
+                        {showCommitCorrelation && (
                         <th style={{ padding: '0.75rem 1.25rem', textAlign: 'left', fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
                           Lint Errors
                         </th>
@@ -540,12 +538,12 @@ export default function AttendanceReportPage() {
                             <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text)' }}>
                               {r.total_session_hours !== null ? `${r.total_session_hours.toFixed(1)}h` : '—'}
                             </td>
-                            {SHOW_COMMIT_CORRELATION && (
+                            {showCommitCorrelation && (
                               <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text)' }}>
                                 {r.commit_count !== null && r.commit_count !== undefined ? r.commit_count : '—'}
                               </td>
                             )}
-                            {SHOW_COMMIT_CORRELATION && (
+                            {showCommitCorrelation && (
                             <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text)' }}>
                               {r.lint_errors !== null && r.lint_errors !== undefined ? r.lint_errors : '—'}
                             </td>

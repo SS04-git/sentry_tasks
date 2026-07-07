@@ -816,11 +816,12 @@ UNION ALL SELECT 'v_occupancy_trend',         COUNT(*) FROM v_occupancy_trend;
 
 
 
-SELECT current_database(), current_schema();
+TRUNCATE TABLE fact_access_event;
+SELECT COUNT(*) FROM fact_access_event;  -- should return 0
 
 
 
-
+--2nd version
 -- To verify at the end (users count should stay at 5, unchanged):
 -- SELECT COUNT(*) FROM users;
 -- SELECT to_regclass('public.v_attendance_kpi');

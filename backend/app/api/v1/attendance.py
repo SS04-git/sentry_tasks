@@ -320,6 +320,11 @@ async def upload_attendance_csv(
     email_to_id = {u["email"].lower(): str(u["id"]) for u in users}
     valid_ids = {str(u["id"]) for u in users}
 
+    # ── Clear existing data so this upload becomes a clean replacement ──
+    db.execute(text("TRUNCATE TABLE fact_access_event"))
+    db.commit()
+    # ── end ──
+
     inserted, skipped, errors = 0, 0, []
 
     for i, row in enumerate(reader, start=2):

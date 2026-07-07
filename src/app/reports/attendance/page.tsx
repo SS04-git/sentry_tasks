@@ -95,6 +95,32 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+const TwoLineTick = (props: any) => {
+  const { x, y, payload } = props;
+  const words = String(payload.value).split(' ');
+  let line1 = '', line2 = '';
+
+  if (words.length > 1) {
+    const mid = Math.ceil(words.length / 2);
+    line1 = words.slice(0, mid).join(' ');
+    line2 = words.slice(mid).join(' ');
+  } else {
+    const str = String(payload.value);
+    const half = Math.ceil(str.length / 2);
+    line1 = str.slice(0, half);
+    line2 = str.slice(half);
+  }
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={12} textAnchor="middle" fontSize={11} fill="var(--text-muted)">
+        <tspan x={0} dy="0">{line1}</tspan>
+        <tspan x={0} dy="12">{line2}</tspan>
+      </text>
+    </g>
+  );
+};
+
 // ── Upload panel (admin/leadership only) ────────────────────────────────────
 
 function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
@@ -424,20 +450,20 @@ export default function AttendanceReportPage() {
                     <h2>Attendance Rate by Person</h2>
                   </div>
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart
-                      data={kpi?.data.map((r) => ({
-                        name: r.full_name?.split(' ')[0] ?? r.person_id,
-                        pct: r.attendance_pct ?? 0,
-                        own: r.is_own,
-                      }))}
-                      margin={{ top: 4, right: 8, left: -20, bottom: 4 }}
-                    >
+                    <BarChart data={kpi?.data.map((r) => ({ name: r.full_name ?? r.person_id,
+                        pct: r.attendance_pct ?? 0, own: r.is_own, }))}
+                      margin={{ top: 4, right: 8, left: -20, bottom: 24 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <XAxis
+                        dataKey="name"
+                        tick={<TwoLineTick />}
+                        axisLine={false}
+                        tickLine={false}
+                        height={50}
+                        interval={0} />
                       <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit="%" />
                       <Tooltip formatter={(value) => [`${value}%`, 'Attendance']}
-                        contentStyle={{ borderRadius: '10px', border: '1px solid var(--border)', fontSize: '0.8rem', }}
-                      />
+                        contentStyle={{ borderRadius: '10px', border: '1px solid var(--border)', fontSize: '0.8rem', }}/>
                       <Bar dataKey="pct" radius={[6, 6, 0, 0]} fill="#06b6d4" />
                     </BarChart>
                   </ResponsiveContainer>

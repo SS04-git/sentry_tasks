@@ -22,24 +22,6 @@ export default function ReportsPage() {
   }, []);
 
   const reports = [
-    // {
-    //   title: 'Access Events',
-    //   desc: 'View access activity by employee.',
-    //   icon: 'fa-door-open',
-    //   href: '/reports/access-events',
-    // },
-    // {
-    //   title: 'Audit Activity',
-    //   desc: 'Review system audit logs.',
-    //   icon: 'fa-clipboard-list',
-    //   href: '/reports/audit-activity',
-    // },
-    // {
-    //   title: 'Security Alerts',
-    //   desc: 'Analyze unusual access patterns.',
-    //   icon: 'fa-triangle-exclamation',
-    //   href: '/reports/security-alerts',
-    // },
     {
       title: 'Attendance & Presence',
       desc: 'Days present, arrival times, session hours, and weekly trends.',
@@ -81,7 +63,7 @@ export default function ReportsPage() {
                     <i className={report.icon} />
                     </div>
                     </div>
-                <h3 style={{ marginBottom: '0.4rem' }}>{report.title}</h3>
+                <h3 style={{  marginTop: '0.75rem', marginBottom: '0.4rem' }}>{report.title}</h3>
                 <p style={{ fontSize: '0.875rem' }}>{report.desc}</p>
               </a>
             ))}

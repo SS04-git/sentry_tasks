@@ -138,7 +138,7 @@ function ProfilePageContent() {
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
             <a href="/dashboard" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</a>
-            <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.65rem' }} />
+            <i className="fa-solid fa-chevron-right" style={{ fontSize: '12px' }} />
             <span style={{ color: 'var(--text)', fontWeight: 600 }}>Profile Settings</span>
           </div>
 
@@ -204,10 +204,10 @@ function ProfilePageContent() {
                         />
                         <i className="fa-solid fa-lock" style={{
                           position: 'absolute', right: '0.75rem', top: '50%',
-                          transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.75rem',
+                          transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '12px',
                         }} />
                       </div>
-                      <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
                         Email cannot be changed. Contact an admin if you need to update it.
                       </p>
                     </Field>

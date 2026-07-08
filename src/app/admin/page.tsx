@@ -160,7 +160,7 @@ export default function AdminPage() {
                   <div style={{ fontSize: '1.15rem', fontWeight: 800, lineHeight: 1, color: 'var(--text)' }}>
                     {loadingStats && s.label !== 'Integrations' ? <i className="fa-solid fa-spinner fa-spin" /> : s.value}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{s.label}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{s.label}</div>
                 </div>
               </div>
             ))}
@@ -175,7 +175,7 @@ export default function AdminPage() {
                 {/* Section divider label */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                   <span style={{
-                    fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em',
+                    fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em',
                     textTransform: 'uppercase', color: 'var(--text-muted)',
                     whiteSpace: 'nowrap',
                   }}>
@@ -214,7 +214,7 @@ export default function AdminPage() {
                       <div style={{ marginTop: 'auto' }}>
                         <span style={{
                           display: 'inline-block',
-                          fontSize: '0.7rem', fontWeight: 600,
+                          fontSize: '12px', fontWeight: 600,
                           padding: '0.25rem 0.65rem',
                           borderRadius: '999px',
                           background: 'rgba(6,182,212,0.08)',

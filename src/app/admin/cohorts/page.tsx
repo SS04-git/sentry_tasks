@@ -125,7 +125,7 @@ export default function CohortsPage() {
                   ))}
                 </div>
 
-                <p style={{ fontSize: '0.75rem', textAlign: 'center', color: 'var(--text-muted)', marginTop: '1.25rem' }}>
+                <p style={{ fontSize: '12px', textAlign: 'center', color: 'var(--text-muted)', marginTop: '1.25rem' }}>
                   Cluster Centroids — Arrival Time vs Session Length
                 </p>
               </>

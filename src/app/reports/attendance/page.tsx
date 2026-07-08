@@ -79,9 +79,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.96)', border: '1px solid var(--border)',
+      background: '#fffffff5', border: '1px solid var(--border)',
       borderRadius: '10px', padding: '0.75rem 1rem', fontSize: '0.8rem',
-      boxShadow: '0 4px 20px rgba(15,23,42,0.1)',
+      boxShadow: '0 4px 20px #0f172a1a',
     }}>
       <p style={{ fontWeight: 700, marginBottom: '0.4rem', color: 'var(--text)' }}>
         w/c {label}
@@ -172,30 +172,17 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
         <h2>Upload attendance CSV</h2>
       </div>
 
-      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
-        Required columns: <code>person_id</code>, <code>event_ts</code>, <code>direction</code>.
-        Optional: <code>email</code> (used instead of <code>person_id</code> if left blank),
-        <code> access_method</code>, <code>access_result</code>.
-        <br />
-        <code>event_ts</code> must be ISO format, e.g. <code>2026-06-01T08:15:00</code>.
-        <code> direction</code> must be <code>entry</code> or <code>exit</code>. Duplicate rows are skipped automatically.
-      </p>
+      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.6, fontFamily: 'monospace',}}>
+      Required columns: person_id, event_ts, direction. Optional: email (used instead of person_id if left blank), access_method, access_result.
+      <br />
+      event_ts must be ISO format, e.g. 2026-06-01T08:15:00. direction must be entry or exit. Duplicate rows are skipped automatically.
+    </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv"
-          onChange={e => handleFileSelect(e.target.files?.[0] ?? null)}
-          style={{ fontSize: '0.85rem' }}
-        />
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={handleUpload}
-          disabled={!file || uploading}
-          style={{ minWidth: '110px' }}
-        >
+        <input ref={fileInputRef} type="file" accept=".csv"
+          onChange={e => handleFileSelect(e.target.files?.[0] ?? null)} style={{ fontSize: '0.85rem' }} />
+        <button type="button" className="btn btn-primary" onClick={handleUpload}
+          disabled={!file || uploading} style={{ minWidth: '110px' }}>
           {uploading
             ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }} />Uploading…</>
             : 'Upload'
@@ -204,11 +191,8 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
       </div>
 
       {error && (
-        <div style={{
-          padding: '0.85rem 1rem', borderRadius: '10px',
-          background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.3)',
-          color: '#f43f5e', fontSize: '0.85rem', marginTop: '0.75rem',
-        }}>
+        <div style={{ padding: '0.85rem 1rem', borderRadius: '10px', background: '#f43f5e14', border: '1px solid #f43f5e4d',
+          color: '#f43f5e', fontSize: '0.85rem', marginTop: '0.75rem', }}>
           <i className="fa-solid fa-circle-xmark" style={{ marginRight: '0.5rem' }} />
           {error}
         </div>
@@ -217,19 +201,17 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
       {result && (
         <div style={{ marginTop: '0.75rem' }}>
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
-            <div style={{
-              flex: 1, padding: '0.75rem 1rem', borderRadius: '10px',
-              background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)',
+            <div style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '10px',
+              background: '#10b98114', border: '1px solid #10b9814d',
             }}>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>Rows inserted</p>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Rows inserted</p>
               <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#10b981' }}>{result.rows_inserted}</p>
             </div>
-            <div style={{
-              flex: 1, padding: '0.75rem 1rem', borderRadius: '10px',
-              background: result.rows_skipped > 0 ? 'rgba(245,158,11,0.08)' : 'rgba(6,182,212,0.08)',
-              border: `1px solid ${result.rows_skipped > 0 ? 'rgba(245,158,11,0.3)' : 'rgba(6,182,212,0.3)'}`,
+            <div style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '10px',
+              background: result.rows_skipped > 0 ? '#f59e0b14' : '#06b6d414',
+              border: `1px solid ${result.rows_skipped > 0 ? '#f59e0b4d' : '#06b6d44d'}`,
             }}>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>Rows skipped</p>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Rows skipped</p>
               <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: result.rows_skipped > 0 ? '#f59e0b' : '#06b6d4' }}>
                 {result.rows_skipped}
               </p>
@@ -239,7 +221,7 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
           {result.errors.length > 0 && (
             <div style={{
               padding: '0.75rem 1rem', borderRadius: '10px',
-              background: 'rgba(245, 158, 11, 0.05)', border: '1px solid var(--border)',
+              background: '#f59e0b0d', border: '1px solid var(--border)',
               maxHeight: '180px', overflowY: 'auto',
             }}>
               <p style={{ margin: '0 0 0.4rem', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text)' }}>
@@ -334,7 +316,7 @@ export default function AttendanceReportPage() {
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
             <a href="/reports" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Reports</a>
-            <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.65rem' }}></i>
+            <i className="fa-solid fa-chevron-right" style={{ fontSize: '12px' }}></i>
             <span style={{ color: 'var(--text)', fontWeight: 600 }}>Attendance</span>
           </div>
 
@@ -458,7 +440,7 @@ export default function AttendanceReportPage() {
                         tickLine={false}
                         height={50}
                         interval={0} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit="%" />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit="%" />
                       <Tooltip formatter={(value) => [`${value}%`, 'Attendance']}
                         contentStyle={{ borderRadius: '10px', border: '1px solid var(--border)', fontSize: '0.8rem', }}/>
                       <Bar dataKey="pct" radius={[6, 6, 0, 0]} fill="#06b6d4" />
@@ -484,8 +466,8 @@ export default function AttendanceReportPage() {
                       margin={{ top: 4, right: 8, left: -20, bottom: 4 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="week" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="week" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: '0.78rem' }} />
                       <Line type="monotone" dataKey="days" name="Days present" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
@@ -502,13 +484,13 @@ export default function AttendanceReportPage() {
                   <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <i className="fa-solid fa-table icon-cyan"></i>
                     <h2 style={{ margin: 0 }}>Individual Breakdown</h2>
-                    <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>30-day window</span>
+                    <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-muted)' }}>30-day window</span>
                   </div>
 
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                       <thead>
-                      <tr style={{ background: 'rgba(6,182,212,0.04)' }}>
+                      <tr style={{ background: '#06b6d40a' }}>
                         {['Name', 'Role', 'Days present', 'Attendance', 'Avg arrival', 'Avg session', 'Total hours'].map((h) => (
                           <th key={h} style={{ padding: '0.75rem 1.25rem', textAlign: 'left', fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
                             {h}
@@ -532,13 +514,13 @@ export default function AttendanceReportPage() {
                             key={r.person_id}
                             style={{
                               borderBottom: i < kpi.data.length - 1 ? '1px solid var(--border)' : 'none',
-                              background: r.is_own ? 'rgba(6,182,212,0.04)' : 'transparent',
+                              background: r.is_own ? '#06b6d40a' : 'transparent',
                             }}
                           >
                             <td style={{ padding: '0.85rem 1.25rem', fontWeight: r.is_own ? 700 : 400, color: 'var(--text)' }}>
                               {r.full_name ?? '—'}
                               {r.is_own && (
-                                <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#06b6d4', fontWeight: 600 }}>you</span>
+                                <span style={{ marginLeft: '0.5rem', fontSize: '12px', color: '#06b6d4', fontWeight: 600 }}>you</span>
                               )}
                             </td>
                             <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{r.user_role}</td>
@@ -546,7 +528,7 @@ export default function AttendanceReportPage() {
                             <td style={{ padding: '0.85rem 1.25rem' }}>
                               <span style={{
                                 display: 'inline-block', padding: '0.2rem 0.65rem', borderRadius: '999px',
-                                fontSize: '0.75rem', fontWeight: 700,
+                                fontSize: '12px', fontWeight: 700,
                                 background: `${pctColor(r.attendance_pct)}18`,
                                 color: pctColor(r.attendance_pct),
                                 border: `1px solid ${pctColor(r.attendance_pct)}40`,

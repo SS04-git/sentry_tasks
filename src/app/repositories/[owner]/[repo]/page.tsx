@@ -318,18 +318,18 @@ const totalCommits = stats.reduce((sum, c) => sum + c.commits, 0);
                                 <div style={{ flex: 1, background: '#f43f5e', borderRadius: '0 999px 999px 0' }} />
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem' }}>
-                                <span style={{ fontSize: '0.72rem', color: '#10b981' }}>{addPct}% additions</span>
-                                <span style={{ fontSize: '0.72rem', color: '#f43f5e' }}>{100 - addPct}% deletions</span>
+                                <span style={{ fontSize: '12px', color: '#10b981' }}>{addPct}% additions</span>
+                                <span style={{ fontSize: '12px', color: '#f43f5e' }}>{100 - addPct}% deletions</span>
                               </div>
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.75rem' }}>
                               <div style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-                                <p style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700, marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Additions</p>
+                                <p style={{ fontSize: '12px', color: '#10b981', fontWeight: 700, marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Additions</p>
                                 <p style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981', margin: 0 }}>+{contributor.additions.toLocaleString()}</p>
                               </div>
                               <div style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)' }}>
-                                <p style={{ fontSize: '0.72rem', color: '#f43f5e', fontWeight: 700, marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deletions</p>
+                                <p style={{ fontSize: '12px', color: '#f43f5e', fontWeight: 700, marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deletions</p>
                                 <p style={{ fontSize: '1rem', fontWeight: 800, color: '#f43f5e', margin: 0 }}>-{contributor.deletions.toLocaleString()}</p>
                               </div>
                             </div>
@@ -386,7 +386,7 @@ const totalCommits = stats.reduce((sum, c) => sum + c.commits, 0);
                             <span style={{ color: 'var(--border)' }}>·</span>
                             {new Date(pr.opened_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             {pr.draft && (
-                              <span style={{ padding: '0.1rem 0.5rem', borderRadius: '999px', background: 'rgba(100,116,139,0.1)', color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600 }}>
+                              <span style={{ padding: '0.1rem 0.5rem', borderRadius: '999px', background: 'rgba(100,116,139,0.1)', color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600 }}>
                                 Draft
                               </span>
                             )}

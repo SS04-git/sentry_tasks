@@ -25,8 +25,8 @@ export function KpiCaveat({ kpiKey, text }: KpiCaveatProps) {
       background: 'var(--surface-alt)',
       borderRadius: '8px', borderLeft: '2px solid var(--border)',
     }}>
-      <i className="fa-solid fa-circle-info" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }} />
-      <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{message}</p>
+      <i className="fa-solid fa-circle-info" style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }} />
+      <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{message}</p>
     </div>
   );
 }

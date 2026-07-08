@@ -36,7 +36,7 @@ function parseGitHubUrl(input: string): { owner: string; repo: string } | null {
 
 const TH: React.CSSProperties = {
   padding: '0.65rem 1rem',
-  fontSize: '0.75rem',
+  fontSize: '12px',
   fontWeight: 600,
   color: 'var(--text-muted)',
   textTransform: 'uppercase',
@@ -60,7 +60,7 @@ function KpiCard({ icon, label, value, unit }: {
     <div className="card stat-card" style={{ padding: '1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
         <i className={icon} style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }} />
-        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           {label}
         </span>
       </div>
@@ -320,7 +320,7 @@ function DoraPageContent() {
                   style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }}
                 >
                   {owner} / {repo}
-                  <i className="fa-solid fa-arrow-up-right-from-square" style={{ marginLeft: '0.35rem', fontSize: '0.75rem' }} />
+                  <i className="fa-solid fa-arrow-up-right-from-square" style={{ marginLeft: '0.35rem', fontSize: '12px' }} />
                 </a>
                 <button
                   className="btn btn-ghost"

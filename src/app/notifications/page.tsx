@@ -221,7 +221,7 @@ export default function NotificationsPage() {
                 {cat === 'all' && unread > 0 && (
                   <span style={{
                     marginLeft: '0.4rem', background: '#f43f5e', color: 'white',
-                    borderRadius: '999px', fontSize: '0.68rem', fontWeight: 700,
+                    borderRadius: '999px', fontSize: '12px', fontWeight: 700,
                     padding: '0.1rem 0.45rem', display: 'inline-block', lineHeight: 1.4,
                   }}>
                     {unread}
@@ -279,13 +279,13 @@ export default function NotificationsPage() {
                       <p style={{ fontSize: '0.8rem', margin: 0, lineHeight: 1.5 }}>{notif.desc}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.5rem' }}>
                         <span style={{
-                          fontSize: '0.68rem', fontWeight: 600, textTransform: 'capitalize',
+                          fontSize: '12px', fontWeight: 600, textTransform: 'capitalize',
                           padding: '0.15rem 0.55rem', borderRadius: '999px',
                           background: cat.bg, color: cat.color,
                         }}>
                           {notif.category}
                         </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-light)' }}>{notif.time}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-light)' }}>{notif.time}</span>
                       </div>
                     </div>
 

@@ -46,7 +46,7 @@ function RiskBadge({ score }: { score: number }) {
         borderRadius: '50%', background: color, flexShrink: 0,
       }} />
       <span style={{ fontWeight: 700, color }}>{score.toFixed(2)}</span>
-      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</span>
     </span>
   );
 }
@@ -54,7 +54,7 @@ function RiskBadge({ score }: { score: number }) {
 function MetricCard({ label, value }: { label: string; value?: number | null }) {
   return (
     <div>
-      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>{label}</div>
+      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>{label}</div>
       <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>
         {value != null ? value.toFixed(2) : '—'}
       </div>
@@ -64,7 +64,7 @@ function MetricCard({ label, value }: { label: string; value?: number | null }) 
 
 const TH: React.CSSProperties = {
   padding: '0.65rem 1rem',
-  fontSize: '0.75rem',
+  fontSize: '12px',
   fontWeight: 600,
   color: 'var(--text-muted)',
   textTransform: 'uppercase',
@@ -186,7 +186,7 @@ export default function DefectRiskPage() {
           {/* Model metrics */}
           {metrics && (
             <div className="card card-static" style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
                 Model Performance
               </div>
               <div style={{ display: 'flex', gap: '2.5rem', flexWrap: 'wrap' }}>

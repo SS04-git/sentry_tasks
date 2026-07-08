@@ -249,7 +249,7 @@ useEffect(() => {
                         display: 'flex', alignItems: 'center', gap: '0.3rem',
                       }}
                     >
-                      Full report <i className="fa-solid fa-arrow-right" style={{ fontSize: '0.7rem' }}></i>
+                      Full report <i className="fa-solid fa-arrow-right" style={{ fontSize: '12px' }}></i>
                     </a>
                   )}
                 </div>
@@ -265,7 +265,7 @@ useEffect(() => {
                   <>
                     {/* This-week dots */}
                     <div style={{ marginBottom: '1.25rem' }}>
-                      <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         This week
                       </p>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -280,10 +280,10 @@ useEffect(() => {
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
                               {i < daysThisWeek && (
-                                <i className="fa-solid fa-check" style={{ color: 'white', fontSize: '0.7rem' }}></i>
+                                <i className="fa-solid fa-check" style={{ color: 'white', fontSize: '12px' }}></i>
                               )}
                             </div>
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 500 }}>{d}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>{d}</span>
                           </div>
                         ))}
                       </div>
@@ -309,9 +309,9 @@ useEffect(() => {
                       ].map((kpi) => (
                         <div key={kpi.label} style={{ padding: '0.85rem', borderRadius: '12px', background: 'rgba(6,182,212,0.04)', border: '1px solid rgba(6,182,212,0.1)' }}>
                           <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>{kpi.value}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{kpi.label}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{kpi.label}</div>
                           { kpi.label === 'Attendance rate' && (
-                            <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.4rem', lineHeight: 1.4 }}>
+                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '0.4rem', lineHeight: 1.4 }}>
                               Presence data should not be used as a performance score.
                             </p>)}
                           <AttendanceBar pct={kpi.pct} color={kpi.color} />
@@ -348,11 +348,11 @@ useEffect(() => {
 
                     {/* Privacy caveat */}
                     {attendance.cohort.avg_attendance_pct === null && (
-                      <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '0.75rem', fontStyle: 'italic' }}>
+                      <p style={{ fontSize: '12px', color: 'var(--text-light)', marginTop: '0.75rem', fontStyle: 'italic' }}>
                         Team comparison hidden — cohort too small.
                       </p>
                     )}
-                    <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '1rem', fontStyle: 'italic'}}>
+                    <p style={{ fontSize: '12px', color: 'var(--text-light)', marginTop: '1rem', fontStyle: 'italic'}}>
                       Attendance metrics reflect workplace presence only and do not represent productivity, impact, or employee performance.
                     </p>
                   </>
@@ -409,7 +409,7 @@ useEffect(() => {
                   <i className="fa-solid fa-bell icon-cyan"></i>
                   <h2>Recent Notifications</h2>
                   <a href="/notifications" style={{ marginLeft: 'auto', fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>
-                   View all <i className="fa-solid fa-arrow-right" style={{ fontSize: '0.7rem' }} /></a>    
+                   View all <i className="fa-solid fa-arrow-right" style={{ fontSize: '12px' }} /></a>    
                 </div>
                 {notifications.length > 0 ? (
                   <div className="notification-single">

@@ -1,18 +1,14 @@
-"""
-Consolidated module for SENTRY-50 / 51 / 52.
+# Covers:
+#   - Observability  : structured logging + alerting (SENTRY-52)
+#   - Governance     : train/test split, drift monitoring, retraining
+#                      trigger, sample auditing, report builder (SENTRY-50)
+#   - Pipeline       : ingest → clean → ML → refresh, with validation (SENTRY-51)
+#   - Scheduler      : APScheduler wiring for daily pipeline run (SENTRY-51)
 
-Covers:
-  - Observability  : structured logging + alerting (SENTRY-52)
-  - Governance     : train/test split, drift monitoring, retraining
-                     trigger, sample auditing, report builder (SENTRY-50)
-  - Pipeline       : ingest → clean → ML → refresh, with validation (SENTRY-51)
-  - Scheduler      : APScheduler wiring for daily pipeline run (SENTRY-51)
-
-SENTRY-49 (role-gate / suppression middleware) and
-SENTRY-53 (HTTPS / rate-limit / secrets) and
-SENTRY-54 (governance policy) live in their own layers
-(middleware and policy modules) and are intentionally kept separate.
-"""
+# Role-gate / suppression middleware) and
+# HTTPS / rate-limit / secrets) and
+# Governance policy) live in their own layers
+# (middleware and policy modules) and are intentionally kept separate.
 
 from __future__ import annotations
 

@@ -235,7 +235,7 @@ useEffect(() => {
             <div className="dashboard-column">
 
 
-              {/* ── Attendance Preview Card (SENTRY-23) ── */}
+              {/* ── Attendance Preview Card ── */}
               <div className="card">
                 <div className="section-header" style={{ marginBottom: '1.25rem' }}>
                   <i className="fa-solid fa-calendar-check icon-cyan"></i>

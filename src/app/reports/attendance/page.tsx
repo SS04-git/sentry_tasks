@@ -204,14 +204,14 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
             <div style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '10px',
               background: '#10b98114', border: '1px solid #10b9814d',
             }}>
-              <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Rows inserted</p>
+              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>Rows inserted</p>
               <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#10b981' }}>{result.rows_inserted}</p>
             </div>
             <div style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '10px',
               background: result.rows_skipped > 0 ? '#f59e0b14' : '#06b6d414',
               border: `1px solid ${result.rows_skipped > 0 ? '#f59e0b4d' : '#06b6d44d'}`,
             }}>
-              <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Rows skipped</p>
+              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>Rows skipped</p>
               <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: result.rows_skipped > 0 ? '#f59e0b' : '#06b6d4' }}>
                 {result.rows_skipped}
               </p>
@@ -219,10 +219,7 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
           </div>
 
           {result.errors.length > 0 && (
-            <div style={{
-              padding: '0.75rem 1rem', borderRadius: '10px',
-              background: '#f59e0b0d', border: '1px solid var(--border)',
-              maxHeight: '180px', overflowY: 'auto',
+            <div style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: '#f59e0b0d', border: '1px solid var(--border)', maxHeight: '180px', overflowY: 'auto',
             }}>
               <p style={{ margin: '0 0 0.4rem', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text)' }}>
                 Row errors {result.rows_skipped > result.errors.length ? '(showing first 50)' : ''}
@@ -253,6 +250,27 @@ export default function AttendanceReportPage() {
   const [error, setError]   = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const canUpload = ['admin', 'leadership'].includes(role);
+  const [clearing, setClearing] = useState(false);
+
+  const handleClear = async () => {
+    const token = getToken();
+    if (!token) return;
+
+    const confirmed = window.confirm(
+      'This will permanently delete all uploaded attendance records. Continue?'
+    );
+    if (!confirmed) return;
+
+    setClearing(true);
+    try {
+      await fetchWithAuth('api/v1/attendance/clear', token, { method: 'DELETE' });
+      await loadData();
+    } catch (e) {
+      setError('Failed to clear attendance data.');
+    } finally {
+      setClearing(false);
+    }
+  };
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -316,7 +334,7 @@ export default function AttendanceReportPage() {
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
             <a href="/reports" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Reports</a>
-            <i className="fa-solid fa-chevron-right" style={{ fontSize: '12px' }}></i>
+            <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.65rem' }}></i>
             <span style={{ color: 'var(--text)', fontWeight: 600 }}>Attendance</span>
           </div>
 
@@ -327,15 +345,32 @@ export default function AttendanceReportPage() {
               <p>30-day rolling window · cohort-framed · data suppressed for groups under 5</p>
             </div>
             {canUpload && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setShowUpload(v => !v)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-              >
-                <i className={`fa-solid ${showUpload ? 'fa-xmark' : 'fa-upload'}`} />
-                {showUpload ? 'Close' : 'Upload data'}
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  type="button" className="btn btn-primary" onClick={() => setShowUpload(v => !v)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }} >
+                  <i className={`fa-solid ${showUpload ? 'fa-xmark' : 'fa-upload'}`} />
+                  {showUpload ? 'Close' : 'Upload data'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  disabled={clearing || !hasData}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.6rem 1.1rem', borderRadius: '8px',
+                    background: '#f43f5e14', border: '1px solid #f43f5e4d',
+                    color: '#f43f5e', fontWeight: 600, fontSize: '0.85rem',
+                    cursor: clearing || !hasData ? 'not-allowed' : 'pointer',
+                    opacity: clearing || !hasData ? 0.5 : 1,
+                  }}
+                >
+                  {clearing
+                    ? <><i className="fa-solid fa-spinner fa-spin" />Clearing…</>
+                    : <><i className="fa-solid fa-trash" />Clear data</>
+                  }
+                </button>
+              </div>
             )}
           </div>
 
@@ -440,7 +475,7 @@ export default function AttendanceReportPage() {
                         tickLine={false}
                         height={50}
                         interval={0} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit="%" />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} unit="%" />
                       <Tooltip formatter={(value) => [`${value}%`, 'Attendance']}
                         contentStyle={{ borderRadius: '10px', border: '1px solid var(--border)', fontSize: '0.8rem', }}/>
                       <Bar dataKey="pct" radius={[6, 6, 0, 0]} fill="#06b6d4" />
@@ -466,8 +501,8 @@ export default function AttendanceReportPage() {
                       margin={{ top: 4, right: 8, left: -20, bottom: 4 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="week" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="week" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend wrapperStyle={{ fontSize: '0.78rem' }} />
                       <Line type="monotone" dataKey="days" name="Days present" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
@@ -484,7 +519,7 @@ export default function AttendanceReportPage() {
                   <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <i className="fa-solid fa-table icon-cyan"></i>
                     <h2 style={{ margin: 0 }}>Individual Breakdown</h2>
-                    <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-muted)' }}>30-day window</span>
+                    <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>30-day window</span>
                   </div>
 
                   <div style={{ overflowX: 'auto' }}>
@@ -520,7 +555,7 @@ export default function AttendanceReportPage() {
                             <td style={{ padding: '0.85rem 1.25rem', fontWeight: r.is_own ? 700 : 400, color: 'var(--text)' }}>
                               {r.full_name ?? '—'}
                               {r.is_own && (
-                                <span style={{ marginLeft: '0.5rem', fontSize: '12px', color: '#06b6d4', fontWeight: 600 }}>you</span>
+                                <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#06b6d4', fontWeight: 600 }}>you</span>
                               )}
                             </td>
                             <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{r.user_role}</td>
@@ -528,7 +563,7 @@ export default function AttendanceReportPage() {
                             <td style={{ padding: '0.85rem 1.25rem' }}>
                               <span style={{
                                 display: 'inline-block', padding: '0.2rem 0.65rem', borderRadius: '999px',
-                                fontSize: '12px', fontWeight: 700,
+                                fontSize: '0.75rem', fontWeight: 700,
                                 background: `${pctColor(r.attendance_pct)}18`,
                                 color: pctColor(r.attendance_pct),
                                 border: `1px solid ${pctColor(r.attendance_pct)}40`,

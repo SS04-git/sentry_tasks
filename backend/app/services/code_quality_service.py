@@ -1,20 +1,16 @@
-"""
-SENTRY-32  Code quality scanner pipeline
-------------------------------------------
-For a given owner/repo:
-  1. Download a tarball of the default branch via the GitHub API (no full clone).
-  2. Run lizard for cyclomatic complexity (Python, JS, TS, TSX).
-  3. Run ruff for Python lint, eslint for JS/TS/TSX lint.
-  4. Run gitleaks for secret scanning.
-  5. Run semgrep for vuln/security findings (folded into the same alert table as secrets,
-     tool='semgrep' vs tool='gitleaks').
-  6. Pull churn (additions/deletions/commit count per file) from the GitHub API —
-     reuses GitCommit / GitFileChange data already synced by github.py, falls back
-     to a live commits/{sha} call if a file has no synced data yet.
-  7. Persist everything under a single code_quality_scan row.
-
-Never auto-acts — purely writes scan results for the dashboard / alert feed to read.
-"""
+# Code quality scanner pipeline
+# For a given owner/repo:
+#   1. Download a tarball of the default branch via the GitHub API (no full clone).
+#   2. Run lizard for cyclomatic complexity (Python, JS, TS, TSX).
+#   3. Run ruff for Python lint, eslint for JS/TS/TSX lint.
+#   4. Run gitleaks for secret scanning.
+#   5. Run semgrep for vuln/security findings (folded into the same alert table as secrets,
+#      tool='semgrep' vs tool='gitleaks').
+#   6. Pull churn (additions/deletions/commit count per file) from the GitHub API —
+#      reuses GitCommit / GitFileChange data already synced by github.py, falls back
+#      to a live commits/{sha} call if a file has no synced data yet.
+#   7. Persist everything under a single code_quality_scan row.
+# Never auto-acts — purely writes scan results for the dashboard / alert feed to read.
 
 from __future__ import annotations
 

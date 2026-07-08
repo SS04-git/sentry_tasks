@@ -1,7 +1,4 @@
-"""
-SENTRY-22  Attendance KPI API  (A1-A6)
---------------------------------------
-"""
+# Attendance KPI API  (A1-A6)
 
 from __future__ import annotations
 
@@ -502,3 +499,27 @@ def _get_unlinked_contributors(db: Session, window_days: int = 30) -> list[dict]
         for login, data in by_login.items()
         if login not in linked_logins
     ]
+
+# CLEAR DATA
+@router.delete("/clear")
+async def clear_attendance_data(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("admin", "leadership")),
+):
+    result = db.execute(text("SELECT COUNT(*) FROM fact_access_event"))
+    row_count = result.scalar()
+
+    db.execute(text("TRUNCATE TABLE fact_access_event"))
+    db.commit()
+
+    db.execute(text("""
+        INSERT INTO audit_logs (action, performed_by, target_user, detail, created_at)
+        VALUES (:action, :performed_by, NULL, :detail, now())
+    """), {
+        "action": "attendance_data_cleared",
+        "performed_by": current_user["email"],
+        "detail": f"rows_cleared={row_count}",
+    })
+    db.commit()
+
+    return {"rows_cleared": row_count}

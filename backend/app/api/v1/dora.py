@@ -1,14 +1,11 @@
-"""
-SENTRY-36  DORA Delivery Metrics API 
----------------------------------------------------
-F1  /deployment-frequency    Deployments per week (merged-PR proxy)
-F2  /lead-time               PR open → merge time series
-F3  /change-failure-rate     Fix-PR ratio per week
-F4  /time-to-restore         Fix-PR duration per week
-F5  /review-latency          PR open → first review → merge per week
-F7  /szz-blame               Fix commits traced to bug-introducing commits
-    /kpi-summary             Headline KPIs for the four stat cards
-"""
+#  DORA Delivery Metrics API 
+# F1  /deployment-frequency    Deployments per week (merged-PR proxy)
+# F2  /lead-time               PR open → merge time series
+# F3  /change-failure-rate     Fix-PR ratio per week
+# F4  /time-to-restore         Fix-PR duration per week
+# F5  /review-latency          PR open → first review → merge per week
+# F7  /szz-blame               Fix commits traced to bug-introducing commits
+#     /kpi-summary             Headline KPIs for the four stat cards
 
 from __future__ import annotations
 

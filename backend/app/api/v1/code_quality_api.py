@@ -1,11 +1,10 @@
-"""
-SENTRY-33  Code Quality KPI API
-E1  /complexity        per-repo complexity summary (latest scan)
-E2  /churn             per-repo churn summary (latest scan)
-E3  /lint              lint density summary + paginated findings list
-E4  /secrets           open secret-scan alert feed
-E5  /trend             complexity trend over time, per repo
-"""
+# Code Quality KPI API
+# E1  /complexity        per-repo complexity summary (latest scan)
+# E2  /churn             per-repo churn summary (latest scan)
+# E3  /lint              lint density summary + paginated findings list
+# E4  /secrets           open secret-scan alert feed
+# E5  /trend             complexity trend over time, per repo
+
 from __future__ import annotations
 print("LOADED CODE_QUALITY_API")
 

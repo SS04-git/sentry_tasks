@@ -239,7 +239,7 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
           {result.errors.length > 0 && (
             <div style={{
               padding: '0.75rem 1rem', borderRadius: '10px',
-              background: 'rgba(245,158,11,0.05)', border: '1px solid var(--border)',
+              background: 'rgba(245, 158, 11, 0.05)', border: '1px solid var(--border)',
               maxHeight: '180px', overflowY: 'auto',
             }}>
               <p style={{ margin: '0 0 0.4rem', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text)' }}>

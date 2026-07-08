@@ -65,6 +65,17 @@ def get_attendance_kpi(
 
     cohort_size = len(rows)
 
+    # Admin-only: merge in commit/lint stats for employees who have actually
+    # linked their own GitHub account (via OAuth) — e.g. an admin who is also
+    # the repo's contributor. Built from real github_accounts rows, not hardcoded.
+    own_commit_stats: dict[str, dict] = {}
+    if role == "admin":
+        by_login = _get_commit_and_lint_by_login(db)
+        linked_logins = _get_linked_github_logins(db)  # login -> person_id
+        for login, person_id in linked_logins.items():
+            if login in by_login:
+                own_commit_stats[person_id] = by_login[login]
+
     def _build(r):
         is_own = r["email"] == email
         visible = role in ("admin", "leadership") or is_own
@@ -85,9 +96,9 @@ def get_attendance_kpi(
             "avg_session_hours": float(r["avg_session_hours"]) if r["avg_session_hours"] else None,
             "total_session_hours": float(r["total_session_hours"]) if r["total_session_hours"] else None,
             "is_own": is_own,
-            "commit_count": None,
-            "lint_errors": None,
-            "lint_warnings": None,
+            "commit_count": own_commit_stats.get(r["person_id"], {}).get("commit_count") if role == "admin" else None,
+            "lint_errors": own_commit_stats.get(r["person_id"], {}).get("lint_errors") if role == "admin" else None,
+            "lint_warnings": own_commit_stats.get(r["person_id"], {}).get("lint_warnings") if role == "admin" else None,
         }
 
     if role == "employee":
@@ -100,10 +111,10 @@ def get_attendance_kpi(
     else:
         result = [_build(r) for r in rows]
 
-    # Admin-only: append real git contributors, sourced live from git_commits.
-    # No hardcoding — new contributors appear automatically on next commit.
+    # Admin-only: append contributors who are NOT linked to any employee's
+    # own account (linked ones were already merged into their row above).
     if role == "admin":
-        result = result + _get_all_contributors(db)
+        result = result + _get_unlinked_contributors(db)
 
     return {"cohort_size": cohort_size, "window_days": 30, "data": result}
 
@@ -395,12 +406,25 @@ async def upload_attendance_csv(
         "errors": errors[:50],
     }
 
-def _get_all_contributors(db: Session, window_days: int = 30) -> list[dict]:
+def _get_linked_github_logins(db: Session) -> dict[str, str]:
     """
-    Pulls every distinct git contributor directly from git_commits + lint views,
-    with NO dependency on github_accounts or the users table. This means new
-    contributors show up automatically the moment they commit to the connected
-    repo — nothing to insert or configure per person.
+    github_login -> person_id, for accounts that were actually connected via
+    real OAuth (i.e. rows in github_accounts). This is NOT hardcoded — it's
+    only populated when a person genuinely authorizes their GitHub account.
+    Used so someone who is both an employee AND the repo contributor gets
+    their commits merged into their own row instead of a duplicate one.
+    """
+    rows = db.execute(text("""
+        SELECT github_login, user_id::text AS person_id
+        FROM github_accounts
+    """)).mappings().all()
+    return {r["github_login"]: r["person_id"] for r in rows}
+
+
+def _get_commit_and_lint_by_login(db: Session, window_days: int = 30) -> dict[str, dict]:
+    """
+    Raw commit/lint counts keyed by github_login (not person_id) — used both
+    for merging into linked employee rows and for standalone contributor rows.
     """
     commit_rows = db.execute(text("""
         SELECT
@@ -435,11 +459,33 @@ def _get_all_contributors(db: Session, window_days: int = 30) -> list[dict]:
 
     lint_by_login = {r["author_github_login"]: r for r in lint_rows}
 
-    return [
-        {
-            "person_id": f"gh:{r['author_github_login']}",
+    return {
+        r["author_github_login"]: {
             "full_name": r["author_name"] or r["author_github_login"],
             "email": r["author_email"],
+            "commit_count": r["commit_count"],
+            "lint_errors": lint_by_login.get(r["author_github_login"], {}).get("error_count", 0),
+            "lint_warnings": lint_by_login.get(r["author_github_login"], {}).get("warning_count", 0),
+        }
+        for r in commit_rows
+    }
+
+
+def _get_unlinked_contributors(db: Session, window_days: int = 30) -> list[dict]:
+    """
+    Standalone contributor rows for GitHub logins that are NOT linked to any
+    employee via github_accounts. Linked logins (real OAuth accounts) get
+    merged into their own employee row instead — see get_attendance_kpi.
+    """
+    by_login = _get_commit_and_lint_by_login(db, window_days)
+
+    linked_logins = set(_get_linked_github_logins(db).keys())
+
+    return [
+        {
+            "person_id": f"gh:{login}",
+            "full_name": data["full_name"],
+            "email": data["email"],
             "user_role": "contributor",
             "days_present": None,
             "total_working_days": None,
@@ -449,9 +495,10 @@ def _get_all_contributors(db: Session, window_days: int = 30) -> list[dict]:
             "avg_session_hours": None,
             "total_session_hours": None,
             "is_own": False,
-            "commit_count": r["commit_count"],
-            "lint_errors": lint_by_login.get(r["author_github_login"], {}).get("error_count", 0),
-            "lint_warnings": lint_by_login.get(r["author_github_login"], {}).get("warning_count", 0),
+            "commit_count": data["commit_count"],
+            "lint_errors": data["lint_errors"],
+            "lint_warnings": data["lint_warnings"],
         }
-        for r in commit_rows
+        for login, data in by_login.items()
+        if login not in linked_logins
     ]

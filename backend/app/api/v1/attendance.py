@@ -35,7 +35,7 @@ def _minutes_to_hhmm(minutes: Optional[float]) -> Optional[str]:
     return f"{h:02d}:{m:02d}"
 
 
-# ── KPI ──
+# KPI
 
 @router.get("/kpi")
 def get_attendance_kpi(
@@ -65,15 +65,6 @@ def get_attendance_kpi(
 
     cohort_size = len(rows)
 
-    # ── Git commit correlation (REMOVABLE) — admin-only ──
-    if role == "admin":
-        commit_counts = _get_commit_counts(db)
-        lint_counts = _get_lint_error_counts(db)
-    else:
-        commit_counts = {}
-        lint_counts = {}
-    # ── end ──
-
     def _build(r):
         is_own = r["email"] == email
         visible = role in ("admin", "leadership") or is_own
@@ -94,9 +85,9 @@ def get_attendance_kpi(
             "avg_session_hours": float(r["avg_session_hours"]) if r["avg_session_hours"] else None,
             "total_session_hours": float(r["total_session_hours"]) if r["total_session_hours"] else None,
             "is_own": is_own,
-            "commit_count": commit_counts.get(r["person_id"]) if role == "admin" else None,
-            "lint_errors": lint_counts.get(r["person_id"], {}).get("error_count") if role == "admin" else None,
-            "lint_warnings": lint_counts.get(r["person_id"], {}).get("warning_count") if role == "admin" else None,
+            "commit_count": None,
+            "lint_errors": None,
+            "lint_warnings": None,
         }
 
     if role == "employee":
@@ -109,10 +100,14 @@ def get_attendance_kpi(
     else:
         result = [_build(r) for r in rows]
 
+    # Admin-only: append real git contributors, sourced live from git_commits.
+    # No hardcoding — new contributors appear automatically on next commit.
+    if role == "admin":
+        result = result + _get_all_contributors(db)
+
     return {"cohort_size": cohort_size, "window_days": 30, "data": result}
 
-# ── TREND ──
-
+# TREND
 @router.get("/trend")
 def get_attendance_trend(
     db: Session = Depends(get_db),
@@ -183,8 +178,7 @@ def get_attendance_trend(
     }
 
 
-# ── DAILY ──
-
+# DAILY
 @router.get("/daily")
 def get_daily_detail(
     person_id: Optional[str] = Query(default=None),
@@ -232,7 +226,6 @@ def get_daily_detail(
 
 
 # PREVIEW
-
 @router.get("/preview")
 def get_attendance_preview(
     db: Session = Depends(get_db),
@@ -292,7 +285,6 @@ def get_attendance_preview(
     }
 
 # CSV UPLOAD
-
 REQUIRED_CSV_COLUMNS = {"person_id", "event_ts", "direction"}
 
 @router.post("/upload")
@@ -403,42 +395,63 @@ async def upload_attendance_csv(
         "errors": errors[:50],
     }
 
-def _get_commit_counts(db: Session, window_days: int = 30) -> dict[str, int]:
+def _get_all_contributors(db: Session, window_days: int = 30) -> list[dict]:
     """
-    Maps person_id -> commit count in the last `window_days`, via
-    users -> github_accounts -> git_commits (matched on github_login).
-    Users without a linked GitHub account simply won't appear in the result.
+    Pulls every distinct git contributor directly from git_commits + lint views,
+    with NO dependency on github_accounts or the users table. This means new
+    contributors show up automatically the moment they commit to the connected
+    repo — nothing to insert or configure per person.
     """
-    rows = db.execute(text("""
+    commit_rows = db.execute(text("""
         SELECT
-            ga.user_id::text AS person_id,
+            gc.author_github_login,
+            MIN(gc.author_name) AS author_name,
+            MIN(gc.author_email) AS author_email,
             COUNT(gc.sha) AS commit_count
-        FROM github_accounts ga
-        JOIN git_commits gc
-            ON gc.author_github_login = ga.github_login
+        FROM git_commits gc
         WHERE gc.committed_at >= now() - (:window_days || ' days')::interval
-        GROUP BY ga.user_id
+        GROUP BY gc.author_github_login
     """), {"window_days": window_days}).mappings().all()
 
-    return {r["person_id"]: r["commit_count"] for r in rows}
-
-
-
-# Lint error attribution 
-def _get_lint_error_counts(db: Session) -> dict[str, dict]:
     try:
-        rows = db.execute(text("""
-            SELECT person_id, attributed_findings, error_count, warning_count
-            FROM public.v_lint_blame_by_person
+        lint_rows = db.execute(text("""
+            SELECT
+                author_github_login,
+                SUM(error_count) AS error_count,
+                SUM(warning_count) AS warning_count
+            FROM (
+                SELECT
+                    lb.author_github_login,
+                    lb.finding_id,
+                    CASE WHEN lb.severity = 'error' THEN 1 ELSE 0 END AS error_count,
+                    CASE WHEN lb.severity = 'warning' THEN 1 ELSE 0 END AS warning_count
+                FROM v_lint_blame_current lb
+            ) x
+            GROUP BY author_github_login
         """)).mappings().all()
     except Exception:
-        logger.warning("v_lint_blame_by_person unavailable; skipping lint correlation", exc_info=True)
-        return {}
-    return {
-        r["person_id"]: {
-            "attributed_findings": r["attributed_findings"],
-            "error_count": r["error_count"],
-            "warning_count": r["warning_count"],
+        logger.warning("v_lint_blame_current unavailable; skipping lint correlation", exc_info=True)
+        lint_rows = []
+
+    lint_by_login = {r["author_github_login"]: r for r in lint_rows}
+
+    return [
+        {
+            "person_id": f"gh:{r['author_github_login']}",
+            "full_name": r["author_name"] or r["author_github_login"],
+            "email": r["author_email"],
+            "user_role": "contributor",
+            "days_present": None,
+            "total_working_days": None,
+            "attendance_pct": None,
+            "avg_arrival": None,
+            "arrival_consistency": None,
+            "avg_session_hours": None,
+            "total_session_hours": None,
+            "is_own": False,
+            "commit_count": r["commit_count"],
+            "lint_errors": lint_by_login.get(r["author_github_login"], {}).get("error_count", 0),
+            "lint_warnings": lint_by_login.get(r["author_github_login"], {}).get("warning_count", 0),
         }
-        for r in rows
-    }
+        for r in commit_rows
+    ]

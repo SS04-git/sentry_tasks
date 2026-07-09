@@ -533,7 +533,7 @@ export default function AttendanceReportPage() {
                         ))}
                         {showCommitCorrelation && (
                           <th style={{ padding: '0.75rem 1.25rem', textAlign: 'left', fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>
-                            Commits (30d)
+                            Commits
                           </th>
                         )}
                         {showCommitCorrelation && (

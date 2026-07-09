@@ -29,6 +29,23 @@ def _minutes_to_hhmm(minutes: Optional[float]) -> Optional[str]:
     m = int(minutes) % 60
     return f"{h:02d}:{m:02d}"
 
+def _get_uploaded_data_range(db: Session) -> tuple[Optional[datetime], Optional[datetime]]:
+    """
+    Returns (earliest, latest) event_ts from the uploaded attendance CSV
+    (fact_access_event). Commit/lint correlation should be scoped to this
+    same window, not a fixed rolling 30 days from "now" — otherwise the
+    git activity shown has no relationship to the attendance dates being
+    displayed. Falls back to (None, None) if no data has been uploaded yet.
+    """
+    row = db.execute(text("""
+        SELECT MIN(event_ts) AS earliest, MAX(event_ts) AS latest
+        FROM fact_access_event
+    """)).mappings().fetchone()
+
+    if not row or row["earliest"] is None:
+        return None, None
+    return row["earliest"], row["latest"]
+
 
 # KPI
 
@@ -63,9 +80,13 @@ def get_attendance_kpi(
     # Admin-only: merge in commit/lint stats for employees who have actually
     # linked their own GitHub account (via OAuth) — e.g. an admin who is also
     # the repo's contributor. Built from real github_accounts rows, not hardcoded.
+    # Scoped to the actual date range of the uploaded attendance CSV, so
+    # commit counts correspond to the same window the attendance stats cover.
     own_commit_stats: dict[str, dict] = {}
+    data_start, data_end = (None, None)
     if role == "admin":
-        by_login = _get_commit_and_lint_by_login(db)
+        data_start, data_end = _get_uploaded_data_range(db)
+        by_login = _get_commit_and_lint_by_login(db, data_start, data_end)
         linked_logins = _get_linked_github_logins(db)  # login -> person_id
         for login, person_id in linked_logins.items():
             if login in by_login:
@@ -109,7 +130,7 @@ def get_attendance_kpi(
     # Admin-only: append contributors who are NOT linked to any employee's
     # own account (linked ones were already merged into their row above).
     if role == "admin":
-        result = result + _get_unlinked_contributors(db)
+        result = result + _get_unlinked_contributors(db, data_start, data_end)
 
     return {"cohort_size": cohort_size, "window_days": 30, "data": result}
 
@@ -416,38 +437,81 @@ def _get_linked_github_logins(db: Session) -> dict[str, str]:
     return {r["github_login"]: r["person_id"] for r in rows}
 
 
-def _get_commit_and_lint_by_login(db: Session, window_days: int = 30) -> dict[str, dict]:
+def _get_commit_and_lint_by_login(
+    db: Session,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+) -> dict[str, dict]:
     """
     Raw commit/lint counts keyed by github_login (not person_id) — used both
     for merging into linked employee rows and for standalone contributor rows.
+    Scoped to [start, end] — the actual date range of the uploaded attendance
+    data — so commit counts line up with the attendance window being shown.
+    Falls back to a rolling 30-day window if no attendance data has been
+    uploaded yet (start/end are None).
     """
-    commit_rows = db.execute(text("""
-        SELECT
-            gc.author_github_login,
-            MIN(gc.author_name) AS author_name,
-            MIN(gc.author_email) AS author_email,
-            COUNT(gc.sha) AS commit_count
-        FROM git_commits gc
-        WHERE gc.committed_at >= now() - (:window_days || ' days')::interval
-        GROUP BY gc.author_github_login
-    """), {"window_days": window_days}).mappings().all()
+    if start is None or end is None:
+        # No attendance data uploaded yet — fall back to a sane default
+        # so the admin still sees *something* from git_commits directly.
+        commit_rows = db.execute(text("""
+            SELECT
+                gc.author_github_login,
+                MIN(gc.author_name) AS author_name,
+                MIN(gc.author_email) AS author_email,
+                COUNT(DISTINCT gc.sha) AS commit_count
+            FROM git_commits gc
+            WHERE gc.committed_at >= now() - interval '30 days'
+            GROUP BY gc.author_github_login
+        """)).mappings().all()
+    else:
+        commit_rows = db.execute(text("""
+            SELECT
+                gc.author_github_login,
+                MIN(gc.author_name) AS author_name,
+                MIN(gc.author_email) AS author_email,
+                COUNT(DISTINCT gc.sha) AS commit_count
+            FROM git_commits gc
+            WHERE gc.committed_at >= :start
+              AND gc.committed_at <= :end
+            GROUP BY gc.author_github_login
+        """), {"start": start, "end": end}).mappings().all()
 
     try:
-        lint_rows = db.execute(text("""
-            SELECT
-                author_github_login,
-                SUM(error_count) AS error_count,
-                SUM(warning_count) AS warning_count
-            FROM (
+        if start is None or end is None:
+            lint_rows = db.execute(text("""
                 SELECT
-                    lb.author_github_login,
-                    lb.finding_id,
-                    CASE WHEN lb.severity = 'error' THEN 1 ELSE 0 END AS error_count,
-                    CASE WHEN lb.severity = 'warning' THEN 1 ELSE 0 END AS warning_count
-                FROM v_lint_blame_current lb
-            ) x
-            GROUP BY author_github_login
-        """)).mappings().all()
+                    author_github_login,
+                    SUM(error_count) AS error_count,
+                    SUM(warning_count) AS warning_count
+                FROM (
+                    SELECT
+                        lb.author_github_login,
+                        lb.finding_id,
+                        CASE WHEN lb.severity = 'error' THEN 1 ELSE 0 END AS error_count,
+                        CASE WHEN lb.severity = 'warning' THEN 1 ELSE 0 END AS warning_count
+                    FROM v_lint_blame_current lb
+                    WHERE lb.blamed_commit_at >= now() - interval '30 days'
+                ) x
+                GROUP BY author_github_login
+            """)).mappings().all()
+        else:
+            lint_rows = db.execute(text("""
+                SELECT
+                    author_github_login,
+                    SUM(error_count) AS error_count,
+                    SUM(warning_count) AS warning_count
+                FROM (
+                    SELECT
+                        lb.author_github_login,
+                        lb.finding_id,
+                        CASE WHEN lb.severity = 'error' THEN 1 ELSE 0 END AS error_count,
+                        CASE WHEN lb.severity = 'warning' THEN 1 ELSE 0 END AS warning_count
+                    FROM v_lint_blame_current lb
+                    WHERE lb.blamed_commit_at >= :start
+                      AND lb.blamed_commit_at <= :end
+                ) x
+                GROUP BY author_github_login
+            """), {"start": start, "end": end}).mappings().all()
     except Exception:
         logger.warning("v_lint_blame_current unavailable; skipping lint correlation", exc_info=True)
         lint_rows = []
@@ -466,13 +530,17 @@ def _get_commit_and_lint_by_login(db: Session, window_days: int = 30) -> dict[st
     }
 
 
-def _get_unlinked_contributors(db: Session, window_days: int = 30) -> list[dict]:
+def _get_unlinked_contributors(
+    db: Session,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+) -> list[dict]:
     """
     Standalone contributor rows for GitHub logins that are NOT linked to any
     employee via github_accounts. Linked logins (real OAuth accounts) get
     merged into their own employee row instead — see get_attendance_kpi.
     """
-    by_login = _get_commit_and_lint_by_login(db, window_days)
+    by_login = _get_commit_and_lint_by_login(db, start, end)
 
     linked_logins = set(_get_linked_github_logins(db).keys())
 

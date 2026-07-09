@@ -57,18 +57,42 @@ def get_attendance_kpi(
     email = current_user["email"]
     can_view_git_stats = role == "admin"   # single source of truth for this gate
 
-    rows = db.execute(text("""...""")).mappings().all()
+    rows = db.execute(text("""
+        SELECT
+            k.person_id,
+            u.full_name,
+            u.email,
+            u.role AS user_role,
+            k.days_present,
+            k.total_working_days,
+            k.attendance_pct,
+            k.avg_arrival_minutes,
+            k.arrival_stddev_minutes,
+            k.avg_session_hours,
+            k.total_session_hours
+        FROM public.v_attendance_kpi k
+        JOIN users u ON u.id::text = k.person_id
+        ORDER BY k.attendance_pct DESC NULLS LAST
+    """)).mappings().all()
     cohort_size = len(rows)
 
     own_commit_stats: dict[str, dict] = {}
     data_start, data_end = (None, None)
-    if can_view_git_stats:
-        data_start, data_end = _get_uploaded_data_range(db)
-        by_login = _get_commit_and_lint_by_login(db, data_start, data_end)
-        linked_logins = _get_linked_github_logins(db)
-        for login, person_id in linked_logins.items():
-            if login in by_login:
-                own_commit_stats[person_id] = by_login[login]
+    if role == "admin":
+        try:
+            data_start, data_end = _get_uploaded_data_range(db)
+            by_login = _get_commit_and_lint_by_login(db, data_start, data_end)
+            linked_logins = _get_linked_github_logins(db)  # login -> person_id
+            for login, person_id in linked_logins.items():
+                if login in by_login:
+                    own_commit_stats[person_id] = by_login[login]
+        except Exception:
+            logger.warning(
+                "Git commit/lint correlation unavailable (github_accounts/git_commits "
+                "tables may not exist on this DB); showing attendance without git stats.",
+                exc_info=True,
+            )
+            own_commit_stats = {}
 
     def _build(r):
         is_own = r["email"] == email

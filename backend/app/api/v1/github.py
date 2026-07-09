@@ -456,6 +456,7 @@ def get_commits(
     owner: str,
     repo: str,
     background_tasks: BackgroundTasks,
+    page: int = 1,
     per_page: int = 30,
     app_user: User = Depends(get_current_app_user),
 ):
@@ -463,7 +464,7 @@ def get_commits(
     response = rate_limited_get(
         f"https://api.github.com/repos/{owner}/{repo}/commits",
         access_token,
-        params={"per_page": per_page},
+        params={"per_page": per_page, "page": page},
     )
     data = response.json()
     if isinstance(data, dict) and data.get("message"):
@@ -482,8 +483,20 @@ def get_commits(
             "url": c.get("html_url", ""),
         })
 
-    background_tasks.add_task(sync_commits_to_db, owner, repo, data, access_token)
-    return result
+    # Only kick off the full-history sync once, on the first page the UI
+    # requests. The UI itself still only ever displays one page at a time
+    # (via "Load more"), but attendance.py's commit/lint correlation reads
+    # straight from git_commits, so that table needs the ENTIRE history,
+    # not just whatever page happens to be on screen.
+    if page == 1:
+        background_tasks.add_task(sync_full_commit_history, owner, repo, access_token)
+
+    return {
+        "commits": result,
+        "page": page,
+        "per_page": per_page,
+        "has_more": len(data) == per_page,
+    }
 
 
 def sync_commits_to_db(owner: str, repo: str, commits: list, access_token: str):
@@ -565,6 +578,45 @@ def sync_commits_to_db(owner: str, repo: str, commits: list, access_token: str):
             db_status.close()
     finally:
         db.close()
+
+
+def fetch_all_commits(owner: str, repo: str, access_token: str) -> list:
+    """
+    Paginates through GitHub's commits endpoint to retrieve the repo's
+    FULL commit history, not just one page. GitHub caps per_page at 100,
+    so keep requesting pages until a short/empty page signals the end.
+    """
+    all_commits = []
+    page = 1
+    while True:
+        res = rate_limited_get(
+            f"https://api.github.com/repos/{owner}/{repo}/commits",
+            access_token,
+            params={"per_page": 100, "page": page},
+        )
+        batch = res.json()
+        if not isinstance(batch, list) or not batch:
+            break
+        all_commits.extend(batch)
+        if len(batch) < 100:
+            break
+        page += 1
+    return all_commits
+
+
+def sync_full_commit_history(owner: str, repo: str, access_token: str):
+    """
+    Background task fired the first time a repo page is opened: fetches
+    every commit (all pages) and hands them to sync_commits_to_db, so the
+    DB always holds complete history regardless of what page the UI last
+    happened to display.
+    """
+    try:
+        all_commits = fetch_all_commits(owner, repo, access_token)
+        if all_commits:
+            sync_commits_to_db(owner, repo, all_commits, access_token)
+    except Exception as e:
+        print(f"Full commit history sync error: {e}")
 
 
 def sync_prs_to_db(owner: str, repo: str, prs: list, access_token: str):
@@ -938,13 +990,12 @@ def full_repo_sync(owner: str, repo: str, access_token: str):
             db.commit()
 
         # ── Commits ───────────────────────────────────────────────────────
-        commits_res = rate_limited_get(
-            f"https://api.github.com/repos/{owner}/{repo}/commits",
-            access_token,
-            params={"per_page": 100},
-        )
-        commits = commits_res.json()
-        if isinstance(commits, list):
+        # Full history (all pages), not just the first 100 — uses the same
+        # fetch_all_commits helper as get_commits' background sync, so both
+        # entry points (page load + manual "Sync" button) end up with a
+        # complete git_commits table.
+        commits = fetch_all_commits(owner, repo, access_token)
+        if commits:
             sync_commits_to_db(owner, repo, commits, access_token)
 
         # ── PRs — state=all so DORA views see merged PRs ────────────────

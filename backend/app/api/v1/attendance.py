@@ -48,7 +48,6 @@ def _get_uploaded_data_range(db: Session) -> tuple[Optional[datetime], Optional[
 
 
 # KPI
-
 @router.get("/kpi")
 def get_attendance_kpi(
     db: Session = Depends(get_db),
@@ -56,38 +55,17 @@ def get_attendance_kpi(
 ):
     role = current_user["role"]
     email = current_user["email"]
+    can_view_git_stats = role == "admin"   # single source of truth for this gate
 
-    rows = db.execute(text("""
-        SELECT
-            k.person_id,
-            u.full_name,
-            u.email,
-            u.role AS user_role,
-            k.days_present,
-            k.total_working_days,
-            k.attendance_pct,
-            k.avg_arrival_minutes,
-            k.arrival_stddev_minutes,
-            k.avg_session_hours,
-            k.total_session_hours
-        FROM public.v_attendance_kpi k
-        JOIN users u ON u.id::text = k.person_id
-        ORDER BY k.attendance_pct DESC NULLS LAST
-    """)).mappings().all()
-
+    rows = db.execute(text("""...""")).mappings().all()
     cohort_size = len(rows)
 
-    # Admin-only: merge in commit/lint stats for employees who have actually
-    # linked their own GitHub account (via OAuth) — e.g. an admin who is also
-    # the repo's contributor. Built from real github_accounts rows, not hardcoded.
-    # Scoped to the actual date range of the uploaded attendance CSV, so
-    # commit counts correspond to the same window the attendance stats cover.
     own_commit_stats: dict[str, dict] = {}
     data_start, data_end = (None, None)
-    if role == "admin":
+    if can_view_git_stats:
         data_start, data_end = _get_uploaded_data_range(db)
         by_login = _get_commit_and_lint_by_login(db, data_start, data_end)
-        linked_logins = _get_linked_github_logins(db)  # login -> person_id
+        linked_logins = _get_linked_github_logins(db)
         for login, person_id in linked_logins.items():
             if login in by_login:
                 own_commit_stats[person_id] = by_login[login]
@@ -112,9 +90,9 @@ def get_attendance_kpi(
             "avg_session_hours": float(r["avg_session_hours"]) if r["avg_session_hours"] else None,
             "total_session_hours": float(r["total_session_hours"]) if r["total_session_hours"] else None,
             "is_own": is_own,
-            "commit_count": own_commit_stats.get(r["person_id"], {}).get("commit_count") if role == "admin" else None,
-            "lint_errors": own_commit_stats.get(r["person_id"], {}).get("lint_errors") if role == "admin" else None,
-            "lint_warnings": own_commit_stats.get(r["person_id"], {}).get("lint_warnings") if role == "admin" else None,
+            "commit_count": own_commit_stats.get(r["person_id"], {}).get("commit_count") if can_view_git_stats else None,
+            "lint_errors": own_commit_stats.get(r["person_id"], {}).get("lint_errors") if can_view_git_stats else None,
+            "lint_warnings": own_commit_stats.get(r["person_id"], {}).get("lint_warnings") if can_view_git_stats else None,
         }
 
     if role == "employee":
@@ -127,9 +105,7 @@ def get_attendance_kpi(
     else:
         result = [_build(r) for r in rows]
 
-    # Admin-only: append contributors who are NOT linked to any employee's
-    # own account (linked ones were already merged into their row above).
-    if role == "admin":
+    if can_view_git_stats:
         result = result + _get_unlinked_contributors(db, data_start, data_end)
 
     return {"cohort_size": cohort_size, "window_days": 30, "data": result}

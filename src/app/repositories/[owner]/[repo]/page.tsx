@@ -20,6 +20,9 @@ export default function RepoDetailPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>('commits');
   const [commits, setCommits] = useState<any[]>([]);
+  const [commitsPage, setCommitsPage] = useState(1);
+  const [hasMoreCommits, setHasMoreCommits] = useState(false);
+  const [loadingMoreCommits, setLoadingMoreCommits] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -46,13 +49,15 @@ useEffect(() => {
       const token = getToken();
 
       const [commitsData, statsData, pullsData, repoData] = await Promise.all([
-        fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/commits`, token!),
+        fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/commits?page=1`, token!),
         fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/stats`, token!),
         fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/pulls`, token!),
         fetchWithAuth(`api/v1/github/repos/${owner}/${repo}`, token!),
       ]);
 
-      setCommits(Array.isArray(commitsData) ? commitsData : []);
+      setCommits(Array.isArray(commitsData?.commits) ? commitsData.commits : []);
+      setCommitsPage(1);
+      setHasMoreCommits(Boolean(commitsData?.has_more));
       setStats(Array.isArray(statsData) ? statsData : []);
       setPulls(Array.isArray(pullsData) ? pullsData : []);
       setRepoDetails(repoData);
@@ -78,6 +83,25 @@ const retryStats = () => {
     })
     .catch(() => {})
     .finally(() => setStatsLoading(false));
+};
+
+const loadMoreCommits = async () => {
+  setLoadingMoreCommits(true);
+  try {
+    const token = getToken();
+    const nextPage = commitsPage + 1;
+    const data = await fetchWithAuth(
+      `api/v1/github/repos/${owner}/${repo}/commits?page=${nextPage}`,
+      token!
+    );
+    setCommits((prev) => [...prev, ...(Array.isArray(data?.commits) ? data.commits : [])]);
+    setCommitsPage(nextPage);
+    setHasMoreCommits(Boolean(data?.has_more));
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingMoreCommits(false);
+  }
 };
 
 const tabStyle = (tab: Tab): React.CSSProperties => ({
@@ -265,6 +289,14 @@ const totalCommits = stats.reduce((sum, c) => sum + c.commits, 0);
                         </a>
                       </div>
                     ))
+                  )}
+                  {hasMoreCommits && (
+                    <div style={{ padding: '1rem', textAlign: 'center' }}>
+                      <button onClick={loadMoreCommits} disabled={loadingMoreCommits}>
+                        <i className={`fa-solid ${loadingMoreCommits ? 'fa-spinner fa-spin' : 'fa-chevron-down'} icon-sm`} style={{ marginRight: '0.4rem' }}></i>
+                        {loadingMoreCommits ? 'Loading…' : 'Load more commits'}
+                      </button>
+                    </div>
                   )}
                 </div>
               )}

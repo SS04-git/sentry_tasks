@@ -32,6 +32,36 @@ interface AttendancePreview {
   };
 }
 
+interface PreviewNotification {
+  id: string;
+  title: string;
+  desc: string;
+  time: string;
+  icon: string;
+  created_at: string;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60)    return 'just now';
+  if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+// Subset of action -> display meta, mirrors notifications/page.tsx.
+// Keep these two in sync if you add new audit action types.
+const ACTION_META: Record<string, { title: string; desc: (target: string, detail: string) => string; icon: string }> = {
+  create_user:     { title: 'User Created',     desc: (t) => `${t} was added to the system.`, icon: 'fa-user-plus' },
+  update_user:      { title: 'User Updated',     desc: (t) => `${t}'s profile was updated.`,   icon: 'fa-user-pen' },
+  disable_user:     { title: 'User Disabled',    desc: (t) => `${t}'s account was disabled.`,  icon: 'fa-user-slash' },
+  enable_user:      { title: 'User Enabled',     desc: (t) => `${t}'s account was re-enabled.`,icon: 'fa-user-check' },
+  assign_role:      { title: 'Role Changed',     desc: (t, d) => `${t}'s role was changed. ${d}`, icon: 'fa-id-badge' },
+  change_password:  { title: 'Password Changed', desc: (t) => `Password was changed for ${t}.`, icon: 'fa-key' },
+  update_profile:   { title: 'Profile Updated',  desc: (t, d) => `${t}'s profile was updated. ${d}`, icon: 'fa-user-pen' },
+};
+
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const role = user?.role ?? 'employee';
@@ -47,10 +77,8 @@ export default function DashboardPage() {
   const [attendance, setAttendance] = useState<AttendancePreview | null>(null);
   const [loadingAttendance, setLoadingAttendance] = useState(true);
   const [caveats, setCaveats] = useState<Record<string, string>>({});
-
-  const notifications = [
-    { id: 1, title: 'Password changed', desc: 'Your password was updated successfully', time: '1d ago', icon: 'fa-key' },
-  ];
+  const [notifications, setNotifications] = useState<PreviewNotification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
   const unreadCount = notifications.length;
 
   const teamMembers = [
@@ -121,6 +149,77 @@ useEffect(() => {
   };
   load();
 }, []);
+
+  useEffect(() => {
+  const loadNotifications = async () => {
+    const token = getToken();
+    if (!token) return;
+    const built: PreviewNotification[] = [];
+    const seenIds = new Set<string>();
+
+    const pushLog = (prefix: string, log: any) => {
+      const meta = ACTION_META[log.action];
+      if (!meta) return;
+      const id = `${prefix}-${log.id}`;
+      if (seenIds.has(id)) return;
+      seenIds.add(id);
+      built.push({
+        id,
+        title: meta.title,
+        desc: meta.desc(log.target_user ?? '', log.detail ?? ''),
+        time: timeAgo(log.created_at),
+        icon: meta.icon,
+        created_at: log.created_at,
+      });
+    };
+
+    // Own account activity — visible to everyone, mirrors notifications page.
+    try {
+      const ownLogs = await fetchWithAuth('api/v1/users/audit-logs/me', token);
+      if (Array.isArray(ownLogs)) {
+        ownLogs.slice(0, 10).forEach((log: any) => pushLog('own', log));
+      }
+    } catch { /* self audit trail not available — skip */ }
+
+    // Full audit log — admin/leadership only.
+    if (['admin', 'leadership'].includes(role)) {
+      try {
+        const logs = await fetchWithAuth('api/v1/users/audit-logs', token);
+        if (Array.isArray(logs)) {
+          logs.slice(0, 10).forEach((log: any) => pushLog('audit', log));
+        }
+      } catch { /* audit logs not available — skip */ }
+    }
+
+    // GitHub sync events.
+    try {
+      const syncStatus = await fetchWithAuth('api/v1/github/sync-status', token);
+      if (Array.isArray(syncStatus?.repos)) {
+        syncStatus.repos.forEach((r: any) => {
+          if (r.last_sync_at) {
+            const isError = r.status === 'error';
+            built.push({
+              id: `sync-${r.repo}`,
+              title: isError ? `Sync failed: ${r.repo}` : `Sync completed: ${r.repo}`,
+              desc: isError
+                ? `Error: ${r.error ?? 'unknown'}`
+                : `${r.commits_synced ?? 0} commits · ${r.prs_synced ?? 0} PRs updated.`,
+              time: timeAgo(r.last_sync_at),
+              icon: isError ? 'fa-circle-xmark' : 'fa-code-branch',
+              created_at: r.last_sync_at,
+            });
+          }
+        });
+      }
+    } catch { /* GitHub not connected — skip */ }
+
+    // Sort newest-first, keep only the most recent for the preview card.
+    built.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setNotifications(built.slice(0, 1));
+    setLoadingNotifications(false);
+  };
+  loadNotifications();
+}, [role]);
 
   const stats = [
     {
@@ -411,7 +510,12 @@ useEffect(() => {
                   <a href="/notifications" style={{ marginLeft: 'auto', fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>
                    View all <i className="fa-solid fa-arrow-right" style={{ fontSize: '12px' }} /></a>    
                 </div>
-                {notifications.length > 0 ? (
+                {loadingNotifications ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
+                    <i className="fa-solid fa-spinner fa-spin icon-cyan"></i>
+                    <p style={{ margin: 0, fontSize: '0.875rem' }}>Loading…</p>
+                  </div>
+                ) : notifications.length > 0 ? (
                   <div className="notification-single">
                     <i className={`fa-solid ${notifications[0].icon} icon-cyan notification-single-icon`}></i>
                     <div className="notification-single-body">

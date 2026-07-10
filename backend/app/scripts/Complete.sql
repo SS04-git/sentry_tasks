@@ -870,3 +870,7 @@ SELECT COUNT(*) FROM fact_access_event;  -- should return 0
 SELECT table_name FROM information_schema.views WHERE table_schema = 'public';
 SELECT COUNT(*) FROM users;
 SELECT to_regclass('public.v_attendance_kpi');
+
+
+
+

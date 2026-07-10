@@ -40,14 +40,19 @@ function RepositoriesContent() {
   }, [searchParams]);
 
   const disconnectGitHub = async () => {
-    try {
-      const token = getToken();
-      await fetchWithAuth('api/v1/github/disconnect', token!, { method: 'DELETE' });
-      setRepos([]);
-    } catch (err) {
-      console.error('Disconnect error:', err);
-    }
-  };
+  try {
+    const token = getToken();
+    await fetchWithAuth('api/v1/github/disconnect', token!, { method: 'DELETE' });
+    setRepos([]);
+    // Force a hard reload rather than just clearing local state — this
+    // guarantees no stale fetch results or component state linger from
+    // before the disconnect, and gives a clean baseline before the user
+    // reconnects.
+    window.location.reload();
+  } catch (err) {
+    console.error('Disconnect error:', err);
+  }
+};
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

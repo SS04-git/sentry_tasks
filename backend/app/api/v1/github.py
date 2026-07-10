@@ -77,22 +77,6 @@ def check_rate_limit(token: str) -> dict:
     }
 
 
-def revoke_github_grant(access_token: str):
-    """Revokes the OAuth grant on GitHub's side so the user must
-    re-authorize (and re-login if their GitHub session has expired)
-    the next time they connect — instead of GitHub silently
-    re-issuing a code because the grant still exists."""
-    try:
-        requests.delete(
-            f"https://api.github.com/applications/{config.GITHUB_CLIENT_ID}/grant",
-            auth=(config.GITHUB_CLIENT_ID, config.GITHUB_CLIENT_SECRET),
-            json={"access_token": access_token},
-            timeout=10,
-        )
-    except Exception as e:
-        print(f"Failed to revoke GitHub grant: {e}")
-
-
 def rate_limited_get(url: str, token: str, params: dict = None, min_remaining: int = 50):
     """GET with rate-limit awareness — sleeps if budget is low."""
     rate = check_rate_limit(token)
@@ -344,8 +328,6 @@ def disconnect_github(current_user=Depends(get_current_user)):
         if not account:
             return {"message": "No GitHub account connected"}
 
-        revoke_github_grant(account.access_token)   # <-- ADD THIS LINE
-
         repos = db.query(GitRepo).filter(GitRepo.github_account_id == account.id).all()
         repo_ids = [r.repo_id for r in repos]
 
@@ -365,6 +347,7 @@ def disconnect_github(current_user=Depends(get_current_user)):
         return {"message": "GitHub disconnected"}
     finally:
         db.close()
+
 
 # ── Repositories ──────────────────────────────────────────────────────────────
 

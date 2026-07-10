@@ -44,7 +44,6 @@ function RepositoriesContent() {
       const token = getToken();
       await fetchWithAuth('api/v1/github/disconnect', token!, { method: 'DELETE' });
       setRepos([]);
-      alert('GitHub disconnected. You will need to log in again next time.'); // optional
     } catch (err) {
       console.error('Disconnect error:', err);
     }

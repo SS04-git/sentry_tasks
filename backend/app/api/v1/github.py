@@ -77,6 +77,22 @@ def check_rate_limit(token: str) -> dict:
     }
 
 
+def revoke_github_grant(access_token: str):
+    """Revokes the OAuth grant on GitHub's side so the user must
+    re-authorize (and re-login if their GitHub session has expired)
+    the next time they connect — instead of GitHub silently
+    re-issuing a code because the grant still exists."""
+    try:
+        requests.delete(
+            f"https://api.github.com/applications/{config.GITHUB_CLIENT_ID}/grant",
+            auth=(config.GITHUB_CLIENT_ID, config.GITHUB_CLIENT_SECRET),
+            json={"access_token": access_token},
+            timeout=10,
+        )
+    except Exception as e:
+        print(f"Failed to revoke GitHub grant: {e}")
+
+
 def rate_limited_get(url: str, token: str, params: dict = None, min_remaining: int = 50):
     """GET with rate-limit awareness — sleeps if budget is low."""
     rate = check_rate_limit(token)
@@ -328,27 +344,7 @@ def disconnect_github(current_user=Depends(get_current_user)):
         if not account:
             return {"message": "No GitHub account connected"}
 
-        # Revoke the OAuth grant on GitHub's side FIRST. Without this,
-        # GitHub still remembers the user authorized this app, so the next
-        # "Connect GitHub" click skips the consent screen entirely and just
-        # silently re-issues a token — it never actually re-prompts login,
-        # it just looks like the repos reloaded. Revoking here is what
-        # forces a genuine re-auth on next connect.
-        try:
-            revoke_res = requests.delete(
-                f"https://api.github.com/applications/{config.GITHUB_CLIENT_ID}/grant",
-                auth=(config.GITHUB_CLIENT_ID, config.GITHUB_CLIENT_SECRET),
-                json={"access_token": account.access_token},
-                timeout=10,
-            )
-            if revoke_res.status_code not in (204, 404):
-                # 404 means GitHub already doesn't know about this grant
-                # (e.g. user revoked it manually on GitHub's side already) —
-                # safe to ignore. Anything else, log it but don't block
-                # the local disconnect from completing.
-                print(f"GitHub grant revoke returned {revoke_res.status_code}: {revoke_res.text}")
-        except requests.RequestException as e:
-            print(f"GitHub grant revoke failed: {e}")
+        revoke_github_grant(account.access_token)   # <-- ADD THIS LINE
 
         repos = db.query(GitRepo).filter(GitRepo.github_account_id == account.id).all()
         repo_ids = [r.repo_id for r in repos]

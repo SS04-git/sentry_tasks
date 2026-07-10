@@ -130,6 +130,17 @@ def parse_dt(s: str):
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 
+def is_sync_running(repo_full_name: str) -> bool:
+    db: Session = SessionLocal()
+    try:
+        status = db.query(GitSyncStatus).filter(
+            GitSyncStatus.repo_full_name == repo_full_name
+        ).first()
+        return bool(status and status.last_sync_status == "running")
+    finally:
+        db.close()
+
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @router.get("/login")
@@ -488,7 +499,7 @@ def get_commits(
     # (via "Load more"), but attendance.py's commit/lint correlation reads
     # straight from git_commits, so that table needs the ENTIRE history,
     # not just whatever page happens to be on screen.
-    if page == 1:
+    if page == 1 and not is_sync_running(f"{owner}/{repo}"):
         background_tasks.add_task(sync_full_commit_history, owner, repo, access_token)
 
     return {
@@ -545,6 +556,7 @@ def sync_commits_to_db(owner: str, repo: str, commits: list, access_token: str):
                 db.flush()
             except IntegrityError as e:
                 db.rollback()
+                db.close()
                 db = SessionLocal()
                 git_repo = db.query(GitRepo).filter(
                     GitRepo.full_name == f"{owner}/{repo}").first()
@@ -611,6 +623,11 @@ def sync_full_commit_history(owner: str, repo: str, access_token: str):
     DB always holds complete history regardless of what page the UI last
     happened to display.
     """
+    db_status: Session = SessionLocal()
+    try:
+        update_sync_status(db_status, f"{owner}/{repo}", "running")
+    finally:
+        db_status.close()
     try:
         all_commits = fetch_all_commits(owner, repo, access_token)
         if all_commits:
@@ -937,6 +954,8 @@ def trigger_sync(
     app_user: User = Depends(get_current_app_user),
 ):
     access_token = get_github_token(app_user.id)
+    if is_sync_running(f"{owner}/{repo}"):
+        return {"message": f"Sync already running for {owner}/{repo}"}
     background_tasks.add_task(full_repo_sync, owner, repo, access_token)
     return {"message": f"Sync started for {owner}/{repo}"}
 

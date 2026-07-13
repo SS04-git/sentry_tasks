@@ -342,7 +342,7 @@ export default function AttendanceReportPage() {
           <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
               <h1>Attendance & Presence</h1>
-              <p>30-day rolling window · cohort-framed · data suppressed for groups under 5</p>
+              <p>Cohort-framed · data suppressed for groups under 5</p>
             </div>
             {canUpload && (
               <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -519,7 +519,6 @@ export default function AttendanceReportPage() {
                   <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <i className="fa-solid fa-table icon-cyan"></i>
                     <h2 style={{ margin: 0 }}>Individual Breakdown</h2>
-                    <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>30-day window</span>
                   </div>
 
                   <div style={{ overflowX: 'auto' }}>
@@ -605,9 +604,7 @@ export default function AttendanceReportPage() {
                     <ul style={{ margin: 0, paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                       {[
                         'Attendance is computed from imported badge/access-event records (via CSV upload). Remote or hybrid days are not captured unless included in the upload.',
-                        'Session hours = last exit − first entry. Missing exit events result in null session hours for that day.',
-                        'Team-level figures are hidden when the cohort has fewer than 5 members.',
-                        '30-day window is rolling and excludes weekends. Working days count may vary by locale.',
+                        'Session hours = last exit − first entry. Missing exit events result in null session hours for that day.'
                       ].map((note) => (
                         <li key={note} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{note}</li>
                       ))}

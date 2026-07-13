@@ -8,7 +8,7 @@ SUPPRESSION_THRESHOLD = 5
 KPI_CAVEATS = {
     "deployment_frequency": "Deployment frequency reflects release activity and is best interpreted alongside other delivery metrics.",
     "lead_time":            "Lead time is most meaningful when evaluated alongside quality and reliability metrics.",
-    "occupancy":            "Occupancy measures facility usage within the workplace.",
+    "occupancy":            "Occupancy measures facility usage within a workplace.",
     "attendance":           "Attendance records reflect workforce presence for operational reporting.",
     "commit_count":         "Commit count reflects repository activity and contribution patterns over time.",
     "pull_requests":        "Pull request count reflects code review and development workflow activity.",

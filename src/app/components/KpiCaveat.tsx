@@ -1,11 +1,11 @@
 // app/components/KpiCaveat.tsx
 const KPI_CAVEATS = {
-  deployment_frequency: 'High deployment counts do not imply higher team performance.',
-  lead_time:            'Lead time should be interpreted alongside quality metrics.',
-  occupancy:            'Occupancy reflects building utilization, not employee productivity.',
-  attendance:           'Attendance is operational data and must not be used as a performance score.',
-  commit_count:         'Commit counts are gameable and should not be used for performance evaluation.',
-  pull_requests:        'PR volume measures workflow activity, not impact.',
+    "deployment_frequency": "Deployment frequency reflects release activity and is best interpreted alongside other delivery metrics.",
+    "lead_time":            "Lead time is most meaningful when evaluated alongside quality and reliability metrics.",
+    "occupancy":            "Occupancy measures facility usage within a workplace.",
+    "attendance":           "Attendance records reflect workforce presence for operational reporting.",
+    "commit_count":         "Commit count reflects repository activity and contribution patterns over time.",
+    "pull_requests":        "Pull request count reflects code review and development workflow activity.",
 } as const;
 
 type KpiKey = keyof typeof KPI_CAVEATS;

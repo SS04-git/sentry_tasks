@@ -5,10 +5,9 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import PageNav from '@/app/components/PageNav';
 import { getToken } from '@/app/lib/auth';
 import { getTrend, getForecast, getKPI } from '@/app/lib/occupancy';
-import { KpiCaveat } from '@/app/components/KpiCaveat';
+import { KpiCaveat, OccupancyKPICard } from '@/app/components/KpiCaveat';
 import OccupancyTrendChart from '@/app/components/OccupancyTrendChart';
 import ForecastChart from '@/app/components/ForecastChart';
-import OccupancyKPICard from '@/app/components/OccupancyKPICard';
 import type { OccupancyTrend, ForecastPoint, OccupancyKPI } from '@/app/lib/occupancy';
 
 export default function OccupancyPage() {

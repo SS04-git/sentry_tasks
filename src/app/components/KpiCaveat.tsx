@@ -1,11 +1,12 @@
 // app/components/KpiCaveat.tsx
+
 const KPI_CAVEATS = {
-    "deployment_frequency": "Deployment frequency reflects release activity and is best interpreted alongside other delivery metrics.",
-    "lead_time":            "Lead time is most meaningful when evaluated alongside quality and reliability metrics.",
-    "occupancy":            "Occupancy measures facility usage within a workplace.",
-    "attendance":           "Attendance records reflect workforce presence for operational reporting.",
-    "commit_count":         "Commit count reflects repository activity and contribution patterns over time.",
-    "pull_requests":        "Pull request count reflects code review and development workflow activity.",
+  "deployment_frequency": "Deployment frequency reflects release activity and is best interpreted alongside other delivery metrics.",
+  "lead_time":            "Lead time is most meaningful when evaluated alongside quality and reliability metrics.",
+  "occupancy":            "Occupancy measures facility usage within a workplace.",
+  "attendance":           "Attendance records reflect workforce presence for operational reporting.",
+  "commit_count":         "Commit count reflects repository activity and contribution patterns over time.",
+  "pull_requests":        "Pull request count reflects code review and development workflow activity.",
 } as const;
 
 type KpiKey = keyof typeof KPI_CAVEATS;
@@ -27,6 +28,42 @@ export function KpiCaveat({ kpiKey, text }: KpiCaveatProps) {
     }}>
       <i className="fa-solid fa-circle-info" style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }} />
       <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{message}</p>
+    </div>
+  );
+}
+
+interface OccupancyKPICardProps {
+  title: string;
+  value: number | string;
+  icon?: string;
+  kpiKey?: KpiKey;   // optional — pass this to show the caveat inline
+  caveat?: string;   // optional — override with custom text instead of the lookup
+}
+
+export function OccupancyKPICard({
+  title,
+  value,
+  icon,
+  kpiKey,
+  caveat,
+}: OccupancyKPICardProps) {
+  return (
+    <div className="card stat-card">
+      <div className="stat-top">
+        <div className="icon-badge icon-badge-cyan">
+          <i className={`fa-solid ${icon} icon-cyan`} />
+        </div>
+      </div>
+
+      <div className="stat-value">
+        {value}
+      </div>
+
+      <div className="stat-label">
+        {title}
+      </div>
+
+      {(kpiKey || caveat) && <KpiCaveat kpiKey={kpiKey} text={caveat} />}
     </div>
   );
 }

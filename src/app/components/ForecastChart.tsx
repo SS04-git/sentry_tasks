@@ -66,20 +66,15 @@ export default function ForecastChart({ data }: Props) {
           };
           return [value, labels[name as string] ?? (name as string)];
           }}/>
-          <Area
-            type="monotone"
-            dataKey="yhat_upper"
-            stroke="none"
-            fill="#06b6d4"
-            fillOpacity={0.08}
-          />
-          <Area
-            type="monotone"
-            dataKey="yhat_lower"
-            stroke="none"
-            fill="#ffffff"
-            fillOpacity={1}
-          />
+          <Area         
+ type="monotone"  
+  dataKey={(d: any) => [d.yhat_lower, d.yhat_upper]}
+  stroke="none"
+  fill="#06b6d4"
+  fillOpacity={0.08}
+/>
+<Line type="monotone" dataKey="yhat_lower" stroke="#06b6d4" strokeWidth={1} strokeDasharray="4 3" dot={false} />
+<Line type="monotone" dataKey="yhat_upper" stroke="#06b6d4" strokeWidth={1} strokeDasharray="4 3" dot={false} />
           <Line type="linear" dataKey="yhat" stroke="#00404b" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>

@@ -15,6 +15,8 @@ from app.db.database import get_db
 
 from app.core.governance import suppress, should_suppress
 
+from app.ml.anomalyJob import run_anomaly_detection
+
 logger = logging.getLogger("backend")
 router = APIRouter()
 
@@ -405,6 +407,11 @@ async def upload_attendance_csv(
 
     db.commit()
 
+    try:
+        run_anomaly_detection(db)
+    except Exception:
+        logger.warning("Anomaly scan failed after CSV upload", exc_info=True)
+
     db.execute(text("""
         INSERT INTO audit_logs (action, performed_by, target_user, detail, created_at)
         VALUES (:action, :performed_by, NULL, :detail, now())
@@ -421,6 +428,7 @@ async def upload_attendance_csv(
         "rows_skipped": skipped,
         "errors": errors[:50],
     }
+
 
 def _get_linked_github_logins(db: Session) -> dict[str, str]:
     """

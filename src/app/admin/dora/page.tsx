@@ -350,35 +350,6 @@ function DoraPageContent() {
                     <KpiCard icon="fa-solid fa-code-pull-request" label="PR Review Latency"  value={reviewLatency?.value ?? null}       unit="hrs" />
                   </div>
 
-                  {/* Summary table */}
-                  <div className="card card-static" style={{ padding: 0, marginBottom: '2rem' }}>
-                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-                      <h2 style={{ margin: 0 }}>DORA Performance Summary</h2>
-                    </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr>
-                          <th style={TH}>Metric</th>
-                          <th style={{ ...TH, textAlign: 'right' }}>Value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { label: 'Deployment Frequency',  value: `${deploymentFrequency?.value ?? 0} / wk` },
-                          { label: 'Lead Time for Change',  value: `${leadTime?.value ?? 0} hrs` },
-                          { label: 'Change Failure Rate',   value: `${failureRate?.value ?? 0}%` },
-                          { label: 'Time to Restore',       value: `${restoreTime?.value ?? 0} hrs` },
-                          { label: 'PR Review Latency',     value: `${reviewLatency?.value ?? 0} hrs` },
-                        ].map((row, i) => (
-                          <tr key={row.label} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-subtle, rgba(0,0,0,0.02))' }}>
-                            <td style={TD}>{row.label}</td>
-                            <td style={{ ...TD, textAlign: 'right', fontWeight: 600 }}>{row.value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
                   {/* SZZ */}
                   <div className="card card-static" style={{ padding: 0 }}>
                     <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>

@@ -342,7 +342,7 @@ function DoraPageContent() {
               ) : (
                 <>
                   {/* KPI Cards */}
-                  <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+                  <div className="stats-grid" style={{ marginBottom: '2rem', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
                     <KpiCard icon="fa-solid fa-rocket"         label="Deployment Frequency"  value={deploymentFrequency?.value ?? null} unit="/ wk" />
                     <KpiCard icon="fa-solid fa-hourglass-half" label="Lead Time for Change"   value={leadTime?.value ?? null}            unit="hrs" />
                     <KpiCard icon="fa-solid fa-triangle-exclamation" label="Change Failure Rate" value={failureRate?.value ?? null}      unit="%" />

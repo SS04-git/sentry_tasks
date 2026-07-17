@@ -67,7 +67,16 @@ export default function ReportsPage() {
 
         {reportSections.map((section) => (
           <div key={section.heading} style={{ marginBottom: '2rem' }}>
-            <h2 style={{ marginBottom: '1rem' }}>{section.heading}</h2>
+
+            {/* Section divider label — matches admin page styling */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em',
+                textTransform: 'uppercase', color: 'var(--text-muted)', whiteSpace: 'nowrap', }}>
+                {section.heading}
+              </span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            </div>
+
             <div className="stats-grid">
               {section.items.map((report) => (
                 <a href={report.href} className="card stat-card"

@@ -873,4 +873,6 @@ SELECT to_regclass('public.v_attendance_kpi');
 
 
 
+SELECT COUNT(*) FROM access_review_queue;
+
 

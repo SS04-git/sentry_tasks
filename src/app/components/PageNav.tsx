@@ -36,12 +36,12 @@ export default function PageNav({ active }: { active?: string }) {
   return (
     <nav className="nav">
       <div className="nav-inner">
-        <div className="nav-logo">
+        <Link href="/dashboard" className="nav-logo" style={{ textDecoration: 'none' }}>
           <div className="nav-logo-icon">
             <i className="fa-solid fa-shield-halved icon-white icon-md"></i>
           </div>
           <span className="nav-logo-text">Sentry</span>
-        </div>
+        </Link>
 
         <div className="nav-links">
           <Link href="/dashboard" className={`nav-link ${isActive('dashboard') ? 'active' : ''}`}>

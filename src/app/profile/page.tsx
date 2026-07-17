@@ -6,11 +6,11 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import PageNav from '@/app/components/PageNav';
 import { useAuth } from '@/app/context/AuthContext';
 import { getToken } from '@/app/lib/auth';
-import { patchWithAuth } from '@/app/lib/api';
+import { patchWithAuth, postWithAuth } from '@/app/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Section = 'profile' | 'password' | 'sessions';
+type Section = 'profile' | 'password' | 'sessions' | 'users';
 
 type Toast = { message: string; type: 'success' | 'error' } | null;
 
@@ -75,6 +75,13 @@ function ProfilePageContent() {
   const [showPw,     setShowPw]     = useState(false);
   const [savingPw,   setSavingPw]   = useState(false);
 
+  // Creating user
+  const [newUserName,     setNewUserName]     = useState('');
+  const [newUserEmail,    setNewUserEmail]    = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole,     setNewUserRole]     = useState('employee');
+  const [creatingUser,    setCreatingUser]    = useState(false);
+
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -120,10 +127,35 @@ function ProfilePageContent() {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUserName || !newUserEmail || !newUserPassword) {
+      showToast('Please fill in all fields.', 'error');
+      return;
+    }
+    const token = getToken();
+    if (!token) return;
+    setCreatingUser(true);
+    try {
+      await postWithAuth('api/v1/users/', token, {
+        full_name: newUserName,
+        email:     newUserEmail,
+        password:  newUserPassword,
+        role:      newUserRole,
+      });
+      showToast('User created successfully.', 'success');
+      setNewUserName(''); setNewUserEmail(''); setNewUserPassword(''); setNewUserRole('employee');
+    } catch (err: any) {
+      showToast(err?.message ?? 'Failed to create user.', 'error');
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   const navItems: { key: Section; icon: string; label: string }[] = [
     { key: 'profile',  icon: 'fa-user',        label: 'Profile'          },
     { key: 'password', icon: 'fa-lock',         label: 'Change Password'  },
     { key: 'sessions', icon: 'fa-shield-halved', label: 'Security'        },
+    ...(role === 'admin' ? [{ key: 'users' as Section, icon: 'fa-user-plus', label: 'Create User' }] : []),
   ];
 
   return (
@@ -356,6 +388,75 @@ function ProfilePageContent() {
                         <span className="security-value">{row.value}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Create User section (admin only) ── */}
+              {section === 'users' && role === 'admin' && (
+                <div className="card">
+                  <div className="section-header" style={{ marginBottom: '1.5rem' }}>
+                    <i className="fa-solid fa-user-plus icon-cyan" />
+                    <h2>Create User</h2>
+                  </div>
+
+                  <div className="profile-form">
+
+                    <Field label="Full name">
+                      <input
+                        className="profile-input"
+                        value={newUserName}
+                        onChange={e => setNewUserName(e.target.value)}
+                        placeholder="Full name"
+                      />
+                    </Field>
+
+                    <Field label="Email address">
+                      <input
+                        className="profile-input"
+                        type="email"
+                        value={newUserEmail}
+                        onChange={e => setNewUserEmail(e.target.value)}
+                        placeholder="name@company.com"
+                      />
+                    </Field>
+
+                    <Field label="Temporary password">
+                      <input
+                        className="profile-input"
+                        type="text"
+                        value={newUserPassword}
+                        onChange={e => setNewUserPassword(e.target.value)}
+                        placeholder="Set a temporary password"
+                      />
+                    </Field>
+
+                    <Field label="Role">
+                      <select
+                        className="profile-input"
+                        value={newUserRole}
+                        onChange={e => setNewUserRole(e.target.value)}
+                      >
+                        <option value="employee">Employee</option>
+                        <option value="manager">Manager</option>
+                        <option value="leadership">Leadership</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </Field>
+
+                    <div style={{ paddingTop: '0.5rem' }}>
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleCreateUser}
+                        disabled={creatingUser || !newUserName || !newUserEmail || !newUserPassword}
+                        style={{ minWidth: '140px' }}
+                      >
+                        {creatingUser
+                          ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem' }} />Creating…</>
+                          : 'Create user'
+                        }
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

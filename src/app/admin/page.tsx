@@ -9,7 +9,33 @@ import PageNav from '@/app/components/PageNav';
 
 const adminSections = [
   {
-    heading: 'Security & Integrations',
+    heading: 'People Analytics',
+    items: [
+      {
+        title: 'Attendance & Presence',
+        desc: 'Days present, arrival times, session hours, and weekly trends.',
+        icon: 'fa-solid fa-calendar-check',
+        href: '/reports/attendance',
+        meta: 'Presence · Trends',
+      },
+      {
+        title: 'Occupancy Analytics',
+        desc: 'Peak occupancy, forecasts, and mobile adoption trends.',
+        icon: 'fa-solid fa-building-user',
+        href: '/reports/occupancy',
+        meta: 'Occupancy · Forecasts',
+      },
+      {
+        title: 'Behavioural Cohorts',
+        desc: 'Cluster users based on session behavior patterns using ML (K-Means / DBSCAN).',
+        icon: 'fa-solid fa-object-group',
+        href: '/admin/cohorts',
+        meta: 'ML · Segmentation',
+      },
+    ],
+  },
+  {
+    heading: 'Security & Governance',
     items: [
       {
         title: 'Security Center',
@@ -17,51 +43,6 @@ const adminSections = [
         icon: 'fa-solid fa-shield-halved',
         href: '/admin/security',
         meta: 'Metrics · Review Queue',
-      },
-      {
-        title: 'GitHub Sync',
-        desc: 'Monitor sync status and API rate limits across repositories.',
-        icon: 'fa-solid fa-github',
-        href: '/admin/github_sync',
-        meta: 'Sync · Rate Limits',
-      },
-    ],
-  },
-  {
-    heading: 'Code & Delivery',
-    items: [
-      {
-        title: 'Code Quality Center',
-        desc: 'View complexity trends, lint issues, secret scanning alerts, and repo health.',
-        icon: 'fa-solid fa-code',
-        href: '/admin/code_quality',
-        meta: 'Quality · Security · Trends',
-      },
-      {
-        title: 'DORA Delivery Metrics',
-        desc: 'Track deployment frequency, lead time, change failure rate, restore time, review latency, and defect origin analysis.',
-        icon: 'fa-solid fa-chart-line',
-        href: '/admin/dora',
-        meta: 'DORA · DevOps Metrics',
-      },
-      {
-        title: 'Defect Risk Watchlist',
-        desc: 'Rank files by predicted defect probability using ML.',
-        icon: 'fa-solid fa-bug',
-        href: '/admin/defect_risk',
-        meta: 'ML · Risk · Code Health',
-      },
-    ],
-  },
-  {
-    heading: 'People Analytics',
-    items: [
-      {
-        title: 'Behavioural Cohorts',
-        desc: 'Cluster users based on session behavior patterns using ML (K-Means / DBSCAN).',
-        icon: 'fa-solid fa-object-group',
-        href: '/admin/cohorts',
-        meta: 'ML · Segmentation',
       },
       {
         title: 'ROI Tracking',

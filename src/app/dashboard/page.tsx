@@ -107,11 +107,15 @@ export default function DashboardPage() {
       if (['admin', 'leadership'].includes(role)) {
         const users = await fetchWithAuth('api/v1/users/', token);
         setActiveUsers(users.filter((u: { is_active: boolean }) => u.is_active).length);
-        const logs: AuditLog[] = await fetchWithAuth('api/v1/users/audit-logs', token);
-        setAuditCount(logs.length);
+
+        const countData = await fetchWithAuth('api/v1/users/audit-logs/count', token);
+        setAuditCount(countData.count);
+
+        const logs: AuditLog[] = await fetchWithAuth('api/v1/users/audit-logs?limit=3', token);
         setRecentLogs(logs.slice(0, 3));
-        console.log('audit logs raw:', logs);   // ← here
-        console.log('role is:', role);          // ← here
+
+        console.log('audit logs raw:', logs); 
+        console.log('role is:', role);         
       }
     } catch (err) {
       console.error('Failed to load dashboard data', err);

@@ -95,11 +95,20 @@ def create_user(
 
 @router.get("/audit-logs")
 def get_audit_logs(
+    limit: int = 100,
     db: Session = Depends(get_db),
     current_user=Depends(require_role("admin", "leadership")),
 ):
-    logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(100).all()
+    logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit).all()
     return logs
+
+@router.get("/audit-logs/count")
+def get_audit_logs_count(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("admin", "leadership")),
+):
+    count = db.query(AuditLog).count()
+    return {"count": count}
 
 @router.get("/audit-logs/me")
 def get_own_audit_logs(

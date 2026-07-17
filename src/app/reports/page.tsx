@@ -21,20 +21,37 @@ export default function ReportsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const reports = [
-    {
-      title: 'Attendance & Presence',
-      desc: 'Days present, arrival times, session hours, and weekly trends.',
-      icon: 'fa-solid fa-calendar-check',
-      href: '/reports/attendance',
-    },
-    {
-       title: 'Occupancy Analytics',
-       desc: 'Peak occupancy, forecasts, and mobile adoption trends.',
-       icon: 'fa-solid fa-building-user',
-       href: '/reports/occupancy',
-    },
-  ];
+  const reportSections = [
+  {
+    heading: 'Code & Delivery',
+    items: [
+      {
+        title: 'GitHub Sync',
+        desc: 'Monitor sync status and API rate limits across repositories.',
+        icon: 'fa-solid fa-github',
+        href: '/admin/github_sync',
+      },
+      {
+        title: 'Code Quality Center',
+        desc: 'View complexity trends, lint issues, secret scanning alerts, and repo health.',
+        icon: 'fa-solid fa-code',
+        href: '/admin/code_quality',
+      },
+      {
+        title: 'DORA Delivery Metrics',
+        desc: 'Track deployment frequency, lead time, change failure rate, restore time, review latency, and defect origin analysis.',
+        icon: 'fa-solid fa-chart-line',
+        href: '/admin/dora',
+      },
+      {
+        title: 'Defect Risk Watchlist',
+        desc: 'Rank files by predicted defect probability using ML.',
+        icon: 'fa-solid fa-bug',
+        href: '/admin/defect_risk',
+      },
+    ],
+  },
+];
 
   return (
     <ProtectedRoute>
@@ -43,33 +60,31 @@ export default function ReportsPage() {
         <PageNav active="reports" />
         
         <div className="page-body">
-          <div className="page-header">
-            <h1>Reports</h1>
-            <p>Access, audit, security insights, and attendance across the organization</p>
-          </div>
-
-          <div className="stats-grid">
-            {reports.map((report) => (
-              <a
-                href={report.href}
-                className="card stat-card"
-                key={report.title}
-                style={{
-                  textDecoration: 'none',
-                }}
-              >
-                <div className="icon-row">
-                    <div className="icon-badge icon-badge-cyan">
-                    <i className={report.icon} />
-                    </div>
-                    </div>
-                <h3 style={{  marginTop: '0.75rem', marginBottom: '0.4rem' }}>{report.title}</h3>
-                <p style={{ fontSize: '0.875rem' }}>{report.desc}</p>
-              </a>
-            ))}
-          </div>
+        <div className="page-header">
+          <h1>Reports</h1>
+          <p>Access, audit, security insights, and attendance across the organization</p>
         </div>
 
+        {reportSections.map((section) => (
+          <div key={section.heading} style={{ marginBottom: '2rem' }}>
+            <h2 style={{ marginBottom: '1rem' }}>{section.heading}</h2>
+            <div className="stats-grid">
+              {section.items.map((report) => (
+                <a href={report.href} className="card stat-card"
+                  key={report.title} style={{ textDecoration: 'none' }}>
+                  <div className="icon-row">
+                    <div className="icon-badge icon-badge-cyan">
+                      <i className={report.icon} />
+                    </div>
+                  </div>
+                  <h3 style={{ marginTop: '0.75rem', marginBottom: '0.4rem' }}>{report.title}</h3>
+                  <p style={{ fontSize: '0.875rem' }}>{report.desc}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
       </div>
     </ProtectedRoute>
   );

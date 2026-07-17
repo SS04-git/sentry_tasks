@@ -875,4 +875,6 @@ SELECT to_regclass('public.v_attendance_kpi');
 
 SELECT COUNT(*) FROM access_review_queue;
 
+SELECT COUNT(*) FROM audit_log; -- or whatever the table is called
+
 

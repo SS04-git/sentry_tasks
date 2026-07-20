@@ -15,14 +15,14 @@ const adminSections = [
         title: 'Attendance & Presence',
         desc: 'Days present, arrival times, session hours, and weekly trends.',
         icon: 'fa-solid fa-calendar-check',
-        href: '/reports/attendance',
+        href: '/admin/attendance',
         meta: 'Presence · Trends',
       },
       {
         title: 'Occupancy Analytics',
         desc: 'Peak occupancy, forecasts, and mobile adoption trends.',
         icon: 'fa-solid fa-building-user',
-        href: '/reports/occupancy',
+        href: '/admin/occupancy',
         meta: 'Occupancy · Forecasts',
       },
       {

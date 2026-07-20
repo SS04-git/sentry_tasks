@@ -203,7 +203,7 @@ function DoraPageContent() {
 
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.82rem' }}>
-            <a href="/reports" style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>Admin</a>
+            <a href="/reports" style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>Reports</a>
             <i className="fa-solid fa-chevron-right" />
             <span style={{ fontWeight: 600 }}>DORA Metrics</span>
           </div>

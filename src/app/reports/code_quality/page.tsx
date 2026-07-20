@@ -282,7 +282,7 @@ const runScan = async (owner: string, repo: string) => {
             color: 'var(--text-muted)',
           }}
         >
-          Admin
+          Reports
         </a>
 
         <i className="fa-solid fa-chevron-right"></i>

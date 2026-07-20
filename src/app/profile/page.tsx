@@ -6,13 +6,21 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import PageNav from '@/app/components/PageNav';
 import { useAuth } from '@/app/context/AuthContext';
 import { getToken } from '@/app/lib/auth';
-import { patchWithAuth, postWithAuth } from '@/app/lib/api';
+import { patchWithAuth, postWithAuth, getWithAuth } from '@/app/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Section = 'profile' | 'password' | 'sessions' | 'users';
+type Section = 'profile' | 'password' | 'sessions' | 'users' | 'roles';
 
 type Toast = { message: string; type: 'success' | 'error' } | null;
+
+interface ManagedUser {
+  id: number;
+  email: string;
+  full_name: string | null;
+  role: string;
+  is_active: boolean;
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
@@ -45,7 +53,7 @@ function Toast({ toast, onClose }: { toast: Toast; onClose: () => void }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="profile-field">
-  <label className="profile-label">{label}</label>
+      <label className="profile-label">{label}</label>
       {children}
     </div>
   );
@@ -61,26 +69,31 @@ function ProfilePageContent() {
   const [section, setSection] = useState<Section>(
     (searchParams.get('section') as Section) ?? 'profile'
   );
-  const [toast, setToast]     = useState<Toast>(null);
+  const [toast, setToast] = useState<Toast>(null);
 
   // Profile fields
-  const [fullName, setFullName]   = useState(user?.full_name ?? '');
-  const [email]                   = useState(user?.email ?? '');
+  const [fullName, setFullName] = useState(user?.full_name ?? '');
+  const [email] = useState(user?.email ?? '');
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Password fields
-  const [currentPw,  setCurrentPw]  = useState('');
-  const [newPw,      setNewPw]      = useState('');
-  const [confirmPw,  setConfirmPw]  = useState('');
-  const [showPw,     setShowPw]     = useState(false);
-  const [savingPw,   setSavingPw]   = useState(false);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [savingPw, setSavingPw] = useState(false);
 
   // Creating user
-  const [newUserName,     setNewUserName]     = useState('');
-  const [newUserEmail,    setNewUserEmail]    = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserRole,     setNewUserRole]     = useState('employee');
-  const [creatingUser,    setCreatingUser]    = useState(false);
+  const [newUserRole, setNewUserRole] = useState('employee');
+  const [creatingUser, setCreatingUser] = useState(false);
+
+  // Roles & permissions (admin only)
+  const [allUsers, setAllUsers] = useState<ManagedUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [savingUserId, setSavingUserId] = useState<number | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -116,10 +129,12 @@ function ProfilePageContent() {
     try {
       await patchWithAuth('api/v1/users/me/password', token, {
         current_password: currentPw,
-        new_password:     newPw,
+        new_password: newPw,
       });
       showToast('Password changed successfully.', 'success');
-      setCurrentPw(''); setNewPw(''); setConfirmPw('');
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
     } catch (err: any) {
       showToast(err?.message ?? 'Failed to change password.', 'error');
     } finally {
@@ -138,12 +153,15 @@ function ProfilePageContent() {
     try {
       await postWithAuth('api/v1/users/', token, {
         full_name: newUserName,
-        email:     newUserEmail,
-        password:  newUserPassword,
-        role:      newUserRole,
+        email: newUserEmail,
+        password: newUserPassword,
+        role: newUserRole,
       });
       showToast('User created successfully.', 'success');
-      setNewUserName(''); setNewUserEmail(''); setNewUserPassword(''); setNewUserRole('employee');
+      setNewUserName('');
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserRole('employee');
     } catch (err: any) {
       showToast(err?.message ?? 'Failed to create user.', 'error');
     } finally {
@@ -151,11 +169,54 @@ function ProfilePageContent() {
     }
   };
 
+  useEffect(() => {
+    if (section !== 'roles' || role !== 'admin') return;
+    const token = getToken();
+    if (!token) return;
+    setLoadingUsers(true);
+    getWithAuth('api/v1/users/', token)
+      .then((data: ManagedUser[]) => setAllUsers(Array.isArray(data) ? data : []))
+      .catch((err) => showToast(err?.message ?? 'Failed to load users.', 'error'))
+      .finally(() => setLoadingUsers(false));
+  }, [section, role]);
+
+  const handleRoleChange = async (userId: number, newRole: string) => {
+    const token = getToken();
+    if (!token) return;
+    setSavingUserId(userId);
+    try {
+      const updated = await patchWithAuth(`api/v1/users/${userId}/role`, token, { role: newRole });
+      setAllUsers(prev => prev.map(u => (u.id === userId ? { ...u, role: updated.role } : u)));
+      showToast('Role updated successfully.', 'success');
+    } catch (err: any) {
+      showToast(err?.message ?? 'Failed to update role.', 'error');
+    } finally {
+      setSavingUserId(null);
+    }
+  };
+
+  const handleToggleActive = async (u: ManagedUser) => {
+    const token = getToken();
+    if (!token) return;
+    setSavingUserId(u.id);
+    try {
+      const endpoint = u.is_active ? 'disable' : 'enable';
+      const updated = await patchWithAuth(`api/v1/users/${u.id}/${endpoint}`, token, {});
+      setAllUsers(prev => prev.map(x => (x.id === u.id ? { ...x, is_active: updated.is_active } : x)));
+      showToast(`User ${u.is_active ? 'disabled' : 'enabled'}.`, 'success');
+    } catch (err: any) {
+      showToast(err?.message ?? 'Failed to update user status.', 'error');
+    } finally {
+      setSavingUserId(null);
+    }
+  };
+
   const navItems: { key: Section; icon: string; label: string }[] = [
-    { key: 'profile',  icon: 'fa-user',        label: 'Profile'          },
-    { key: 'password', icon: 'fa-lock',         label: 'Change Password'  },
-    { key: 'sessions', icon: 'fa-shield-halved', label: 'Security'        },
+    { key: 'profile', icon: 'fa-user', label: 'Profile' },
+    { key: 'password', icon: 'fa-lock', label: 'Change Password' },
+    { key: 'sessions', icon: 'fa-shield-halved', label: 'Security' },
     ...(role === 'admin' ? [{ key: 'users' as Section, icon: 'fa-user-plus', label: 'Create User' }] : []),
+    ...(role === 'admin' ? [{ key: 'roles' as Section, icon: 'fa-user-gear', label: 'Roles & Permissions' }] : []),
   ];
 
   return (
@@ -197,8 +258,8 @@ function ProfilePageContent() {
                 <button
                   key={item.key}
                   onClick={() => setSection(item.key)}
-                  className={`profile-nav-item ${
-                  section === item.key ? 'active' : ''}`}>
+                  className={`profile-nav-item ${section === item.key ? 'active' : ''}`}
+                >
                   <i className={`fa-solid ${item.icon}`} style={{ width: '14px', textAlign: 'center' }} />
                   {item.label}
                 </button>
@@ -245,7 +306,7 @@ function ProfilePageContent() {
                     </Field>
 
                     <Field label="Role">
-                      <div className="profile-input profile-input-readonly" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', }}>
+                      <div className="profile-input profile-input-readonly" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <i className="fa-solid fa-id-badge" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }} />
                         <span style={{ textTransform: 'capitalize' }}>{role}</span>
                       </div>
@@ -281,12 +342,13 @@ function ProfilePageContent() {
                     <Field label="Current password">
                       <div style={{ position: 'relative' }}>
                         <input
-                        type={showPw ? 'text' : 'password'}
-                        className="profile-input profile-input-with-icon"
-                        value={currentPw}
-                        onChange={e => setCurrentPw(e.target.value)}
-                        placeholder="Enter current password"
-                        autoComplete="current-password"/>
+                          type={showPw ? 'text' : 'password'}
+                          className="profile-input profile-input-with-icon"
+                          value={currentPw}
+                          onChange={e => setCurrentPw(e.target.value)}
+                          placeholder="Enter current password"
+                          autoComplete="current-password"
+                        />
                         <button
                           type="button"
                           onClick={() => setShowPw(p => !p)}
@@ -302,7 +364,7 @@ function ProfilePageContent() {
                         type={showPw ? 'text' : 'password'}
                         className="profile-input"
                         value={newPw}
-                        onChange={e => { setNewPw(e.target.value);}}
+                        onChange={e => { setNewPw(e.target.value); }}
                         placeholder="Enter new password"
                         autoComplete="new-password"
                       />
@@ -310,14 +372,16 @@ function ProfilePageContent() {
 
                     <Field label="Confirm new password">
                       <div style={{ position: 'relative' }}>
-                        <input type={showPw ? 'text' : 'password'}
-                        className={`profile-input profile-input-with-icon ${
-                          confirmPw && newPw !== confirmPw ? 'profile-input-error' : ''
-                        }`}
-                        value={confirmPw}
-                        onChange={e => setConfirmPw(e.target.value)}
-                        placeholder="Re-enter new password"
-                        autoComplete="new-password"/>
+                        <input
+                          type={showPw ? 'text' : 'password'}
+                          className={`profile-input profile-input-with-icon ${
+                            confirmPw && newPw !== confirmPw ? 'profile-input-error' : ''
+                          }`}
+                          value={confirmPw}
+                          onChange={e => setConfirmPw(e.target.value)}
+                          placeholder="Re-enter new password"
+                          autoComplete="new-password"
+                        />
                         {confirmPw && (
                           <i
                             className={`fa-solid ${newPw === confirmPw ? 'fa-check' : 'fa-xmark'}`}
@@ -377,10 +441,10 @@ function ProfilePageContent() {
 
                     {/* Info rows */}
                     {[
-                      { label: 'Account created',   value: 'Managed by admin',       icon: 'fa-calendar' },
-                      { label: 'Last password set', value: 'Unknown',                icon: 'fa-key' },
-                      { label: 'Role',              value: role,                     icon: 'fa-id-badge' },
-                      { label: 'Email verified',    value: 'Via admin provisioning', icon: 'fa-envelope-circle-check' },
+                      { label: 'Account created', value: 'Managed by admin', icon: 'fa-calendar' },
+                      { label: 'Last password set', value: 'Unknown', icon: 'fa-key' },
+                      { label: 'Role', value: role, icon: 'fa-id-badge' },
+                      { label: 'Email verified', value: 'Via admin provisioning', icon: 'fa-envelope-circle-check' },
                     ].map(row => (
                       <div key={row.label} className="security-row">
                         <i className={`fa-solid ${row.icon}`} style={{ color: 'var(--text-muted)', fontSize: '0.8rem', width: '16px', textAlign: 'center' }} />
@@ -458,6 +522,83 @@ function ProfilePageContent() {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* ── Roles & Permissions section (admin only) ── */}
+              {section === 'roles' && role === 'admin' && (
+                <div className="card">
+                  <div className="section-header" style={{ marginBottom: '1.5rem' }}>
+                    <i className="fa-solid fa-user-gear icon-cyan" />
+                    <h2>Roles & Permissions</h2>
+                  </div>
+
+                  {loadingUsers ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
+                      <i className="fa-solid fa-spinner fa-spin icon-cyan" />
+                      <p style={{ margin: 0, fontSize: '0.875rem' }}>Loading users…</p>
+                    </div>
+                  ) : allUsers.length === 0 ? (
+                    <p style={{ fontSize: '0.875rem' }}>No users found.</p>
+                  ) : (
+                    <div className="table-container">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allUsers.map((u) => (
+                            <tr key={u.id}>
+                              <td>{u.full_name ?? '—'}</td>
+                              <td>{u.email}</td>
+                              <td>
+                                <select
+                                  className="profile-input"
+                                  value={u.role}
+                                  disabled={savingUserId === u.id}
+                                  onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.82rem' }}
+                                >
+                                  <option value="employee">Employee</option>
+                                  <option value="manager">Manager</option>
+                                  <option value="leadership">Leadership</option>
+                                  <option value="admin">Admin</option>
+                                </select>
+                              </td>
+                              <td>
+                                <span style={{
+                                  padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600,
+                                  background: u.is_active ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)',
+                                  color: u.is_active ? '#10b981' : '#f43f5e',
+                                }}>
+                                  {u.is_active ? 'Active' : 'Disabled'}
+                                </span>
+                              </td>
+                              <td>
+                                <button
+                                  className="btn btn-secondary"
+                                  disabled={savingUserId === u.id}
+                                  onClick={() => handleToggleActive(u)}
+                                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                                >
+                                  {savingUserId === u.id
+                                    ? <i className="fa-solid fa-spinner fa-spin" />
+                                    : u.is_active ? 'Disable' : 'Enable'
+                                  }
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -80,7 +80,7 @@ export default function PageNav({ active }: { active?: string }) {
           </a>
 
           <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
-            <i className="fa-solid fa-circle-user icon-cyan"></i>
+          <i className="fa-solid fa-circle-user" style={{ fontSize: '1.1rem', color: profileOpen ? '#06b6d4' : 'var(--text-muted)', transition: 'color 0.15s',}}></i>
 
             {profileOpen && (
               <div className="profile-dropdown">

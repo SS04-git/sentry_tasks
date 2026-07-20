@@ -101,6 +101,8 @@ function ProfilePageContent() {
   const [editingPerms, setEditingPerms] = useState<string[]>([]);
   const [savingPerms, setSavingPerms] = useState(false);
 
+  const [permGroups, setPermGroups] = useState<Record<string, string[]>>({});
+
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -185,9 +187,10 @@ function ProfilePageContent() {
     getWithAuth('api/v1/users/permissions/catalog', token),
   ])
     .then(([usersData, catalogData]) => {
-      setAllUsers(Array.isArray(usersData) ? usersData : []);
-      setPermCatalog(catalogData?.permissions ?? {});
-    })
+    setAllUsers(Array.isArray(usersData) ? usersData : []);
+    setPermCatalog(catalogData?.permissions ?? {});
+    setPermGroups(catalogData?.groups ?? {});
+  })
     .catch((err) => showToast(err?.message ?? 'Failed to load users.', 'error'))
     .finally(() => setLoadingUsers(false));
 }, [section, role]);
@@ -288,20 +291,31 @@ const resetPermissions = async () => {
         {editingUserId !== null && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, }}>
-          <div className="card" style={{ width: '420px', maxHeight: '80vh', overflowY: 'auto' }}>
+          <div className="card" style={{ width: '440px', maxHeight: '82vh', overflowY: 'auto', padding: '1.5rem' }}>
             <div className="section-header" style={{ marginBottom: '1rem' }}>
               <i className="fa-solid fa-user-shield icon-cyan" />
               <h2>Edit Access — {allUsers.find(u => u.id === editingUserId)?.email}</h2>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-              {Object.entries(permCatalog).map(([key, label]) => (
-                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem' }}>
-                  <input type="checkbox" checked={editingPerms.includes(key)} onChange={() => togglePermission(key)}/>
-                  {label}
-                </label>
-              ))}
-            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            {Object.entries(permGroups).map(([groupName, keys]) => (
+              <div key={groupName}>
+                <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.04em', color: 'var(--text-muted)', margin: '0 0 0.6rem', }}>
+                  {groupName}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {keys.map(key => (
+                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.85rem', cursor: 'pointer', }} >
+                      <input type="checkbox" checked={editingPerms.includes(key)}
+                        onChange={() => togglePermission(key)} style={{ width: '15px', height: '15px', flexShrink: 0, cursor: 'pointer' }} />
+                      <span>{permCatalog[key] ?? key}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
 
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
               <button className="btn btn-secondary" onClick={resetPermissions} disabled={savingPerms}>

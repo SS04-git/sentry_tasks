@@ -15,30 +15,35 @@ router = APIRouter()
 # ── Permission catalog ───────────────────────────────────────
 
 PERMISSION_CATALOG = {
-    "view_own_attendance": "View Own Attendance",
-    "apply_leave": "Apply Leave",
-    "view_own_leave": "View Own Leave",
-    "view_shifts": "View Shifts",
-    "view_payslips": "View Payslips",
-    "view_announcements": "View Announcements",
-    "view_directory": "View Directory",
-    "view_team_attendance": "View Team Attendance",
-    "approve_leave": "Approve Leave",
-    "manage_shifts": "Manage Shifts",
-    "view_reports": "View Reports",
+    "dashboard": "Dashboard",
+    "repositories": "Repositories",
+    "reports_github_sync": "Reports · GitHub Sync",
+    "reports_code_quality": "Reports · Code Quality",
+    "reports_dora": "Reports · DORA",
+    "reports_defect_risk": "Reports · Defect Risk",
+    "admin_attendance": "Admin · Attendance",
+    "admin_occupancy": "Admin · Occupancy",
+    "admin_security": "Admin · Security",
+    "admin_behavioural": "Admin · Behavioural",
+    "admin_roi": "Admin · ROI",
+}
+
+PERMISSION_GROUPS = {
+    "General": ["dashboard", "repositories"],
+    "Reports": ["reports_github_sync", "reports_code_quality", "reports_dora", "reports_defect_risk"],
+    "Admin": ["admin_attendance", "admin_occupancy", "admin_security", "admin_behavioural", "admin_roi"],
 }
 
 DEFAULT_ROLE_PERMISSIONS = {
-    RoleEnum.employee: [
-        "view_own_attendance", "apply_leave", "view_own_leave",
-        "view_shifts", "view_payslips", "view_announcements", "view_directory",
-    ],
+    RoleEnum.employee: ["dashboard", "repositories"],
     RoleEnum.manager: [
-        "view_own_attendance", "apply_leave", "view_own_leave", "view_shifts",
-        "view_payslips", "view_announcements", "view_directory",
-        "view_team_attendance", "approve_leave", "manage_shifts",
+        "dashboard", "repositories",
+        "reports_github_sync", "reports_code_quality", "reports_dora", "reports_defect_risk",
     ],
-    RoleEnum.leadership: list(PERMISSION_CATALOG.keys()),
+    RoleEnum.leadership: [
+        "dashboard", "repositories",
+        "reports_github_sync", "reports_code_quality", "reports_dora", "reports_defect_risk",
+    ],
     RoleEnum.admin: list(PERMISSION_CATALOG.keys()),
 }
 
@@ -177,6 +182,7 @@ def get_permissions_catalog(
 ):
     return {
         "permissions": PERMISSION_CATALOG,
+        "groups": PERMISSION_GROUPS,
         "role_defaults": {role.value: perms for role, perms in DEFAULT_ROLE_PERMISSIONS.items()},
     }
 

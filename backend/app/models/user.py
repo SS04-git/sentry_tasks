@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime, JSON
 from sqlalchemy.sql import func
 from app.db.database import Base
 import enum
@@ -18,5 +18,6 @@ class User(Base):
     role = Column(Enum(RoleEnum), default=RoleEnum.employee, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     full_name = Column(String, nullable=True)
+    permissions = Column(JSON, nullable=True)  # null = inherit role defaults; list[str] = explicit override
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

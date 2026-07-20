@@ -12,6 +12,37 @@ logger = logging.getLogger("backend")
 router = APIRouter()
 
 
+# ── Permission catalog ───────────────────────────────────────
+
+PERMISSION_CATALOG = {
+    "view_own_attendance": "View Own Attendance",
+    "apply_leave": "Apply Leave",
+    "view_own_leave": "View Own Leave",
+    "view_shifts": "View Shifts",
+    "view_payslips": "View Payslips",
+    "view_announcements": "View Announcements",
+    "view_directory": "View Directory",
+    "view_team_attendance": "View Team Attendance",
+    "approve_leave": "Approve Leave",
+    "manage_shifts": "Manage Shifts",
+    "view_reports": "View Reports",
+}
+
+DEFAULT_ROLE_PERMISSIONS = {
+    RoleEnum.employee: [
+        "view_own_attendance", "apply_leave", "view_own_leave",
+        "view_shifts", "view_payslips", "view_announcements", "view_directory",
+    ],
+    RoleEnum.manager: [
+        "view_own_attendance", "apply_leave", "view_own_leave", "view_shifts",
+        "view_payslips", "view_announcements", "view_directory",
+        "view_team_attendance", "approve_leave", "manage_shifts",
+    ],
+    RoleEnum.leadership: list(PERMISSION_CATALOG.keys()),
+    RoleEnum.admin: list(PERMISSION_CATALOG.keys()),
+}
+
+
 # ── Schemas ──────────────────────────────────────────────────
 
 class CreateUserRequest(BaseModel):
@@ -27,6 +58,9 @@ class UpdateUserRequest(BaseModel):
 class AssignRoleRequest(BaseModel):
     role: RoleEnum
 
+class UpdatePermissionsRequest(BaseModel):
+    permissions: list[str]
+
 class UpdateOwnProfileRequest(BaseModel):
     full_name: str | None = None
 
@@ -40,6 +74,7 @@ class UserResponse(BaseModel):
     full_name: str | None
     role: str
     is_active: bool
+    permissions: list[str]
 
     class Config:
         from_attributes = True
@@ -59,6 +94,18 @@ def log_action(db: Session, action: str, performed_by: str, target_user: str = N
     logger.info(f"AUDIT | {action} | by={performed_by} | target={target_user} | {detail}")
 
 
+def to_user_response(user: User) -> UserResponse:
+    perms = user.permissions if user.permissions is not None else DEFAULT_ROLE_PERMISSIONS.get(user.role, [])
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        is_active=user.is_active,
+        permissions=perms,
+    )
+
+
 # ── Endpoints ─────────────────────────────────────────────────
 
 @router.get("/", response_model=list[UserResponse])
@@ -66,7 +113,7 @@ def list_users(
     db: Session = Depends(get_db),
     current_user=Depends(require_role("admin", "leadership")),
 ):
-    return db.query(User).all()
+    return [to_user_response(u) for u in db.query(User).all()]
 
 
 @router.post("/", response_model=UserResponse, status_code=201)
@@ -91,7 +138,7 @@ def create_user(
     db.refresh(user)
 
     log_action(db, "create_user", current_user["email"], data.email, f"role={data.role}")
-    return user
+    return to_user_response(user)
 
 @router.get("/audit-logs")
 def get_audit_logs(
@@ -124,6 +171,15 @@ def get_own_audit_logs(
     )
     return logs
 
+@router.get("/permissions/catalog")
+def get_permissions_catalog(
+    current_user=Depends(require_role("admin")),
+):
+    return {
+        "permissions": PERMISSION_CATALOG,
+        "role_defaults": {role.value: perms for role, perms in DEFAULT_ROLE_PERMISSIONS.items()},
+    }
+
 @router.patch("/me", response_model=UserResponse)
 def update_own_profile(
     data: UpdateOwnProfileRequest,
@@ -141,7 +197,7 @@ def update_own_profile(
     db.refresh(user)
 
     log_action(db, "update_profile", current_user["email"], user.email, str(data.dict(exclude_none=True)))
-    return user
+    return to_user_response(user)
 
 
 @router.patch("/me/password", response_model=UserResponse)
@@ -162,7 +218,7 @@ def change_own_password(
     db.refresh(user)
 
     log_action(db, "change_password", current_user["email"], user.email)
-    return user
+    return to_user_response(user)
 
 @router.put("/{user_id}", response_model=UserResponse)
 def update_user(
@@ -184,7 +240,7 @@ def update_user(
     db.refresh(user)
 
     log_action(db, "update_user", current_user["email"], user.email, str(data.dict(exclude_none=True)))
-    return user
+    return to_user_response(user)
 
 
 @router.patch("/{user_id}/disable", response_model=UserResponse)
@@ -204,7 +260,7 @@ def disable_user(
     db.refresh(user)
 
     log_action(db, "disable_user", current_user["email"], user.email)
-    return user
+    return to_user_response(user)
 
 
 @router.patch("/{user_id}/enable", response_model=UserResponse)
@@ -222,7 +278,7 @@ def enable_user(
     db.refresh(user)
 
     log_action(db, "enable_user", current_user["email"], user.email)
-    return user
+    return to_user_response(user)
 
 
 @router.patch("/{user_id}/role", response_model=UserResponse)
@@ -242,4 +298,45 @@ def assign_role(
     db.refresh(user)
 
     log_action(db, "assign_role", current_user["email"], user.email, f"{old_role} → {data.role}")
-    return user
+    return to_user_response(user)
+
+
+@router.patch("/{user_id}/permissions", response_model=UserResponse)
+def update_permissions(
+    user_id: int,
+    data: UpdatePermissionsRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("admin")),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    invalid = set(data.permissions) - set(PERMISSION_CATALOG.keys())
+    if invalid:
+        raise HTTPException(status_code=400, detail=f"Unknown permissions: {', '.join(invalid)}")
+
+    user.permissions = data.permissions
+    db.commit()
+    db.refresh(user)
+
+    log_action(db, "update_permissions", current_user["email"], user.email, str(data.permissions))
+    return to_user_response(user)
+
+
+@router.delete("/{user_id}/permissions", response_model=UserResponse)
+def reset_permissions(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("admin")),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.permissions = None
+    db.commit()
+    db.refresh(user)
+
+    log_action(db, "reset_permissions", current_user["email"], user.email)
+    return to_user_response(user)

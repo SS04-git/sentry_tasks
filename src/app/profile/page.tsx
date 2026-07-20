@@ -6,7 +6,7 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import PageNav from '@/app/components/PageNav';
 import { useAuth } from '@/app/context/AuthContext';
 import { getToken } from '@/app/lib/auth';
-import { patchWithAuth, postWithAuth, getWithAuth } from '@/app/lib/api';
+import { patchWithAuth, postWithAuth, getWithAuth, deleteWithAuth } from '@/app/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +20,7 @@ interface ManagedUser {
   full_name: string | null;
   role: string;
   is_active: boolean;
+  permissions: string[];
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
@@ -94,6 +95,11 @@ function ProfilePageContent() {
   const [allUsers, setAllUsers] = useState<ManagedUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [savingUserId, setSavingUserId] = useState<number | null>(null);
+
+  const [permCatalog, setPermCatalog] = useState<Record<string, string>>({});
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editingPerms, setEditingPerms] = useState<string[]>([]);
+  const [savingPerms, setSavingPerms] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -170,15 +176,21 @@ function ProfilePageContent() {
   };
 
   useEffect(() => {
-    if (section !== 'roles' || role !== 'admin') return;
-    const token = getToken();
-    if (!token) return;
-    setLoadingUsers(true);
-    getWithAuth('api/v1/users/', token)
-      .then((data: ManagedUser[]) => setAllUsers(Array.isArray(data) ? data : []))
-      .catch((err) => showToast(err?.message ?? 'Failed to load users.', 'error'))
-      .finally(() => setLoadingUsers(false));
-  }, [section, role]);
+  if (section !== 'roles' || role !== 'admin') return;
+  const token = getToken();
+  if (!token) return;
+  setLoadingUsers(true);
+  Promise.all([
+    getWithAuth('api/v1/users/', token),
+    getWithAuth('api/v1/users/permissions/catalog', token),
+  ])
+    .then(([usersData, catalogData]) => {
+      setAllUsers(Array.isArray(usersData) ? usersData : []);
+      setPermCatalog(catalogData?.permissions ?? {});
+    })
+    .catch((err) => showToast(err?.message ?? 'Failed to load users.', 'error'))
+    .finally(() => setLoadingUsers(false));
+}, [section, role]);
 
   const handleRoleChange = async (userId: number, newRole: string) => {
     const token = getToken();
@@ -211,6 +223,53 @@ function ProfilePageContent() {
     }
   };
 
+  const openPermissionsEditor = (u: ManagedUser) => {
+  setEditingUserId(u.id);
+  setEditingPerms(u.permissions ?? []);
+};
+
+const togglePermission = (key: string) => {
+  setEditingPerms(prev =>
+    prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key]
+  );
+};
+
+const savePermissions = async () => {
+  if (editingUserId == null) return;
+  const token = getToken();
+  if (!token) return;
+  setSavingPerms(true);
+  try {
+    const updated = await patchWithAuth(`api/v1/users/${editingUserId}/permissions`, token, {
+      permissions: editingPerms,
+    });
+    setAllUsers(prev => prev.map(u => (u.id === editingUserId ? { ...u, permissions: updated.permissions } : u)));
+    showToast('Permissions updated successfully.', 'success');
+    setEditingUserId(null);
+  } catch (err: any) {
+    showToast(err?.message ?? 'Failed to update permissions.', 'error');
+  } finally {
+    setSavingPerms(false);
+  }
+};
+
+const resetPermissions = async () => {
+  if (editingUserId == null) return;
+  const token = getToken();
+  if (!token) return;
+  setSavingPerms(true);
+  try {
+    const updated = await deleteWithAuth(`api/v1/users/${editingUserId}/permissions`, token);
+    setAllUsers(prev => prev.map(u => (u.id === editingUserId ? { ...u, permissions: updated.permissions } : u)));
+    showToast('Permissions reset to role default.', 'success');
+    setEditingUserId(null);
+  } catch (err: any) {
+    showToast(err?.message ?? 'Failed to reset permissions.', 'error');
+  } finally {
+    setSavingPerms(false);
+  }
+};
+
   const navItems: { key: Section; icon: string; label: string }[] = [
     { key: 'profile', icon: 'fa-user', label: 'Profile' },
     { key: 'password', icon: 'fa-lock', label: 'Change Password' },
@@ -225,6 +284,39 @@ function ProfilePageContent() {
         <PageNav />
 
         <Toast toast={toast} onClose={() => setToast(null)} />
+
+        {editingUserId !== null && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, }}>
+          <div className="card" style={{ width: '420px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div className="section-header" style={{ marginBottom: '1rem' }}>
+              <i className="fa-solid fa-user-shield icon-cyan" />
+              <h2>Edit Access — {allUsers.find(u => u.id === editingUserId)?.email}</h2>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+              {Object.entries(permCatalog).map(([key, label]) => (
+                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem' }}>
+                  <input type="checkbox" checked={editingPerms.includes(key)} onChange={() => togglePermission(key)}/>
+                  {label}
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={resetPermissions} disabled={savingPerms}>
+                Reset to role default
+              </button>
+              <button className="btn btn-secondary" onClick={() => setEditingUserId(null)} disabled={savingPerms}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={savePermissions} disabled={savingPerms}>
+                {savingPerms ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
         <div className="page-body">
 
@@ -544,14 +636,15 @@ function ProfilePageContent() {
                     <div className="table-container">
                       <table>
                         <thead>
-                          <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Role</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                          <th>Permissions</th>
+                        </tr>
+                      </thead>
                         <tbody>
                           {allUsers.map((u) => (
                             <tr key={u.id}>
@@ -593,6 +686,21 @@ function ProfilePageContent() {
                                   }
                                 </button>
                               </td>
+                              <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                  {u.permissions.length === 0
+                                    ? 'No access'
+                                    : u.permissions.slice(0, 4).map(p => permCatalog[p] ?? p).join(', ') +
+                                      (u.permissions.length > 4 ? ` +${u.permissions.length - 4} more` : '')}
+                                </span>
+                                <button className="btn btn-secondary" onClick={() => openPermissionsEditor(u)}
+                                  style={{ fontSize: '0.75rem', padding: '0.3rem 0.5rem' }}
+                                  title="Edit permissions">
+                                  <i className="fa-solid fa-pencil" />
+                                </button>
+                              </div>
+                            </td>
                             </tr>
                           ))}
                         </tbody>

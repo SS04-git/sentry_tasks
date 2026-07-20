@@ -17,6 +17,7 @@ export default function PageNav({ active }: { active?: string }) {
     active ? active === tab : pathname?.startsWith(`/${tab}`);
 
   const bellActive = pathname?.startsWith('/notifications');
+  const profileActive = pathname?.startsWith('/profile');
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -63,7 +64,6 @@ export default function PageNav({ active }: { active?: string }) {
         </div>
 
         <div className="nav-user">
-
           <a
             href="/notifications"
             className="nav-notification"
@@ -80,7 +80,14 @@ export default function PageNav({ active }: { active?: string }) {
           </a>
 
           <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
-          <i className="fa-solid fa-circle-user" style={{ fontSize: '1.1rem', color: profileOpen ? '#06b6d4' : 'var(--text-muted)', transition: 'color 0.15s',}}></i>
+            <i
+              className="fa-solid fa-circle-user"
+              style={{
+                fontSize: '1.1rem',
+                color: profileActive || profileOpen ? '#06b6d4' : 'var(--text-muted)',
+                transition: 'color 0.15s',
+              }}
+            ></i>
 
             {profileOpen && (
               <div className="profile-dropdown">
@@ -111,7 +118,7 @@ export default function PageNav({ active }: { active?: string }) {
               </div>
             )}
           </div>
-        </div>
+      </div>
       </div>
     </nav>
   );

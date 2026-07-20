@@ -319,7 +319,7 @@ const resetPermissions = async () => {
 
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
               <button className="btn btn-secondary" onClick={resetPermissions} disabled={savingPerms}>
-                Reset to role default
+                Reset to Default
               </button>
               <button className="btn btn-secondary" onClick={() => setEditingUserId(null)} disabled={savingPerms}>
                 Cancel

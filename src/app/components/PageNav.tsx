@@ -79,7 +79,7 @@ export default function PageNav({ active }: { active?: string }) {
             />
           </a>
 
-          <div className="profile-trigger" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
+          <div className="profile-trigger nav-notification" ref={profileRef} onClick={() => setProfileOpen(!profileOpen)}>
             <i
               className="fa-solid fa-circle-user"
               style={{

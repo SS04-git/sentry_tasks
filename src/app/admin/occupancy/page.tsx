@@ -45,13 +45,13 @@ export default function OccupancyPage() {
     <ProtectedRoute>
       <div className="page">
 
-        <PageNav active="reports" />
+        <PageNav active="admin" />
 
         <div className="page-body">
 
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-            <a href="/reports" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Reports</a>
+            <a href="/admin" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Reports</a>
             <i className="fa-solid fa-chevron-right" style={{ fontSize: '12px' }} />
             <span style={{ color: 'var(--text)', fontWeight: 600 }}>Occupancy</span>
           </div>

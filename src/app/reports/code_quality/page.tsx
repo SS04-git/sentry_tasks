@@ -259,7 +259,7 @@ const runScan = async (owner: string, repo: string) => {
     <ProtectedRoute>
       <div className="page">
 
-        <PageNav active="admin" />
+        <PageNav active="reports" />
 
         {/* BODY */}
         <div className="page-body">
@@ -276,7 +276,7 @@ const runScan = async (owner: string, repo: string) => {
         }}
       >
         <a
-          href="/admin"
+          href="/reports"
           style={{
             textDecoration: 'none',
             color: 'var(--text-muted)',

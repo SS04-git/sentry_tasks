@@ -131,13 +131,13 @@ export default function DefectRiskPage() {
   return (
     <ProtectedRoute>
       <div className="page">
-        <PageNav active="admin" />
+        <PageNav active="reports" />
 
         <div className="page-body">
 
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.82rem' }}>
-            <a href="/admin" style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>Admin</a>
+            <a href="/reports" style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>Admin</a>
             <i className="fa-solid fa-chevron-right" />
             <span style={{ fontWeight: 600 }}>Defect Risk Watchlist</span>
           </div>

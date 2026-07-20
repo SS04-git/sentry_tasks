@@ -164,7 +164,7 @@ function GithubSyncPageContent() {
 
   const goToDora = () => {
     if (!addedRepo) return;
-    router.push(`/admin/dora?owner=${encodeURIComponent(addedRepo.owner)}&repo=${encodeURIComponent(addedRepo.repo)}`);
+    router.push(`/reports/dora?owner=${encodeURIComponent(addedRepo.owner)}&repo=${encodeURIComponent(addedRepo.repo)}`);
   };
 
   const statusColor = (status: string) => {
@@ -186,13 +186,13 @@ function GithubSyncPageContent() {
   return (
     <ProtectedRoute>
       <div className="page">
-        <PageNav active="admin" />
+        <PageNav active="reports" />
 
         <div className="page-body">
 
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.82rem' }}>
-            <a href="/admin" style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>Admin</a>
+            <a href="/reports" style={{ textDecoration: 'none', color: 'var(--text-muted)' }}>Admin</a>
             <i className="fa-solid fa-chevron-right" />
             <span style={{ fontWeight: 600 }}>Github Sync</span>
           </div>
@@ -299,7 +299,7 @@ function GithubSyncPageContent() {
 
                   {repo.status === 'success' && (
                     <a
-                      href={`/admin/dora?owner=${encodeURIComponent(repo.repo.split('/')[0])}&repo=${encodeURIComponent(repo.repo.split('/')[1])}`}
+                      href={`/reports/dora?owner=${encodeURIComponent(repo.repo.split('/')[0])}&repo=${encodeURIComponent(repo.repo.split('/')[1])}`}
                       className="btn-secondary"
                       style={{ fontSize: '0.8rem', textDecoration: 'none' }}
                     >
@@ -330,7 +330,7 @@ export default function GithubSyncPage() {
       fallback={
         <ProtectedRoute>
           <div className="page">
-            <PageNav active="admin" />
+            <PageNav active="reports" />
             <div className="page-body">
               <p>Loading...</p>
             </div>

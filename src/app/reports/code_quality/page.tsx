@@ -292,7 +292,7 @@ const runScan = async (owner: string, repo: string) => {
             fontWeight: 600,
           }}
         >
-          Security
+          Code Quality
         </span>
       </div>
 

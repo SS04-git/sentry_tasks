@@ -30,6 +30,8 @@ export default function RepoDetailPage() {
   const profileRef = useRef<HTMLDivElement>(null);
   const [pulls, setPulls] = useState<any[]>([]);
   const [repoDetails, setRepoDetails] = useState<any>(null);
+  const [branches, setBranches] = useState<{ name: string; protected: boolean }[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string>('');
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -48,19 +50,22 @@ useEffect(() => {
     try {
       const token = getToken();
 
-      const [commitsData, statsData, pullsData, repoData] = await Promise.all([
-        fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/commits?page=1`, token!),
-        fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/stats`, token!),
-        fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/pulls`, token!),
-        fetchWithAuth(`api/v1/github/repos/${owner}/${repo}`, token!),
-      ]);
+      const [commitsData, statsData, pullsData, repoData, branchesData] = await Promise.all([
+      fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/commits?page=1`, token!),
+      fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/stats`, token!),
+      fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/pulls`, token!),
+      fetchWithAuth(`api/v1/github/repos/${owner}/${repo}`, token!),
+      fetchWithAuth(`api/v1/github/repos/${owner}/${repo}/branches`, token!),
+    ]);
 
-      setCommits(Array.isArray(commitsData?.commits) ? commitsData.commits : []);
-      setCommitsPage(1);
-      setHasMoreCommits(Boolean(commitsData?.has_more));
-      setStats(Array.isArray(statsData) ? statsData : []);
-      setPulls(Array.isArray(pullsData) ? pullsData : []);
-      setRepoDetails(repoData);
+    setCommits(Array.isArray(commitsData?.commits) ? commitsData.commits : []);
+    setCommitsPage(1);
+    setHasMoreCommits(Boolean(commitsData?.has_more));
+    setStats(Array.isArray(statsData) ? statsData : []);
+    setPulls(Array.isArray(pullsData) ? pullsData : []);
+    setRepoDetails(repoData);
+    setBranches(Array.isArray(branchesData) ? branchesData : []);
+    setSelectedBranch(repoData?.default_branch || (branchesData?.[0]?.name ?? ''));
 
     } catch (err) {
       console.error(err);
@@ -91,7 +96,7 @@ const loadMoreCommits = async () => {
     const token = getToken();
     const nextPage = commitsPage + 1;
     const data = await fetchWithAuth(
-      `api/v1/github/repos/${owner}/${repo}/commits?page=${nextPage}`,
+      `api/v1/github/repos/${owner}/${repo}/commits?page=${nextPage}&branch=${encodeURIComponent(selectedBranch)}`,
       token!
     );
     setCommits((prev) => [...prev, ...(Array.isArray(data?.commits) ? data.commits : [])]);
@@ -103,6 +108,36 @@ const loadMoreCommits = async () => {
     setLoadingMoreCommits(false);
   }
 };
+
+const loadCommitsForBranch = async (branch: string) => {
+  setLoading(true);
+  try {
+    const token = getToken();
+    const data = await fetchWithAuth(
+      `api/v1/github/repos/${owner}/${repo}/commits?page=1&branch=${encodeURIComponent(branch)}`,
+      token!
+    );
+    setCommits(Array.isArray(data?.commits) ? data.commits : []);
+    setCommitsPage(1);
+    setHasMoreCommits(Boolean(data?.has_more));
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const didMountBranchEffect = useRef(false);
+
+useEffect(() => {
+  if (!didMountBranchEffect.current) {
+    didMountBranchEffect.current = true;
+    return;
+  }
+  if (selectedBranch) {
+    loadCommitsForBranch(selectedBranch);
+  }
+}, [selectedBranch]);
 
 const tabStyle = (tab: Tab): React.CSSProperties => ({
   padding: '0.5rem 1.25rem',
@@ -209,20 +244,40 @@ const totalCommits = stats.reduce((sum, c) => sum + c.commits, 0);
           )}
 
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.6)', padding: '0.4rem', borderRadius: '999px', width: 'fit-content', border: '1px solid var(--border)' }}>
-            <button style={tabStyle('commits')} onClick={() => setActiveTab('commits')}>
-              <i className="fa-solid fa-clock-rotate-left icon-sm" style={{ marginRight: '0.4rem' }}></i>
-              Commits
-            </button>
-            <button style={tabStyle('stats')} onClick={() => setActiveTab('stats')}>
-              <i className="fa-solid fa-chart-bar icon-sm" style={{ marginRight: '0.4rem' }}></i>
-              Code Stats
-            </button>
-            <button style={tabStyle('pulls')} onClick={() => setActiveTab('pulls')}>
-              <i className="fa-solid fa-code-pull-request icon-sm" style={{ marginRight: '0.4rem' }}></i>
-              Pull Requests
-            </button>
-          </div>
+<div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+  <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.6)', padding: '0.4rem', borderRadius: '999px', width: 'fit-content', border: '1px solid var(--border)' }}>
+    <button style={tabStyle('commits')} onClick={() => setActiveTab('commits')}>
+      <i className="fa-solid fa-clock-rotate-left icon-sm" style={{ marginRight: '0.4rem' }}></i>
+      Commits
+    </button>
+    <button style={tabStyle('stats')} onClick={() => setActiveTab('stats')}>
+      <i className="fa-solid fa-chart-bar icon-sm" style={{ marginRight: '0.4rem' }}></i>
+      Code Stats
+    </button>
+    <button style={tabStyle('pulls')} onClick={() => setActiveTab('pulls')}>
+      <i className="fa-solid fa-code-pull-request icon-sm" style={{ marginRight: '0.4rem' }}></i>
+      Pull Requests
+    </button>
+  </div>
+
+  {branches.length > 0 && (
+    <select
+      value={selectedBranch}
+      onChange={(e) => setSelectedBranch(e.target.value)}
+      style={{
+        padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.875rem',
+        fontWeight: 600, border: '1px solid var(--border)', background: 'white',
+        color: 'var(--text)', cursor: 'pointer',
+      }}
+    >
+      {branches.map((b) => (
+        <option key={b.name} value={b.name}>
+          {b.name}{b.protected ? ' 🔒' : ''}
+        </option>
+      ))}
+    </select>
+  )}
+</div>
 
           {loading ? (
             <div className="card card-static" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '2rem' }}>

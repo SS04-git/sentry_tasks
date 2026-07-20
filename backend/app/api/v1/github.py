@@ -469,13 +469,17 @@ def get_commits(
     background_tasks: BackgroundTasks,
     page: int = 1,
     per_page: int = 30,
+    branch: str = None,          # ← add this line
     app_user: User = Depends(get_current_app_user),
 ):
     access_token = get_github_token(app_user.id)
+    params = {"per_page": per_page, "page": page}
+    if branch:
+        params["sha"] = branch    # GitHub's commits endpoint uses `sha` for branch/ref filtering
     response = rate_limited_get(
         f"https://api.github.com/repos/{owner}/{repo}/commits",
         access_token,
-        params={"per_page": per_page, "page": page},
+        params=params,
     )
     data = response.json()
     if isinstance(data, dict) and data.get("message"):
@@ -499,7 +503,7 @@ def get_commits(
     # (via "Load more"), but attendance.py's commit/lint correlation reads
     # straight from git_commits, so that table needs the ENTIRE history,
     # not just whatever page happens to be on screen.
-    if page == 1 and not is_sync_running(f"{owner}/{repo}"):
+    if page == 1 and branch is None and not is_sync_running(f"{owner}/{repo}"):
         background_tasks.add_task(sync_full_commit_history, owner, repo, access_token)
 
     return {
@@ -1126,3 +1130,24 @@ def get_repo_details(
         "private": data.get("private"),
         "html_url": data.get("html_url"),
     }
+
+@router.get("/repos/{owner}/{repo}/branches")
+def get_branches(
+    owner: str,
+    repo: str,
+    app_user: User = Depends(get_current_app_user),
+):
+    access_token = get_github_token(app_user.id)
+    response = rate_limited_get(
+        f"https://api.github.com/repos/{owner}/{repo}/branches",
+        access_token,
+        params={"per_page": 100},
+    )
+    data = response.json()
+    if isinstance(data, dict) and data.get("message"):
+        raise HTTPException(status_code=400, detail=data.get("message"))
+
+    return [
+        {"name": b.get("name"), "protected": b.get("protected", False)}
+        for b in data
+    ]

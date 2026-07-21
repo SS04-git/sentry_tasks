@@ -281,6 +281,27 @@ const resetPermissions = async () => {
     ...(role === 'admin' ? [{ key: 'roles' as Section, icon: 'fa-user-gear', label: 'Roles & Permissions' }] : []),
   ];
 
+  const sidebarBtnStyle = (active: boolean): React.CSSProperties => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+  width: '100%',
+  padding: '0.75rem 1rem',       
+  border: 'none',
+  outline: 'none',
+  WebkitTapHighlightColor: 'transparent',
+  borderRadius: '8px',
+  background: active ? 'rgba(99,102,241,0.1)' : 'transparent',
+  cursor: 'pointer',
+  fontWeight: active ? 700 : 500,
+  color: active ? 'var(--accent, #6366f1)' : 'var(--text-muted)',
+  opacity: active ? 1 : 0.75,
+  fontSize: '0.88rem',           
+  textAlign: 'left',
+  transition: 'color 0.15s, opacity 0.15s, background 0.15s',
+  whiteSpace: 'nowrap',
+});
+
   return (
     <ProtectedRoute>
       <div className="page">
@@ -361,15 +382,12 @@ const resetPermissions = async () => {
               </div>
 
               {navItems.map(item => (
-                <button
-                  key={item.key}
-                  onClick={() => setSection(item.key)}
-                  className={`profile-nav-item ${section === item.key ? 'active' : ''}`}
-                >
-                  <i className={`fa-solid ${item.icon}`} style={{ width: '14px', textAlign: 'center' }} />
-                  {item.label}
-                </button>
-              ))}
+              <button key={item.key} onClick={() => setSection(item.key)}
+                className={`profile-nav-item ${section === item.key ? 'active' : ''}`} >
+                <i className={`fa-solid ${item.icon}`} style={{ width: '14px', textAlign: 'center' }} />
+                {item.label}
+              </button>
+            ))}
             </div>
 
             {/* ── Main panel ── */}

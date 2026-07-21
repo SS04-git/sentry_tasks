@@ -1282,17 +1282,19 @@ tbody tr:hover { background: rgba(6,182,212,.03); }
   align-items: center;
   padding: 1.5rem 1rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid rgba(6,182,212,.10);
+  border-bottom: 1px solid var(--border);
 }
 
 .profile-avatar {
-  width: 60px; height: 60px;
+  width: 56px; height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  background: rgba(6,182,212,.12);
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 0.75rem;
-  box-shadow: 0 8px 24px rgba(6,182,212,.25);
+  box-shadow: none;
 }
+/* icon inside now needs to be cyan, not white, since bg is no longer solid */
+.profile-avatar i { color: #06b6d4 !important; }
 
 .profile-name { margin: 0; font-size: 0.93rem; font-weight: 700; color: var(--text); text-align: center; }
 .profile-role { margin: 0.25rem 0 0; font-size: 0.75rem; color: var(--text-muted); text-transform: capitalize; text-align: center; }
@@ -1302,30 +1304,28 @@ tbody tr:hover { background: rgba(6,182,212,.03); }
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.78rem 1rem;
+  padding: 0.7rem 1rem;
   margin-bottom: 0.3rem;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   text-align: left;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: all .2s ease;
+  transition: background .15s ease, color .15s ease;
   box-shadow: none;
 }
 .profile-nav-item:hover {
-  background: rgba(6,182,212,.06);
+  background: rgba(6,182,212,.05);
   color: var(--text);
-  transform: translateX(3px);
   box-shadow: none;
 }
 .profile-nav-item.active {
-  background: linear-gradient(90deg, rgba(6,182,212,.13), rgba(6,182,212,.04));
+  background: rgba(6,182,212,.08);
   color: #06b6d4;
   font-weight: 650;
-  border-left: 3px solid #06b6d4;
   box-shadow: none;
 }
 .profile-nav-item.active i { color: #06b6d4; }
@@ -1436,11 +1436,19 @@ tbody tr:hover { background: rgba(6,182,212,.03); }
 }
 
 
-/* dora metrics repo selector dropdown titles */
+/* dora metrics repo selector dropdown titles. also used at sidebar in profile settings*/
+.tab-btn-reset {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .tab-btn-reset:focus,
 .tab-btn-reset:active,
-.tab-btn-reset:focus-visible {
+.tab-btn-reset:focus-visible,
+.tab-btn-reset:hover {
   outline: none;
-  background: transparent !important;
   box-shadow: none !important;
+}
+
+.tab-btn-reset:active {
+  background: inherit !important;
 }

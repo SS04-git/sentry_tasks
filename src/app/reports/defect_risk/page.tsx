@@ -149,7 +149,7 @@ export default function DefectRiskPage() {
           </div>
 
           {/* Repo picker */}
-          <div className="card card-static" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div className="card card-static" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             <label style={{ fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
               Repository
             </label>
@@ -163,13 +163,13 @@ export default function DefectRiskPage() {
                 value={selected}
                 onChange={handleRepoChange}
                 style={{
+                  flex: 1,
                   padding: '0.45rem 0.75rem',
                   borderRadius: '6px',
                   border: '1px solid var(--border)',
                   background: 'var(--bg)',
                   color: 'var(--text)',
                   fontSize: '0.85rem',
-                  minWidth: '260px',
                   cursor: 'pointer',
                 }}
               >

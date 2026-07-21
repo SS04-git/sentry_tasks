@@ -80,6 +80,7 @@ export default function CodeQualityPage() {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanElapsed, setScanElapsed] = useState(0);
 
   const [complexity, setComplexity] = useState<ComplexitySummary>(null);
   const [churn, setChurn] = useState<ChurnSummary>(null);
@@ -184,22 +185,38 @@ const loadData = async (owner: string, repo: string) => {
 const runScan = async (owner: string, repo: string) => {
   setScanning(true);
   setScanError(null);
+  setScanElapsed(0);
+
+  const timer = setInterval(() => setScanElapsed((s) => s + 1), 1000);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min hard cap
+
   try {
     const token = getToken();
     if (!token) {
       setScanError('No auth token found. Please login again.');
       return;
     }
-    const scanResult = await postWithAuth(`api/v1/code_quality/scan/${owner}/${repo}`, token, {});
+    const scanResult = await postWithAuth(
+      `api/v1/code_quality/scan/${owner}/${repo}`,
+      token,
+      {},
+    );
     if (scanResult?.status === 'failed') {
       setScanError(scanResult.error || 'Scan failed');
       return;
     }
-    await loadData(owner, repo); // refresh with new results
-  } catch (err) {
+    await loadData(owner, repo);
+  } catch (err: any) {
     console.error('Scan request failed:', err);
-    setScanError(err instanceof Error ? err.message : 'Scan failed');
+    setScanError(
+      err?.name === 'AbortError'
+        ? 'Scan timed out after 2 minutes. It may still be running on the server — try refreshing shortly.'
+        : err instanceof Error ? err.message : 'Scan failed',
+    );
   } finally {
+    clearInterval(timer);
+    clearTimeout(timeout);
     setScanning(false);
   }
 };
@@ -338,7 +355,7 @@ const runScan = async (owner: string, repo: string) => {
                 <button onClick={() => runScan(selected.owner, selected.name)}
                   disabled={scanning} style={{ whiteSpace: 'nowrap' }}>
                   <i className="fa-solid fa-rotate-right icon-sm" style={{ marginRight: '0.4rem' }}></i>
-                  {scanning ? 'Scanning…' : 'Run New Scan'}
+                  {scanning ? `Scanning… (${scanElapsed}s)` : 'Run New Scan'}
                 </button>
               )}
             </div>

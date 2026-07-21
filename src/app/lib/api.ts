@@ -73,8 +73,14 @@ export async function getWithAuth(endpoint: string, token: string) {
   return fetchWithAuth(endpoint, token, { method: 'GET' });
 }
 
-export async function postWithAuth(endpoint: string, token: string, body: unknown) {
+export async function postWithAuth(
+  endpoint: string,
+  token: string,
+  body: unknown,
+  options: RequestInit = {}
+) {
   return fetchWithAuth(endpoint, token, {
+    ...options,
     method: 'POST',
     body: JSON.stringify(body),
   });

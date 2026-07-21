@@ -78,6 +78,7 @@ export default function CodeQualityPage() {
   const [selectedFullName, setSelectedFullName] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
   const [complexity, setComplexity] = useState<ComplexitySummary>(null);
@@ -181,20 +182,25 @@ const loadData = async (owner: string, repo: string) => {
 };
 
 const runScan = async (owner: string, repo: string) => {
-  setLoading(true);
+  setScanning(true);
   setScanError(null);
   try {
     const token = getToken();
-    const scanResult = await postWithAuth(`api/v1/code_quality/scan/${owner}/${repo}`, token!, {});
-    if (scanResult.status === 'failed') {
+    if (!token) {
+      setScanError('No auth token found. Please login again.');
+      return;
+    }
+    const scanResult = await postWithAuth(`api/v1/code_quality/scan/${owner}/${repo}`, token, {});
+    if (scanResult?.status === 'failed') {
       setScanError(scanResult.error || 'Scan failed');
       return;
     }
     await loadData(owner, repo); // refresh with new results
   } catch (err) {
+    console.error('Scan request failed:', err);
     setScanError(err instanceof Error ? err.message : 'Scan failed');
   } finally {
-    setLoading(false);
+    setScanning(false);
   }
 };
 
@@ -305,66 +311,56 @@ const runScan = async (owner: string, repo: string) => {
           </div>
 
           {/* REPO PICKER */}
-<div className="card card-static" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
-  <label htmlFor="repo-select" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
-    Repository
-  </label>
+          <div className="card card-static" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <label htmlFor="repo-select" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                Repository
+              </label>
 
-  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-    <select
-      id="repo-select"
-      value={selectedFullName}
-      onChange={(e) => setSelectedFullName(e.target.value)}
-      disabled={reposLoading || repos.length === 0}
-      style={{
-        width: '100%',
-        maxWidth: '420px',
-        padding: '0.6rem 0.75rem',
-        borderRadius: '8px',
-        border: '1px solid var(--border)',
-        background: 'var(--bg, transparent)',
-      }}
-    >
-      <option value="" disabled>
-        {reposLoading
-          ? 'Loading repositories…'
-          : repos.length === 0
-          ? 'No synced repositories found'
-          : 'Select a repository'}
-      </option>
-      {repos.map((r) => (
-        <option key={r.full_name} value={r.full_name}>
-          {r.full_name}
-        </option>
-      ))}
-    </select>
+              <select id="repo-select" value={selectedFullName} onChange={(e) => setSelectedFullName(e.target.value)}
+                disabled={reposLoading || repos.length === 0}
+                style={{ flex: 1, padding: '0.6rem 0.75rem', borderRadius: '8px',  border: '1px solid var(--border)', background: 'var(--bg, transparent)',}}>
+                <option value="" disabled>
+                  {reposLoading
+                    ? 'Loading repositories…'
+                    : repos.length === 0
+                    ? 'No synced repositories found'
+                    : 'Select a repository'}
+                </option>
+                {repos.map((r) => (
+                  <option key={r.full_name} value={r.full_name}>
+                    {r.full_name}
+                  </option>
+                ))}
+              </select>
 
-    {selected && (
-      <button
-        onClick={() => runScan(selected.owner, selected.name)}
-        disabled={loading}
-      >
-        <i className="fa-solid fa-rotate-right icon-sm" style={{ marginRight: '0.4rem' }}></i>
-        {loading ? 'Scanning…' : 'Run New Scan'}
-      </button>
-    )}
-  </div>
-</div>
-
+              {selected && (
+                <button onClick={() => runScan(selected.owner, selected.name)}
+                  disabled={scanning} style={{ whiteSpace: 'nowrap' }}>
+                  <i className="fa-solid fa-rotate-right icon-sm" style={{ marginRight: '0.4rem' }}></i>
+                  {scanning ? 'Scanning…' : 'Run New Scan'}
+                </button>
+              )}
+            </div>
+          </div>
           {!selected ? (
             <div className="card card-static" style={{ padding: '2rem' }}>
               Select a repository above to run a code quality scan.
             </div>
           ) : loading ? (
             <div className="card card-static" style={{ padding: '2rem' }}>
-              Scanning {selected.full_name}... this can take a minute.
-            </div>
-          ) : scanError ? (
-            <div className="card card-static" style={{ padding: '2rem', color: 'var(--danger, #ef4444)' }}>
-              Scan failed: {scanError}
+              Loading data for {selected.full_name}...
             </div>
           ) : (
             <>
+              {scanError && (
+                <div
+                  className="card card-static"
+                  style={{ padding: '1rem 1.5rem', marginBottom: '1.5rem', color: 'var(--danger, #ef4444)' }}
+                >
+                  Scan failed: {scanError}
+                </div>
+              )}
 
               {/* KPI CARDS */}
               <div className="stats-grid" style={{ marginBottom: '2rem' }}>

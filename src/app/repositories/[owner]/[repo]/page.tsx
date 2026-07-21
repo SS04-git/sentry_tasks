@@ -1,4 +1,3 @@
-// new version
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -244,40 +243,41 @@ const totalCommits = stats.reduce((sum, c) => sum + c.commits, 0);
           )}
 
           {/* Tabs */}
-<div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-  <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.6)', padding: '0.4rem', borderRadius: '999px', width: 'fit-content', border: '1px solid var(--border)' }}>
-    <button style={tabStyle('commits')} onClick={() => setActiveTab('commits')}>
-      <i className="fa-solid fa-clock-rotate-left icon-sm" style={{ marginRight: '0.4rem' }}></i>
-      Commits
-    </button>
-    <button style={tabStyle('stats')} onClick={() => setActiveTab('stats')}>
-      <i className="fa-solid fa-chart-bar icon-sm" style={{ marginRight: '0.4rem' }}></i>
-      Code Stats
-    </button>
-    <button style={tabStyle('pulls')} onClick={() => setActiveTab('pulls')}>
-      <i className="fa-solid fa-code-pull-request icon-sm" style={{ marginRight: '0.4rem' }}></i>
-      Pull Requests
-    </button>
-  </div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.6)', padding: '0.4rem', borderRadius: '999px', width: 'fit-content', border: '1px solid var(--border)' }}>
+              <button style={tabStyle('commits')} onClick={() => setActiveTab('commits')}>
+                <i className="fa-solid fa-clock-rotate-left icon-sm" style={{ marginRight: '0.4rem' }}></i>
+                Commits
+              </button>
+              <button style={tabStyle('stats')} onClick={() => setActiveTab('stats')}>
+                <i className="fa-solid fa-chart-bar icon-sm" style={{ marginRight: '0.4rem' }}></i>
+                Code Stats
+              </button>
+              <button style={tabStyle('pulls')} onClick={() => setActiveTab('pulls')}>
+                <i className="fa-solid fa-code-pull-request icon-sm" style={{ marginRight: '0.4rem' }}></i>
+                Pull Requests
+              </button>
+            </div>
 
-  {branches.length > 0 && (
-    <select
-      value={selectedBranch}
-      onChange={(e) => setSelectedBranch(e.target.value)}
-      style={{
-        padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.875rem',
-        fontWeight: 600, border: '1px solid var(--border)', background: 'white',
-        color: 'var(--text)', cursor: 'pointer',
-      }}
-    >
-      {branches.map((b) => (
-        <option key={b.name} value={b.name}>
-          {b.name}{b.protected ? ' 🔒' : ''}
-        </option>
-      ))}
-    </select>
-  )}
-</div>
+            {branches.length > 0 && (
+              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                <i className="fa-solid fa-code-branch icon-sm"
+                  style={{ position: 'absolute', left: '1rem', color: 'var(--accent)', pointerEvents: 'none', fontSize: '0.75rem', }}></i>
+                <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}
+                  style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', padding: '0.5rem 2.25rem 0.5rem 2.25rem',
+                    borderRadius: '999px', fontSize: '0.875rem', fontWeight: 600, border: '1px solid var(--border)', background: 'white',
+                    color: 'var(--text)', cursor: 'pointer', lineHeight: 1.4, outline: 'none',}}>
+                  {branches.map((b) => (
+                    <option key={b.name} value={b.name}>
+                      {b.name}{b.protected ? ' (protected)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <i className="fa-solid fa-chevron-down"
+                  style={{ position: 'absolute', right: '1rem', color: 'var(--text-muted)', pointerEvents: 'none', fontSize: '0.65rem',}}></i>
+              </div>
+            )}
+          </div>
 
           {loading ? (
             <div className="card card-static" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '2rem' }}>

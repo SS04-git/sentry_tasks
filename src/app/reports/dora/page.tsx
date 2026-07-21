@@ -182,15 +182,18 @@ function DoraPageContent() {
   };
 
   const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-    padding: '0.6rem 1.25rem',
+    padding: '0.55rem 1.1rem',
     border: 'none',
-    borderBottom: active ? '2px solid var(--accent, #6366f1)' : '2px solid transparent',
-    background: 'none',
+    outline: 'none',
+    WebkitTapHighlightColor: 'transparent',
+    borderRadius: '7px',
+    background: 'transparent',
     cursor: 'pointer',
-    fontWeight: active ? 600 : 400,
+    fontWeight: active ? 700 : 500,
     color: active ? 'var(--accent, #6366f1)' : 'var(--text-muted)',
+    opacity: active ? 1 : 0.65,
     fontSize: '0.85rem',
-    transition: 'all 0.15s',
+    transition: 'color 0.15s, opacity 0.15s',
     whiteSpace: 'nowrap',
   });
 
@@ -219,18 +222,18 @@ function DoraPageContent() {
             <div className="card card-static" style={{ padding: 0 }}>
 
               {/* Tab strip */}
-              <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 1.5rem' }}>
-                <button style={tabBtnStyle(tab === 'dropdown')} onClick={() => setTab('dropdown')}>
+              <div style={{ display: 'flex', gap: '0.5rem', padding: '1.25rem 1.5rem 0' }}>
+                <button className="tab-btn-reset" style={tabBtnStyle(tab === 'dropdown')} onClick={() => setTab('dropdown')} >
                   <i className="fa-solid fa-list" style={{ marginRight: '0.4rem' }} />
                   Connected Repos
                 </button>
-                <button style={tabBtnStyle(tab === 'url')} onClick={() => setTab('url')}>
+                <button className="tab-btn-reset" style={tabBtnStyle(tab === 'url')} onClick={() => setTab('url')} >
                   <i className="fa-brands fa-github" style={{ marginRight: '0.4rem' }} />
                   GitHub URL
                 </button>
               </div>
 
-              <div style={{ padding: '1.5rem' }}>
+              <div style={{ padding: '1.25rem 1.5rem 1.5rem' }}>
 
                 {/* Dropdown tab */}
                 {tab === 'dropdown' && (

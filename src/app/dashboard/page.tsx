@@ -68,6 +68,11 @@ export default function DashboardPage() {
   const canViewIndividualMetrics =
   role === 'admin' ||
   role === 'leadership';
+  // Attendance preview visibility: employees can't see it at all;
+  // managers see a limited view (no avg arrival / team avg / KPI breakdown);
+  // admin & leadership see the full detail.
+  const canViewAttendance = role === 'admin' || role === 'leadership' || role === 'manager';
+  const canViewFullAttendance = role === 'admin' || role === 'leadership';
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const [activeUsers, setActiveUsers] = useState<number | null>(null);
@@ -339,6 +344,7 @@ useEffect(() => {
 
 
               {/* ── Attendance Preview Card ── */}
+              {canViewAttendance && (
               <div className="card">
                 <div className="section-header" style={{ marginBottom: '1.25rem' }}>
                   <i className="fa-solid fa-calendar-check icon-cyan"></i>
@@ -392,7 +398,8 @@ useEffect(() => {
                       </div>
                     </div>
 
-                    {/* KPIs */}
+                    {/* KPIs — admin & leadership only */}
+                    {canViewFullAttendance && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                       {[
                         {
@@ -421,9 +428,11 @@ useEffect(() => {
                         </div>
                       ))}
                     </div>
+                    )}
 
                     {/* Arrival + cohort comparison */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      {canViewFullAttendance && (
                       <div className="info-row" style={{ padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
                         <span className="info-row-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <i className="fa-solid fa-clock icon-cyan" style={{ fontSize: '0.8rem' }}></i>
@@ -431,6 +440,7 @@ useEffect(() => {
                         </span>
                         <span className="info-row-value">{attendance.own.avg_arrival ?? '—'}</span>
                       </div>
+                      )}
                       <div className="info-row" style={{ padding: '0.6rem 0', borderBottom: '1px solid var(--border)' }}>
                         <span className="info-row-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <i className="fa-solid fa-calendar-days icon-cyan" style={{ fontSize: '0.8rem' }}></i>
@@ -438,7 +448,7 @@ useEffect(() => {
                         </span>
                         <span className="info-row-value">{attendance.own.days_present} / 30 days</span>
                       </div>
-                      {attendance.cohort.avg_attendance_pct !== null && (
+                      {canViewFullAttendance && attendance.cohort.avg_attendance_pct !== null && (
                         <div className="info-row" style={{ padding: '0.6rem 0' }}>
                           <span className="info-row-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <i className="fa-solid fa-users icon-cyan" style={{ fontSize: '0.8rem' }}></i>
@@ -450,7 +460,7 @@ useEffect(() => {
                     </div>
 
                     {/* Privacy caveat */}
-                    {attendance.cohort.avg_attendance_pct === null && (
+                    {canViewFullAttendance && attendance.cohort.avg_attendance_pct === null && (
                       <p style={{ fontSize: '12px', color: 'var(--text-light)', marginTop: '0.75rem', fontStyle: 'italic' }}>
                         Team comparison hidden — cohort too small.
                       </p>
@@ -461,6 +471,7 @@ useEffect(() => {
                   </>
                 )}
               </div>
+              )}
 
               {/* Permissions */}
               <div className="card">
@@ -472,7 +483,7 @@ useEffect(() => {
                   {[
                     { label: 'Dashboard',    icon: 'fa-gauge',              roles: ['admin','leadership','manager','employee'] },
                     { label: 'Reports',      icon: 'fa-chart-bar',          roles: ['admin','leadership','manager'] },
-                    { label: 'Admin',        icon: 'fa-screwdriver-wrench', roles: ['admin','leadership'] },
+                    { label: 'Admin',        icon: 'fa-screwdriver-wrench', roles: ['admin'] },
                     { label: 'Manage Users', icon: 'fa-users-gear',         roles: ['admin'] },
                   ].map((item) => {
                     const allowed = item.roles.includes(role);

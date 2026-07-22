@@ -351,7 +351,7 @@ useEffect(() => {
                   <h2>My Attendance</h2>
                   {role === 'admin' && (
                     <a
-                      href="/reports/attendance"
+                      href="/admin/attendance"
                       style={{
                         marginLeft: 'auto', fontSize: '0.78rem', fontWeight: 600,
                         color: 'var(--accent)', textDecoration: 'none',

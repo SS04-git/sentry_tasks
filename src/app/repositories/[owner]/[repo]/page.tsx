@@ -15,7 +15,7 @@ export default function RepoDetailPage() {
   const role = user?.role ?? 'employee';
   const params = useParams();
   const owner = params.owner as string;
-  const repo = params.repo as string;
+  const repo = params.repo as string;``
 
   const [activeTab, setActiveTab] = useState<Tab>('commits');
   const [commits, setCommits] = useState<any[]>([]);

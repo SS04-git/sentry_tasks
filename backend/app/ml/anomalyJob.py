@@ -7,7 +7,7 @@ import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.ml.anomaly_model import AnomalyModel
+from app.ml.anomaly_model import BaselineAnomalyScorer, Z_SCORE_THRESHOLD
 
 logger = logging.getLogger("backend")
 
@@ -25,11 +25,6 @@ def _build_features(rows: list) -> pd.DataFrame:
     # categorical encodings
     df["direction_enc"]     = df["direction"].map({"entry": 0, "exit": 1}).fillna(2)
     df["access_result_enc"] = df["access_result"].map({"granted": 0, "denied": 1}).fillna(2)
-
-    # normalised swipe frequency
-    df["swipe_freq"] = (
-        df.groupby("person_id")["id"].transform("count") / len(df)
-    )
 
     # gap since last event per person (minutes, capped at 24h)
     df["gap_since_last_event_min"] = (
@@ -51,18 +46,31 @@ def _build_features(rows: list) -> pd.DataFrame:
 
 
 def _make_reason(row: pd.Series) -> str:
+    """
+    Built directly from the same values the scorer used to decide,
+    so what a reviewer reads matches what actually triggered the flag.
+    """
     parts = []
-    if row["access_result_enc"] == 1:
+
+    if row["denied_flag"]:
         parts.append("denied access")
-    if row["hour_of_day"] < 6 or row["hour_of_day"] >= 22:
-        parts.append(f"unusual hour ({int(row['hour_of_day'])}:00)")
-    if row["is_weekend"]:
-        parts.append("weekend access")
-    if 0 < row["gap_since_last_event_min"] < 2:
-        parts.append(f"rapid re-entry ({row['gap_since_last_event_min']:.1f} min gap)")
-    if abs(row["entry_exit_balance"]) >= 3:
-        parts.append(f"entry/exit imbalance ({int(row['entry_exit_balance'])})")
-    return ", ".join(parts) if parts else "statistical anomaly"
+
+    if not row["has_personal_baseline"]:
+        parts.append("limited history for this person — compared to org-wide baseline")
+
+    for z_col, label in [
+        ("hour_of_day_z", "badge time"),
+        ("gap_since_last_event_min_z", "gap since previous swipe"),
+        ("entry_exit_balance_z", "entry/exit balance"),
+    ]:
+        z = row[z_col]
+        if z >= Z_SCORE_THRESHOLD:
+            parts.append(f"{label} {z:.1f}x deviation from baseline")
+
+    if not parts:
+        parts.append("statistical deviation from personal baseline")
+
+    return ", ".join(parts)
 
 
 def run_anomaly_detection(db: Session) -> dict[str, Any]:
@@ -78,13 +86,8 @@ def run_anomaly_detection(db: Session) -> dict[str, Any]:
 
     df = _build_features(rows)
 
-    model = AnomalyModel()
-    model.train(df)
-    df = model.score(df)
-
-    # normalise score to [0,1] where 1 = most anomalous
-    mn, mx = df["anomaly_score"].min(), df["anomaly_score"].max()
-    df["normalised_score"] = 1 - (df["anomaly_score"] - mn) / (mx - mn + 1e-9)
+    scorer = BaselineAnomalyScorer()
+    df = scorer.score(df)
 
     anomalies = df[df["is_anomaly"]]
 

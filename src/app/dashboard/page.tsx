@@ -349,7 +349,7 @@ useEffect(() => {
                 <div className="section-header" style={{ marginBottom: '1.25rem' }}>
                   <i className="fa-solid fa-calendar-check icon-cyan"></i>
                   <h2>My Attendance</h2>
-                  {['admin', 'leadership', 'manager'].includes(role) && (
+                  {role === 'admin' && (
                     <a
                       href="/reports/attendance"
                       style={{

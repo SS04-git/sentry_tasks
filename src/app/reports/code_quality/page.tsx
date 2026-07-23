@@ -450,14 +450,22 @@ const runScan = async (owner: string, repo: string) => {
                   </thead>
 
                   <tbody>
-                    {lint.map((l) => (
-                      <tr key={l.repo}>
-                        <td style={tdStyle}>{l.repo}</td>
-                        <td style={tdStyle}>{l.findings_per_kloc ?? '—'}</td>
-                        <td style={tdStyle}>{l.error_count}</td>
-                        <td style={tdStyle}>{l.warning_count}</td>
+                    {lint.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} style={{ ...tdStyle, color: 'var(--text-muted)' }}>
+                          No lint scan data available
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      lint.map((l) => (
+                        <tr key={l.repo}>
+                          <td style={tdStyle}>{l.repo}</td>
+                          <td style={tdStyle}>{l.findings_per_kloc ?? '—'}</td>
+                          <td style={tdStyle}>{l.error_count}</td>
+                          <td style={tdStyle}>{l.warning_count}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -480,34 +488,42 @@ const runScan = async (owner: string, repo: string) => {
                   </thead>
 
                   <tbody>
-                    {alerts.map((a) => (
-                      <tr key={a.id}>
-                        <td style={tdStyle}>{a.repo}</td>
-                        <td style={tdStyle}>{a.tool}</td>
-                        <td style={tdStyle}>{a.severity}</td>
-                        <td style={tdStyle}>
-                          {a.file_path}:{a.line_number}
-                        </td>
-
-                        <td style={tdStyle}>
-                          <button
-                            className="btn-secondary"
-                            onClick={() => handleAlert(a.id, 'resolve')}
-                            style={{ marginLeft: '0.5rem' }}
-                          >
-                            Resolve
-                          </button>
-
-                          <button
-                            className="btn-secondary"
-                            onClick={() => handleAlert(a.id, 'dismiss')}
-                            style={{ marginLeft: '0.5rem' }}
-                          >
-                            Dismiss
-                          </button>
+                    {alerts.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ ...tdStyle, color: 'var(--text-muted)' }}>
+                          No open secret scanning alerts
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      alerts.map((a) => (
+                        <tr key={a.id}>
+                          <td style={tdStyle}>{a.repo}</td>
+                          <td style={tdStyle}>{a.tool}</td>
+                          <td style={tdStyle}>{a.severity}</td>
+                          <td style={tdStyle}>
+                            {a.file_path}:{a.line_number}
+                          </td>
+
+                          <td style={tdStyle}>
+                            <button
+                              className="btn-secondary"
+                              onClick={() => handleAlert(a.id, 'resolve')}
+                              style={{ marginLeft: '0.5rem' }}
+                            >
+                              Resolve
+                            </button>
+
+                            <button
+                              className="btn-secondary"
+                              onClick={() => handleAlert(a.id, 'dismiss')}
+                              style={{ marginLeft: '0.5rem' }}
+                            >
+                              Dismiss
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

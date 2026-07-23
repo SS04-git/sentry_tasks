@@ -1,17 +1,3 @@
-# Code quality scanner pipeline
-# For a given owner/repo:
-#   1. Download a tarball of the default branch via the GitHub API (no full clone).
-#   2. Run lizard for cyclomatic complexity (Python, JS, TS, TSX).
-#   3. Run ruff for Python lint, eslint for JS/TS/TSX lint.
-#   4. Run gitleaks for secret scanning.
-#   5. Run semgrep for vuln/security findings (folded into the same alert table as secrets,
-#      tool='semgrep' vs tool='gitleaks').
-#   6. Pull churn (additions/deletions/commit count per file) from the GitHub API —
-#      reuses GitCommit / GitFileChange data already synced by github.py, falls back
-#      to a live commits/{sha} call if a file has no synced data yet.
-#   7. Persist everything under a single code_quality_scan row.
-# Never auto-acts — purely writes scan results for the dashboard / alert feed to read.
-
 from __future__ import annotations
 
 import io
@@ -196,16 +182,33 @@ def _run_ruff(root: Path) -> list[dict]:
 
     return out
 
+def _has_eslint_config(root: Path) -> bool:
+    candidates = [
+        "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs",
+        ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json",
+        ".eslintrc.yml", ".eslintrc.yaml",
+    ]
+    return any((root / c).exists() for c in candidates)
+
+
 def _run_eslint(root: Path) -> list[dict]:
-    """Returns list of {file_path, line, column, rule_id, severity, message}.
-    Requires eslint + a config (.eslintrc*) to be resolvable from the project,
-    or an org-wide --config passed via ESLINT_CONFIG_PATH env var."""
     js_files = [p for p in _iter_source_files(root) if p.suffix in {".js", ".jsx", ".ts", ".tsx"}]
     if not js_files:
         return []
 
     cmd = ["npx", "--yes", "eslint", str(root), "--format", "json", "--no-error-on-unmatched-pattern"]
+
     config_path = os.getenv("ESLINT_CONFIG_PATH")
+    fallback_config: Path | None = None
+
+    if not config_path and not _has_eslint_config(root):
+        # Repo ships no eslint config of its own — use a minimal flat-config
+        # fallback so the scan degrades gracefully instead of hard-failing.
+        fallback_config = root.parent / "eslint.fallback.config.mjs"
+        fallback_config.write_text("export default [{ rules: {} }];\n")
+        config_path = str(fallback_config)
+        logger.warning("No eslint config found in %s — using fallback config", root)
+
     if config_path:
         cmd += ["--config", config_path]
 
@@ -217,7 +220,7 @@ def _run_eslint(root: Path) -> list[dict]:
         if proc.returncode not in (0, 1):
             logger.warning("eslint skipped for repo due to config/dependency issue")
             return []
-        
+
         results = json.loads(proc.stdout or "[]")
     except FileNotFoundError:
         logger.warning("eslint/npx not installed — skipping JS/TS lint")
@@ -225,6 +228,9 @@ def _run_eslint(root: Path) -> list[dict]:
     except (subprocess.TimeoutExpired, json.JSONDecodeError) as e:
         logger.warning("eslint scan failed: %s", e)
         return []
+    finally:
+        if fallback_config:
+            fallback_config.unlink(missing_ok=True)
 
     out = []
     for file_result in results:

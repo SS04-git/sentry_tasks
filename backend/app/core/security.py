@@ -3,9 +3,9 @@ from jose import jwt
 import bcrypt
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
+SECRET_KEY = os.getenv("SECRET_KEY", "488ea84330437dcd3f9c0da26673f87d205f80a57471c39c67b82cd8c1403c8a")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 90
+ACCESS_TOKEN_EXPIRE_MINUTES = 150
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(

@@ -497,8 +497,9 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Governance Ops */}
-            <div className="card" style={{ marginBottom: '1rem' }}>
+              {/* Governance Ops — admin & leadership only */}
+              {canViewIndividualMetrics && (
+              <div className="card" style={{ marginBottom: '1rem' }}>
               <div className="section-header">
               <i className="fa-solid fa-scale-balanced icon-cyan"></i>
               <h2>Governance Notice</h2>
@@ -511,6 +512,7 @@ useEffect(() => {
             <KpiCaveat text={caveats['attendance']} />
             <KpiCaveat text={caveats['commit_count']} />
             </div>
+              )}
 
             </div>
 
